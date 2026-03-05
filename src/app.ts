@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
-import { fileURLToPath } from 'url';
+// import { fileURLToPath } from 'url';
 
 // --- TYPES ---
 interface ClientRule {
@@ -26,10 +26,6 @@ interface AuditResult {
 const app = express();
 const isVercel = process.env.VERCEL === '1';
 
-// Define __dirname for ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // --- DB LOGIC (Mocked for Debug) ---
 async function getDb(): Promise<AuditResult[]> {
   return [];
@@ -46,23 +42,28 @@ async function saveFile(file: Express.Multer.File, filename: string): Promise<st
 
 // --- HELPER: Manual CSV Parser ---
 function parseCSV(content: string): any[] {
-  const lines = content.split(/\r?\n/).filter(line => line.trim() !== '');
-  if (lines.length === 0) return [];
+  try {
+    const lines = content.split(/\r?\n/).filter(line => line.trim() !== '');
+    if (lines.length === 0) return [];
 
-  const headers = lines[0].split(',').map(h => h.trim());
-  const records = [];
+    const headers = lines[0].split(',').map(h => h.trim());
+    const records = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(','); 
-    if (values.length >= headers.length) {
-      const record: any = {};
-      headers.forEach((header, index) => {
-        record[header] = values[index]?.trim() || '';
-      });
-      records.push(record);
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(','); 
+      if (values.length >= headers.length) {
+        const record: any = {};
+        headers.forEach((header, index) => {
+          record[header] = values[index]?.trim() || '';
+        });
+        records.push(record);
+      }
     }
+    return records;
+  } catch (e) {
+    console.error("CSV Parsing Failed:", e);
+    return [];
   }
-  return records;
 }
 
 // --- APP SETUP ---
@@ -82,22 +83,16 @@ app.get('/api', (req, res) => {
 });
 
 // Helper to get absolute path (Only for reference images now)
-function getDataPath(relativePath: string): string {
-  const possiblePaths = [
-    path.join(process.cwd(), relativePath),
-    path.join(process.cwd(), 'data', path.basename(relativePath)),
-    path.resolve(__dirname, '..', relativePath),
-  ];
+function getReferencePath(filename: string): string {
+  // Try standard public folder location in Vercel
+  const p = path.join(process.cwd(), 'public', 'referencias', filename);
+  if (fs.existsSync(p)) return p;
+  
+  // Try local dev location
+  const local = path.join(process.cwd(), '..', 'public', 'referencias', filename);
+  if (fs.existsSync(local)) return local;
 
-  if (relativePath.startsWith('public/')) {
-     possiblePaths.push(path.join(process.cwd(), 'public', relativePath.replace('public/', '')));
-  }
-
-  for (const p of possiblePaths) {
-    if (fs.existsSync(p)) return p;
-  }
-
-  return path.join(process.cwd(), relativePath);
+  return p; // Return default even if missing
 }
 
 // Configure Multer
@@ -198,8 +193,9 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     // Add references (Try to load, but don't fail if missing)
     for (const prod of requiredProducts) {
       try {
-        let refPath = getDataPath(`public/referencias/${prod}.jpg`);
-        if (!fs.existsSync(refPath)) refPath = getDataPath(`public/referencias/${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`);
+        // Use simplified path resolution
+        let refPath = getReferencePath(`${prod}.jpg`);
+        if (!fs.existsSync(refPath)) refPath = getReferencePath(`${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`);
 
         if (fs.existsSync(refPath)) {
           parts.push({ text: `Reference for ${prod}:` });
