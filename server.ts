@@ -5,7 +5,8 @@ import path from 'path';
 import fs from 'fs';
 import { parse } from 'csv-parse/sync';
 import { GoogleGenAI } from '@google/genai';
-import db, { initDb } from './src/db.ts';
+import { initDb, saveAudit, getHistory } from './src/db';
+import { saveFile } from './src/storage';
 
 // Initialize DB
 initDb();
@@ -13,27 +14,13 @@ initDb();
 const app = express();
 const PORT = 3000;
 
-// Configure Multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.resolve('uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    // Filename format: {NombreCliente}_{Fecha-Hora}_{ResultadoGlobal}.jpg
-    // We will rename it properly AFTER processing, for now use temp name
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Configure Multer for memory storage (needed for Vercel Blob)
+const upload = multer({ storage: multer.memoryStorage() });
 
-const upload = multer({ storage: storage });
-
-// Serve uploaded files
-app.use('/uploads', express.static(path.resolve('uploads')));
+// Serve uploaded files (only for local dev)
+if (process.env.VERCEL !== '1') {
+  app.use('/uploads', express.static(path.resolve('uploads')));
+}
 
 // API Routes
 
@@ -111,9 +98,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       ONLY return the JSON. Do not include markdown formatting.
     `;
 
-    // Read file as base64
-    const imageBuffer = fs.readFileSync(file.path);
-    const imageBase64 = imageBuffer.toString('base64');
+    // Read file buffer (from memory)
+    const imageBase64 = file.buffer.toString('base64');
 
     // Build parts array with main image and references
     const parts: any[] = [
@@ -199,25 +185,18 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const safeClientName = (clientRule['Nombre Store'] || 'Client').replace(/[^a-z0-9]/gi, '_');
     const newFilename = `${safeClientName}_${timestamp}_${globalResult.replace(' ', '_')}.jpg`;
-    const newPath = path.join(path.dirname(file.path), newFilename);
     
-    fs.renameSync(file.path, newPath);
-    const fileUrl = `/uploads/${newFilename}`;
+    const fileUrl = await saveFile(file, newFilename);
 
     // 6. Save to DB
-    const insert = db.prepare(`
-      INSERT INTO audits (usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-    
-    insert.run(
+    await saveAudit({
       usuario,
-      new Date().toISOString(),
-      clientRule['Nombre Store'],
-      JSON.stringify(detailedResult),
-      globalResult,
-      fileUrl
-    );
+      fecha: new Date().toISOString(),
+      cliente: clientRule['Nombre Store'],
+      resultado_detallado: JSON.stringify(detailedResult),
+      resultado_global: globalResult,
+      url_imagen: fileUrl
+    });
 
     res.json({
       globalResult,
@@ -232,18 +211,18 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 });
 
 // Get History
-app.get('/api/history', (req, res) => {
+app.get('/api/history', async (req, res) => {
   try {
-    const stmt = db.prepare('SELECT * FROM audits ORDER BY id DESC');
-    const rows = stmt.all();
+    const rows = await getHistory();
     res.json(rows);
   } catch (error) {
+    console.error('History fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch history' });
   }
 });
 
-// Vite Middleware
-if (process.env.NODE_ENV !== 'production') {
+// Vite Middleware (only for local dev)
+if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
   const vite = await createViteServer({
     server: { middlewareMode: true },
     appType: 'spa',
@@ -251,6 +230,17 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(vite.middlewares);
 }
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+import { fileURLToPath } from 'url';
+
+// ... existing imports ...
+
+// ... existing code ...
+
+// Start server only if run directly
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
