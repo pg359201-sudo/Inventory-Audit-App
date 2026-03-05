@@ -225,7 +225,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     
     // Use a specific model version that is likely to exist
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash-001",
+      model: "gemini-1.5-pro",
       contents: { parts }
     });
 
@@ -269,9 +269,16 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     if (errorMessage.includes('404') || errorMessage.includes('NOT_FOUND')) {
       try {
          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-         const models = await ai.models.list();
-         const modelNames = models.map((m: any) => m.name).join(', ');
-         errorMessage += ` | AVAILABLE MODELS: ${modelNames}`;
+         const listResp = await ai.models.list();
+         // Handle different response structures
+         const models = (listResp as any).models || (listResp as any).data || listResp;
+         
+         if (Array.isArray(models)) {
+             const modelNames = models.map((m: any) => m.name?.replace('models/', '')).join(', ');
+             errorMessage += ` | AVAILABLE MODELS: ${modelNames}`;
+         } else {
+             errorMessage += ` | COULD NOT PARSE MODELS LIST: ${JSON.stringify(listResp).substring(0, 200)}...`;
+         }
       } catch (listError: any) {
          errorMessage += ` | Could not list models: ${listError.message}`;
       }
