@@ -223,9 +223,9 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       }
     }
     
-    // Use a specific model version that is likely to exist
+    // Use the confirmed available model
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-pro",
+      model: "gemini-2.5-flash",
       contents: { parts }
     });
 
@@ -269,9 +269,10 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     if (errorMessage.includes('404') || errorMessage.includes('NOT_FOUND')) {
       try {
          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-         const listResp = await ai.models.list();
-         // Handle different response structures
-         const models = (listResp as any).models || (listResp as any).data || listResp;
+         const listResp: any = await ai.models.list();
+         
+         // Handle various response structures (including pageInternal seen in logs)
+         const models = listResp.models || listResp.data || listResp.pageInternal || listResp;
          
          if (Array.isArray(models)) {
              const modelNames = models.map((m: any) => m.name?.replace('models/', '')).join(', ');
