@@ -225,7 +225,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     
     // Use a specific model version that is likely to exist
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash-002",
+      model: "gemini-1.5-flash-001",
       contents: { parts }
     });
 
@@ -262,7 +262,22 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
   } catch (error: any) {
     console.error('Audit processing error:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    
+    let errorMessage = error.message || 'Internal server error';
+    
+    // If model not found, try to list available models to help debug
+    if (errorMessage.includes('404') || errorMessage.includes('NOT_FOUND')) {
+      try {
+         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+         const models = await ai.models.list();
+         const modelNames = models.map((m: any) => m.name).join(', ');
+         errorMessage += ` | AVAILABLE MODELS: ${modelNames}`;
+      } catch (listError: any) {
+         errorMessage += ` | Could not list models: ${listError.message}`;
+      }
+    }
+
+    res.status(500).json({ error: errorMessage });
   }
 });
 
