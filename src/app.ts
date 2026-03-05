@@ -26,6 +26,10 @@ interface AuditResult {
 const app = express();
 const isVercel = process.env.VERCEL === '1';
 
+// Define __dirname for ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // --- DB LOGIC (Mocked for Debug) ---
 async function getDb(): Promise<AuditResult[]> {
   return [];
@@ -96,10 +100,16 @@ function getDataPath(relativePath: string): string {
      possiblePaths.push(path.join(process.cwd(), 'public', relativePath.replace('public/', '')));
   }
 
+  console.log(`[Debug] Searching for ${relativePath}. CWD: ${process.cwd()}, __dirname: ${__dirname}`);
+
   for (const p of possiblePaths) {
-    if (fs.existsSync(p)) return p;
+    if (fs.existsSync(p)) {
+      console.log(`[Debug] Found at: ${p}`);
+      return p;
+    }
   }
 
+  console.warn(`[Debug] File not found: ${relativePath}. Checked: ${possiblePaths.join(', ')}`);
   return path.join(process.cwd(), relativePath); // Default
 }
 
