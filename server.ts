@@ -7,6 +7,7 @@ import { parse } from 'csv-parse/sync';
 import { GoogleGenAI } from '@google/genai';
 import { initDb, saveAudit, getHistory } from './src/db';
 import { saveFile } from './src/storage';
+// ... imports
 import { fileURLToPath } from 'url';
 
 // Initialize DB
@@ -14,6 +15,39 @@ initDb();
 
 const app = express();
 const PORT = 3000;
+
+// EMBEDDED CSV DATA (Fallback)
+const EMBEDDED_CSV_DATA = `Codigo FEMSA,Nombre Store,Gin Gordons,Gin Tanqueray,Gin Royale,Gin Sevilla,JW Blonde,Smirnoff Ice,Vodka Smirnoff 750mL,Black & White 1L,JW Black 1L,JW Red 1L,Sandy Mac 1L,Vat 69 1L,Vat 69 200 ml,White Horse 1L,ruta de venta
+1800104710 - EL DORADO,EL DORADO 1050,Si,Si,Si,Si,No,Si,Si,Si,Si,Si,Si,Si,No,Si,Dayana Gonzalez
+1800031290 - SUPERMERCADO SANTA C,TIENDA INGLESA - EXPRESS SANTA CECILIA,Si,Si,No,No,No,Si,Si,Si,Si,Si,Si,Si,No,Si,Dayana Gonzalez
+1800043840 - SUPER UNO,LERNA SA,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Dayana Gonzalez
+1800104709 - SUPER UNO,TIENDA INGLESA - EXPRESS SUPER UNO LOCAL 2,Si,Si,No,No,No,Si,Si,Si,Si,Si,Si,Si,No,Si,Dayana Gonzalez
+1800015966 - AUT.SERVICE EL VASCO,EL VASCO,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Dayana Gonzalez
+1800016309 - SUPERMERCADO ITALIA,SUPERM ITALIA S.R.L.,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Diego Martinez
+1800016332 - PANADERIA SATORE,DON JULIO SARTORE S RL,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Diego Martinez
+1820002865 - AUTOSERVICIO BASTION,PLANETA SAN JOSE,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Diego Martinez
+1800105175 - DISTRIBUIDORA 33,DISTRIBUIDORA 33,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Diego Martinez
+1820006798 - POLAKOF,EL DORADO SAN JOSE,Si,Si,Si,Si,No,Si,Si,Si,Si,Si,Si,Si,No,Si,Ignacio Maag Perez
+1800025533 - TATA SA,TA-TA 121,Si,Si,Si,Si,No,Si,Si,Si,Si,Si,Si,Si,No,Si,Ignacio Maag Perez
+1800016885 - SUPERMERCADO AVENIDA,AVENIDA SUR,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Ignacio Maag Perez
+1800023496 - SUPER AVENIDA II,AVENIDA NORTE,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Ignacio Maag Perez
+1800040855 - SUPER AVENIDA CENTRO,AVENIDA CENTRO,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Ignacio Maag Perez
+1800044725 - SUPER AVENIDA MOLINO,AVENIDA MOLINO,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Ignacio Maag Perez
+1800049639 - OCHO 24,YEK S.A.,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Ignacio Maag Perez
+1800016057 - CARIPLAL,COOPERATIVA RIO DE LA PLATA,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Ignacio Maag Perez
+1800049696 - VICTORIA CUADRA,DOÑA VACA,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Ignacio Maag Perez
+1820001012 - SUC ECILA PAULLIER,SUPERMERCADO FOMENTO (SOC.FOM.COL.SUIZ.SUC.EP),Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Ignacio Maag Perez
+1800043078 - MARTIN MATOS,CINCO ESQUINAS,No,No,No,No,No,Si,No,No,No,Si,Si,Si,Si,No,Mauricio Oliveri
+1800026997 - SINTEL S.A.,SINTEL (ANCAP ROTONDA),Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,No,Mauricio Oliveri
+1800029703 - ESTACION MONZA,MONZA (BLANQUEO),Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,No,Mauricio Oliveri
+1800043059 - BLANQUEO S.A,PETROBRAS BLANQUEO,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,No,Mauricio Oliveri
+1800023134 - SUPER. SAN CONO,SAN CONO (TERMINAL),No,No,No,No,No,Si,No,No,No,Si,Si,Si,Si,No,Mauricio Oliveri
+1800026945 - SAN CONO,SAN CONO (CENTRO),Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Mauricio Oliveri
+1800015189 - DANIEL ACOSTA,TRES HERMANOS,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Mauricio Oliveri
+1800026959 - TATA S.A,TA-TA 315,Si,Si,Si,Si,No,Si,Si,Si,Si,Si,Si,Si,No,Si,Mauricio Oliveri
+1800037688 - MARTIN TRIAS,BUTRI (EL GALPON),Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Mauricio Oliveri
+1800015104 - ANABEL FIERRO,AUTOSERVICE PATRICIA FIERRO,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Mauricio Oliveri
+1800026918 - NESTOR CONO DAMIAN S,ESSO GIOVANNI FLORIDA,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,No,Mauricio Oliveri`;
 
 // Helper to get absolute path that works in both local and Vercel
 function getDataPath(relativePath: string): string {
@@ -32,7 +66,12 @@ function getDataPath(relativePath: string): string {
 
   // Try relative to 'public' if it's a reference image (Vercel sometimes puts public at root)
   if (relativePath.startsWith('public/')) {
-     absolutePath = path.join(process.cwd(), '..', relativePath); // Try one level up
+     // Try standard public location
+     absolutePath = path.join(process.cwd(), 'public', relativePath.replace('public/', ''));
+     if (fs.existsSync(absolutePath)) return absolutePath;
+     
+     // Try one level up (if cwd is api/)
+     absolutePath = path.join(process.cwd(), '..', relativePath); 
      if (fs.existsSync(absolutePath)) return absolutePath;
   }
 
@@ -50,17 +89,46 @@ if (process.env.VERCEL !== '1') {
 
 // API Routes
 
+// Debug Endpoint
+app.get('/api/debug-paths', (req, res) => {
+  const cwd = process.cwd();
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  
+  const pathsToCheck = [
+    'data/reglas-clientes.csv',
+    'public/referencias',
+    '../data/reglas-clientes.csv',
+    '../public/referencias'
+  ];
+
+  const results = pathsToCheck.map(p => ({
+    path: p,
+    absolute: path.resolve(cwd, p),
+    exists: fs.existsSync(path.resolve(cwd, p))
+  }));
+
+  res.json({
+    cwd,
+    __dirname,
+    results,
+    env: process.env
+  });
+});
+
 // Get Clients
 app.get('/api/clients', (req, res) => {
   try {
+    let fileContent = EMBEDDED_CSV_DATA;
     const csvPath = getDataPath('data/reglas-clientes.csv');
     
-    if (!fs.existsSync(csvPath)) {
-      console.error(`CSV File missing at: ${csvPath}`);
-      return res.status(500).json({ error: 'Configuration file missing on server' });
+    // Try to read from file if it exists, otherwise use embedded
+    if (fs.existsSync(csvPath)) {
+      console.log(`Loading clients from file: ${csvPath}`);
+      fileContent = fs.readFileSync(csvPath, 'utf-8');
+    } else {
+      console.warn('CSV file not found, using embedded fallback data');
     }
 
-    const fileContent = fs.readFileSync(csvPath, 'utf-8');
     const records = parse(fileContent, {
       columns: true,
       skip_empty_lines: true
@@ -68,7 +136,16 @@ app.get('/api/clients', (req, res) => {
     res.json(records);
   } catch (error) {
     console.error('Error reading CSV:', error);
-    res.status(500).json({ error: 'Failed to load client data' });
+    // Fallback to embedded data even on error
+    try {
+      const records = parse(EMBEDDED_CSV_DATA, {
+        columns: true,
+        skip_empty_lines: true
+      });
+      res.json(records);
+    } catch (e) {
+      res.status(500).json({ error: 'Failed to load client data' });
+    }
   }
 });
 
@@ -83,8 +160,12 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     }
 
     // 1. Load Client Rules
+    let fileContent = EMBEDDED_CSV_DATA;
     const csvPath = getDataPath('data/reglas-clientes.csv');
-    const fileContent = fs.readFileSync(csvPath, 'utf-8');
+    if (fs.existsSync(csvPath)) {
+      fileContent = fs.readFileSync(csvPath, 'utf-8');
+    }
+    
     const records = parse(fileContent, {
       columns: true,
       skip_empty_lines: true
