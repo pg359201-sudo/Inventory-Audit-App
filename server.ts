@@ -93,8 +93,11 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     
     // Prepare prompt
     const prompt = `
-      Analyze this image of a liquor shelf.
+      Analyze this image of a liquor shelf (the first image provided).
       Check for the presence of the following products: ${productColumns.join(', ')}.
+      
+      I have provided reference images for the required products below the main audit photo.
+      Use these references to strictly identify the products.
       
       For each product, determine if it is present or missing.
       Return a JSON object where keys are the product names and values are "Present" or "Missing".
@@ -112,18 +115,48 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     const imageBuffer = fs.readFileSync(file.path);
     const imageBase64 = imageBuffer.toString('base64');
 
+    // Build parts array with main image and references
+    const parts: any[] = [
+      { text: prompt },
+      { text: "Main Audit Photo:" },
+      {
+        inlineData: {
+          mimeType: file.mimetype,
+          data: imageBase64
+        }
+      }
+    ];
+
+    // Add reference images if they exist
+    let referencesFound = 0;
+    for (const prod of requiredProducts) {
+      // Try exact match first
+      let refPath = path.resolve('public/referencias', `${prod}.jpg`);
+      
+      // Try with sanitized name if exact match fails (optional safety)
+      if (!fs.existsSync(refPath)) {
+         refPath = path.resolve('public/referencias', `${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`);
+      }
+
+      if (fs.existsSync(refPath)) {
+        const refBuffer = fs.readFileSync(refPath);
+        parts.push({ text: `Reference for ${prod}:` });
+        parts.push({
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: refBuffer.toString('base64')
+          }
+        });
+        referencesFound++;
+      }
+    }
+    
+    console.log(`Sending request to Gemini with ${referencesFound} reference images.`);
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-latest",
       contents: {
-        parts: [
-          { text: prompt },
-          {
-            inlineData: {
-              mimeType: file.mimetype,
-              data: imageBase64
-            }
-          }
-        ]
+        parts: parts
       }
     });
 
