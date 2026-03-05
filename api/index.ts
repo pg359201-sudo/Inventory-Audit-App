@@ -154,6 +154,17 @@ app.get('/api/clients', (req, res) => {
   }
 });
 
+app.get('/api/debug-models', async (req, res) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) return res.status(500).json({error: 'No API Key'});
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const response = await ai.models.list();
+    res.json(response);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/audit', upload.single('photo'), async (req, res) => {
   try {
     const { usuario, clienteId } = req.body;
@@ -212,8 +223,9 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       }
     }
     
+    // Use a specific model version that is likely to exist
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-1.5-flash-002",
       contents: { parts }
     });
 
