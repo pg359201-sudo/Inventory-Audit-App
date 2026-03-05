@@ -1,7 +1,9 @@
 import { sql } from '@vercel/postgres';
 import { put, list } from '@vercel/blob';
-import Database from 'better-sqlite3';
 import { AuditResult } from './types';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 
 // Detect environment
 const isVercel = process.env.VERCEL === '1';
@@ -20,19 +22,24 @@ export function initDb() {
       console.log('Vercel Postgres not found. Using Vercel Blob as JSON database.');
     }
   } else {
-    localDb = new Database('audit.db');
-    localDb.exec(`
-      CREATE TABLE IF NOT EXISTS audits (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario TEXT,
-        fecha TEXT,
-        cliente TEXT,
-        resultado_detallado TEXT,
-        resultado_global TEXT,
-        url_imagen TEXT
-      )
-    `);
-    console.log('Local SQLite DB initialized.');
+    try {
+      const Database = require('better-sqlite3');
+      localDb = new Database('audit.db');
+      localDb.exec(`
+        CREATE TABLE IF NOT EXISTS audits (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          usuario TEXT,
+          fecha TEXT,
+          cliente TEXT,
+          resultado_detallado TEXT,
+          resultado_global TEXT,
+          url_imagen TEXT
+        )
+      `);
+      console.log('Local SQLite DB initialized.');
+    } catch (e) {
+      console.error('Failed to initialize local SQLite DB:', e);
+    }
   }
 }
 

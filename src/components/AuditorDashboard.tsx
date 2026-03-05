@@ -21,23 +21,31 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     fileUrl: string;
   } | null>(null);
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   useEffect(() => {
     fetch('/api/clients')
-      .then(res => {
-        if (!res.ok) throw new Error('Network response was not ok');
+      .then(async res => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Server error: ${res.status} ${text}`);
+        }
         return res.json();
       })
       .then(data => {
         if (Array.isArray(data)) {
           setClients(data);
+          setErrorMsg(null);
         } else {
           console.error('Data is not an array:', data);
           setClients([]);
+          setErrorMsg('Received invalid data format from server');
         }
       })
       .catch(err => {
         console.error('Error fetching clients:', err);
         setClients([]);
+        setErrorMsg(`Error loading clients: ${err.message}`);
       });
   }, []);
 
@@ -147,6 +155,22 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
           <h1 className="text-xl font-bold text-gray-900">Sesión Auditor</h1>
           <button onClick={onLogout} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
         </div>
+
+        {errorMsg && (
+          <div className="rounded-md bg-red-50 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <XCircle className="h-5 w-5 text-red-400" aria-hidden="true" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>{errorMsg}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <div className="space-y-4">
