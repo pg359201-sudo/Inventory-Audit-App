@@ -25,13 +25,17 @@ interface AuditResult {
 const app = express();
 const isVercel = process.env.VERCEL === '1';
 
-// --- DB LOGIC (Mocked for Debug) ---
+// --- DB LOGIC (In-Memory Persistence) ---
+const globalHistory: AuditResult[] = [];
+
 async function getDb(): Promise<AuditResult[]> {
-  return [];
+  return globalHistory;
 }
 
 async function saveToDb(audit: Omit<AuditResult, 'id'>) {
-  return { ...audit, id: Date.now() };
+  const newRecord = { ...audit, id: Date.now() };
+  globalHistory.unshift(newRecord); // Add to beginning
+  return newRecord;
 }
 
 // --- STORAGE LOGIC (Mocked for Debug) ---
