@@ -1,0 +1,5 @@
+{
+  "name": "Inventory Audit App",
+  "description": "AI-powered inventory audit application for checking product presence against client rules.",
+  "requestFramePermissions": ["camera"]
+}
