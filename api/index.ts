@@ -106,9 +106,26 @@ app.get('/api/init-db', async (req, res) => {
   }
 });
 
-// --- STORAGE LOGIC (Mocked for Debug) ---
+import { put } from '@vercel/blob';
+
+// --- STORAGE LOGIC (Hybrid: Vercel Blob with Fallback) ---
 async function saveFile(file: Express.Multer.File, filename: string): Promise<string> {
-  return "https://placeholder.url/image.jpg";
+  // Try Vercel Blob
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const blob = await put(filename, file.buffer, {
+        access: 'public',
+        contentType: file.mimetype
+      });
+      return blob.url;
+    } catch (error) {
+      console.error("Blob upload failed (using fallback):", error);
+    }
+  }
+  
+  // Fallback (Mock URL for now, or local if needed)
+  console.warn("BLOB_READ_WRITE_TOKEN not found. Using placeholder image.");
+  return "https://placehold.co/600x400?text=Imagen+No+Guardada+(Configurar+Blob)";
 }
 
 // --- HELPER: Manual CSV Parser ---
