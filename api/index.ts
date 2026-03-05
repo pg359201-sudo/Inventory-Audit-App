@@ -25,18 +25,86 @@ interface AuditResult {
 const app = express();
 const isVercel = process.env.VERCEL === '1';
 
-// --- DB LOGIC (In-Memory Persistence) ---
+import { sql } from '@vercel/postgres';
+
+// --- DB LOGIC (Hybrid: Postgres with In-Memory Fallback) ---
 const globalHistory: AuditResult[] = [];
 
+async function createTableIfNotExists() {
+  try {
+    if (!process.env.POSTGRES_URL) return;
+    
+    await sql`
+      CREATE TABLE IF NOT EXISTS audits (
+        id SERIAL PRIMARY KEY,
+        usuario VARCHAR(255),
+        fecha VARCHAR(255),
+        cliente VARCHAR(255),
+        resultado_detallado TEXT,
+        resultado_global VARCHAR(255),
+        url_imagen TEXT
+      );
+    `;
+    console.log("Table 'audits' ensured.");
+  } catch (error) {
+    console.error("Error creating table:", error);
+  }
+}
+
 async function getDb(): Promise<AuditResult[]> {
+  // Try Postgres
+  if (process.env.POSTGRES_URL) {
+    try {
+      const { rows } = await sql`SELECT * FROM audits ORDER BY id DESC LIMIT 100`;
+      return rows.map((row: any) => ({
+        id: row.id,
+        usuario: row.usuario,
+        fecha: row.fecha,
+        cliente: row.cliente,
+        resultado_detallado: row.resultado_detallado,
+        resultado_global: row.resultado_global,
+        url_imagen: row.url_imagen
+      }));
+    } catch (error) {
+      console.warn("Postgres fetch failed (using memory fallback):", error);
+    }
+  }
+  // Fallback to Memory
   return globalHistory;
 }
 
 async function saveToDb(audit: Omit<AuditResult, 'id'>) {
+  // Try Postgres
+  if (process.env.POSTGRES_URL) {
+    try {
+      await sql`
+        INSERT INTO audits (usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen)
+        VALUES (${audit.usuario}, ${audit.fecha}, ${audit.cliente}, ${audit.resultado_detallado}, ${audit.resultado_global}, ${audit.url_imagen})
+      `;
+      return; // Success
+    } catch (error) {
+      console.error("Postgres insert failed (saving to memory):", error);
+    }
+  }
+  
+  // Fallback to Memory
   const newRecord = { ...audit, id: Date.now() };
-  globalHistory.unshift(newRecord); // Add to beginning
+  globalHistory.unshift(newRecord);
   return newRecord;
 }
+
+// Route to manually initialize DB (useful for first setup)
+app.get('/api/init-db', async (req, res) => {
+  if (!process.env.POSTGRES_URL) {
+    return res.status(500).json({ error: 'POSTGRES_URL not found. Configure Vercel Postgres first.' });
+  }
+  try {
+    await createTableIfNotExists();
+    res.json({ message: 'Database table "audits" created/verified successfully.' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // --- STORAGE LOGIC (Mocked for Debug) ---
 async function saveFile(file: Express.Multer.File, filename: string): Promise<string> {
