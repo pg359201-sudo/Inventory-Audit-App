@@ -5,8 +5,8 @@ import fs from 'fs';
 import { parse } from 'csv-parse/sync';
 import { GoogleGenAI } from '@google/genai';
 import { fileURLToPath } from 'url';
-import { put, list } from '@vercel/blob';
-import { sql } from '@vercel/postgres';
+// import { put, list } from '@vercel/blob';
+// import { sql } from '@vercel/postgres';
 
 // --- TYPES ---
 interface ClientRule {
@@ -28,84 +28,22 @@ interface AuditResult {
 // --- CONFIG ---
 const app = express();
 const isVercel = process.env.VERCEL === '1';
-const hasPostgres = !!process.env.POSTGRES_URL;
-const BLOB_DB_FILENAME = 'database.json';
-const LOCAL_DB_FILENAME = 'local_database.json';
+// const hasPostgres = !!process.env.POSTGRES_URL;
+// const BLOB_DB_FILENAME = 'database.json';
+// const LOCAL_DB_FILENAME = 'local_database.json';
 
-// --- DB LOGIC (Inlined) ---
+// --- DB LOGIC (Mocked for Debug) ---
 async function getDb(): Promise<AuditResult[]> {
-  try {
-    if (isVercel) {
-      if (hasPostgres) {
-        const { rows } = await sql`SELECT * FROM audits ORDER BY id DESC`;
-        return rows as AuditResult[];
-      } else {
-        const { blobs } = await list({ prefix: BLOB_DB_FILENAME, limit: 1 });
-        const dbBlob = blobs.find(b => b.pathname === BLOB_DB_FILENAME);
-        if (dbBlob) {
-          const response = await fetch(dbBlob.url);
-          if (response.ok) return await response.json();
-        }
-        return [];
-      }
-    } else {
-      if (fs.existsSync(LOCAL_DB_FILENAME)) {
-        return JSON.parse(fs.readFileSync(LOCAL_DB_FILENAME, 'utf-8'));
-      }
-      return [];
-    }
-  } catch (error) {
-    console.error('DB Read Error:', error);
-    return [];
-  }
+  return [];
 }
 
 async function saveToDb(audit: Omit<AuditResult, 'id'>) {
-  try {
-    if (isVercel) {
-      if (hasPostgres) {
-        const { rows } = await sql`
-          INSERT INTO audits (usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen)
-          VALUES (${audit.usuario}, ${audit.fecha}, ${audit.cliente}, ${audit.resultado_detallado}, ${audit.resultado_global}, ${audit.url_imagen})
-          RETURNING *;
-        `;
-        return rows[0];
-      } else {
-        const currentDb = await getDb();
-        const newRecord = { ...audit, id: Date.now() };
-        const updatedDb = [newRecord, ...currentDb];
-        await put(BLOB_DB_FILENAME, JSON.stringify(updatedDb), {
-          access: 'public',
-          addRandomSuffix: false,
-          contentType: 'application/json'
-        });
-        return newRecord;
-      }
-    } else {
-      const currentDb = await getDb();
-      const newRecord = { ...audit, id: Date.now() };
-      const updatedDb = [newRecord, ...currentDb];
-      fs.writeFileSync(LOCAL_DB_FILENAME, JSON.stringify(updatedDb, null, 2));
-      return newRecord;
-    }
-  } catch (error) {
-    console.error('DB Save Error:', error);
-    throw error;
-  }
+  return { ...audit, id: Date.now() };
 }
 
-// --- STORAGE LOGIC (Inlined) ---
+// --- STORAGE LOGIC (Mocked for Debug) ---
 async function saveFile(file: Express.Multer.File, filename: string): Promise<string> {
-  if (isVercel) {
-    const blob = await put(filename, file.buffer, { access: 'public' });
-    return blob.url;
-  } else {
-    const uploadDir = path.resolve('uploads');
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-    const filePath = path.join(uploadDir, filename);
-    fs.writeFileSync(filePath, file.buffer);
-    return `/uploads/${filename}`;
-  }
+  return "https://placeholder.url/image.jpg";
 }
 
 // --- APP SETUP ---
@@ -117,6 +55,10 @@ app.get('/api/health', (req, res) => {
     env: isVercel ? 'vercel' : 'local',
     timestamp: new Date().toISOString()
   });
+});
+
+app.get('/api', (req, res) => {
+  res.send("API is running");
 });
 
 // EMBEDDED CSV DATA (Fallback)
@@ -163,15 +105,6 @@ function getDataPath(relativePath: string): string {
   absolutePath = path.resolve(__dirname, '..', relativePath);
   if (fs.existsSync(absolutePath)) return absolutePath;
 
-  // Try public folder variations
-  if (relativePath.startsWith('public/')) {
-     absolutePath = path.join(process.cwd(), 'public', relativePath.replace('public/', ''));
-     if (fs.existsSync(absolutePath)) return absolutePath;
-     
-     absolutePath = path.join(process.cwd(), '..', relativePath); 
-     if (fs.existsSync(absolutePath)) return absolutePath;
-  }
-
   return path.join(process.cwd(), relativePath);
 }
 
@@ -193,32 +126,15 @@ app.get('/api/debug-paths', (req, res) => {
 
 app.get('/api/clients', (req, res) => {
   try {
-    let fileContent = EMBEDDED_CSV_DATA;
-    const csvPath = getDataPath('data/reglas-clientes.csv');
-    
-    if (fs.existsSync(csvPath)) {
-      console.log(`Loading clients from file: ${csvPath}`);
-      fileContent = fs.readFileSync(csvPath, 'utf-8');
-    } else {
-      console.warn('CSV file not found, using embedded fallback data');
-    }
-
-    const records = parse(fileContent, {
+    // Use EMBEDDED data strictly for now to avoid FS issues
+    const records = parse(EMBEDDED_CSV_DATA, {
       columns: true,
       skip_empty_lines: true
     });
     res.json(records);
   } catch (error) {
     console.error('Error reading CSV:', error);
-    try {
-      const records = parse(EMBEDDED_CSV_DATA, {
-        columns: true,
-        skip_empty_lines: true
-      });
-      res.json(records);
-    } catch (e) {
-      res.status(500).json({ error: 'Failed to load client data' });
-    }
+    res.status(500).json({ error: 'Failed to load client data' });
   }
 });
 
@@ -229,12 +145,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     if (!file) return res.status(400).json({ error: 'No photo uploaded' });
 
-    // Load Client Rules
-    let fileContent = EMBEDDED_CSV_DATA;
-    const csvPath = getDataPath('data/reglas-clientes.csv');
-    if (fs.existsSync(csvPath)) fileContent = fs.readFileSync(csvPath, 'utf-8');
-    
-    const records = parse(fileContent, { columns: true, skip_empty_lines: true });
+    // Load Client Rules (Embedded)
+    const records = parse(EMBEDDED_CSV_DATA, { columns: true, skip_empty_lines: true });
     const clientRule = records.find((r: any) => r['Codigo FEMSA'] === clienteId);
     
     if (!clientRule) return res.status(404).json({ error: 'Client not found' });
@@ -262,14 +174,18 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       { inlineData: { mimeType: file.mimetype, data: file.buffer.toString('base64') } }
     ];
 
-    // Add references
+    // Add references (Try to load, but don't fail if missing)
     for (const prod of requiredProducts) {
-      let refPath = getDataPath(`public/referencias/${prod}.jpg`);
-      if (!fs.existsSync(refPath)) refPath = getDataPath(`public/referencias/${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`);
+      try {
+        let refPath = getDataPath(`public/referencias/${prod}.jpg`);
+        if (!fs.existsSync(refPath)) refPath = getDataPath(`public/referencias/${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`);
 
-      if (fs.existsSync(refPath)) {
-        parts.push({ text: `Reference for ${prod}:` });
-        parts.push({ inlineData: { mimeType: 'image/jpeg', data: fs.readFileSync(refPath).toString('base64') } });
+        if (fs.existsSync(refPath)) {
+          parts.push({ text: `Reference for ${prod}:` });
+          parts.push({ inlineData: { mimeType: 'image/jpeg', data: fs.readFileSync(refPath).toString('base64') } });
+        }
+      } catch (e) {
+        console.warn(`Failed to load reference for ${prod}:`, e);
       }
     }
     
@@ -292,7 +208,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       if (isRequired && !isPresent) globalResult = 'Falta Referencia';
     });
 
-    // Save
+    // Save (Mocked)
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const safeClientName = (clientRule['Nombre Store'] || 'Client').replace(/[^a-z0-9]/gi, '_');
     const newFilename = `${safeClientName}_${timestamp}_${globalResult.replace(' ', '_')}.jpg`;
