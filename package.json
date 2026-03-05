@@ -16,7 +16,6 @@
     "@vercel/blob": "^2.3.1",
     "@vercel/postgres": "^0.10.0",
     "@vitejs/plugin-react": "^5.0.4",
-    "better-sqlite3": "^12.4.1",
     "browser-image-compression": "^2.0.2",
     "csv-parse": "^6.1.0",
     "dotenv": "^17.2.3",

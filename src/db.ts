@@ -19,10 +19,14 @@ export function initDb() {
       console.log('Vercel Postgres not found. Using Vercel Blob as JSON database.');
     }
   } else {
-    // Local JSON DB initialization
-    if (!fs.existsSync(LOCAL_DB_FILENAME)) {
-      fs.writeFileSync(LOCAL_DB_FILENAME, JSON.stringify([]));
-      console.log('Local JSON DB initialized.');
+    // Local JSON DB initialization - ONLY in local environment
+    try {
+      if (!fs.existsSync(LOCAL_DB_FILENAME)) {
+        fs.writeFileSync(LOCAL_DB_FILENAME, JSON.stringify([]));
+        console.log('Local JSON DB initialized.');
+      }
+    } catch (e) {
+      console.warn('Could not initialize local DB (might be read-only fs):', e);
     }
   }
 }
