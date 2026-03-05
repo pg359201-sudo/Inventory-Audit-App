@@ -1,5 +1,5 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
+// Removed static vite import to prevent production crashes
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -9,8 +9,13 @@ import { initDb, saveAudit, getHistory } from './db';
 import { saveFile } from './storage';
 import { fileURLToPath } from 'url';
 
-// Initialize DB
-initDb();
+// Initialize DB safely
+try {
+  initDb();
+} catch (error) {
+  console.error('Failed to initialize database:', error);
+  // Continue execution to allow other endpoints to work
+}
 
 const app = express();
 
