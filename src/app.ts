@@ -1,29 +1,120 @@
 import express from 'express';
-// Removed static vite import to prevent production crashes
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { parse } from 'csv-parse/sync';
 import { GoogleGenAI } from '@google/genai';
-import { initDb, saveAudit, getHistory } from './db';
-import { saveFile } from './storage';
 import { fileURLToPath } from 'url';
+import { put, list } from '@vercel/blob';
+import { sql } from '@vercel/postgres';
 
-// Initialize DB safely
-try {
-  initDb();
-} catch (error) {
-  console.error('Failed to initialize database:', error);
-  // Continue execution to allow other endpoints to work
+// --- TYPES ---
+interface ClientRule {
+  "Codigo FEMSA": string;
+  "Nombre Store": string;
+  [key: string]: string;
 }
 
-const app = express();
+interface AuditResult {
+  id: number;
+  usuario: string;
+  fecha: string;
+  cliente: string;
+  resultado_detallado: string;
+  resultado_global: string;
+  url_imagen: string;
+}
 
-// Health Check - Put this FIRST to verify server is running
+// --- CONFIG ---
+const app = express();
+const isVercel = process.env.VERCEL === '1';
+const hasPostgres = !!process.env.POSTGRES_URL;
+const BLOB_DB_FILENAME = 'database.json';
+const LOCAL_DB_FILENAME = 'local_database.json';
+
+// --- DB LOGIC (Inlined) ---
+async function getDb(): Promise<AuditResult[]> {
+  try {
+    if (isVercel) {
+      if (hasPostgres) {
+        const { rows } = await sql`SELECT * FROM audits ORDER BY id DESC`;
+        return rows as AuditResult[];
+      } else {
+        const { blobs } = await list({ prefix: BLOB_DB_FILENAME, limit: 1 });
+        const dbBlob = blobs.find(b => b.pathname === BLOB_DB_FILENAME);
+        if (dbBlob) {
+          const response = await fetch(dbBlob.url);
+          if (response.ok) return await response.json();
+        }
+        return [];
+      }
+    } else {
+      if (fs.existsSync(LOCAL_DB_FILENAME)) {
+        return JSON.parse(fs.readFileSync(LOCAL_DB_FILENAME, 'utf-8'));
+      }
+      return [];
+    }
+  } catch (error) {
+    console.error('DB Read Error:', error);
+    return [];
+  }
+}
+
+async function saveToDb(audit: Omit<AuditResult, 'id'>) {
+  try {
+    if (isVercel) {
+      if (hasPostgres) {
+        const { rows } = await sql`
+          INSERT INTO audits (usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen)
+          VALUES (${audit.usuario}, ${audit.fecha}, ${audit.cliente}, ${audit.resultado_detallado}, ${audit.resultado_global}, ${audit.url_imagen})
+          RETURNING *;
+        `;
+        return rows[0];
+      } else {
+        const currentDb = await getDb();
+        const newRecord = { ...audit, id: Date.now() };
+        const updatedDb = [newRecord, ...currentDb];
+        await put(BLOB_DB_FILENAME, JSON.stringify(updatedDb), {
+          access: 'public',
+          addRandomSuffix: false,
+          contentType: 'application/json'
+        });
+        return newRecord;
+      }
+    } else {
+      const currentDb = await getDb();
+      const newRecord = { ...audit, id: Date.now() };
+      const updatedDb = [newRecord, ...currentDb];
+      fs.writeFileSync(LOCAL_DB_FILENAME, JSON.stringify(updatedDb, null, 2));
+      return newRecord;
+    }
+  } catch (error) {
+    console.error('DB Save Error:', error);
+    throw error;
+  }
+}
+
+// --- STORAGE LOGIC (Inlined) ---
+async function saveFile(file: Express.Multer.File, filename: string): Promise<string> {
+  if (isVercel) {
+    const blob = await put(filename, file.buffer, { access: 'public' });
+    return blob.url;
+  } else {
+    const uploadDir = path.resolve('uploads');
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+    const filePath = path.join(uploadDir, filename);
+    fs.writeFileSync(filePath, file.buffer);
+    return `/uploads/${filename}`;
+  }
+}
+
+// --- APP SETUP ---
+
+// Health Check
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
-    env: process.env.VERCEL ? 'vercel' : 'local',
+    env: isVercel ? 'vercel' : 'local',
     timestamp: new Date().toISOString()
   });
 });
@@ -61,79 +152,50 @@ const EMBEDDED_CSV_DATA = `Codigo FEMSA,Nombre Store,Gin Gordons,Gin Tanqueray,G
 1800015104 - ANABEL FIERRO,AUTOSERVICE PATRICIA FIERRO,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,Si,Mauricio Oliveri
 1800026918 - NESTOR CONO DAMIAN S,ESSO GIOVANNI FLORIDA,Si,Si,No,No,Si,Si,Si,Si,Si,Si,Si,Si,Si,No,Mauricio Oliveri`;
 
-// Helper to get absolute path that works in both local and Vercel
+// Helper to get absolute path
 function getDataPath(relativePath: string): string {
-  // Try process.cwd() first (standard Vercel/Local root)
+  // Try process.cwd() first
   let absolutePath = path.join(process.cwd(), relativePath);
-  if (fs.existsSync(absolutePath)) {
-    return absolutePath;
-  }
+  if (fs.existsSync(absolutePath)) return absolutePath;
   
-  // Try relative to __dirname (fallback for some bundled environments)
+  // Try relative to __dirname
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  absolutePath = path.resolve(__dirname, '..', relativePath); // Assuming src/app.ts, so go up one level
-  if (fs.existsSync(absolutePath)) {
-    return absolutePath;
-  }
+  absolutePath = path.resolve(__dirname, '..', relativePath);
+  if (fs.existsSync(absolutePath)) return absolutePath;
 
-  // Try relative to 'public' if it's a reference image (Vercel sometimes puts public at root)
+  // Try public folder variations
   if (relativePath.startsWith('public/')) {
-     // Try standard public location
      absolutePath = path.join(process.cwd(), 'public', relativePath.replace('public/', ''));
      if (fs.existsSync(absolutePath)) return absolutePath;
      
-     // Try one level up (if cwd is api/)
      absolutePath = path.join(process.cwd(), '..', relativePath); 
      if (fs.existsSync(absolutePath)) return absolutePath;
   }
 
-  console.warn(`Warning: File not found at ${relativePath}. Checked: ${path.join(process.cwd(), relativePath)}`);
-  return path.join(process.cwd(), relativePath); // Return default to let it fail with clear error
+  return path.join(process.cwd(), relativePath);
 }
 
-// Configure Multer for memory storage (needed for Vercel Blob)
+// Configure Multer
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Serve uploaded files (only for local dev)
-if (process.env.VERCEL !== '1') {
+// Serve uploaded files (local only)
+if (!isVercel) {
   app.use('/uploads', express.static(path.resolve('uploads')));
 }
 
-// API Routes
+// --- ROUTES ---
 
-// Debug Endpoint
 app.get('/api/debug-paths', (req, res) => {
   const cwd = process.cwd();
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  
-  const pathsToCheck = [
-    'data/reglas-clientes.csv',
-    'public/referencias',
-    '../data/reglas-clientes.csv',
-    '../public/referencias'
-  ];
-
-  const results = pathsToCheck.map(p => ({
-    path: p,
-    absolute: path.resolve(cwd, p),
-    exists: fs.existsSync(path.resolve(cwd, p))
-  }));
-
-  res.json({
-    cwd,
-    __dirname,
-    results,
-    env: process.env
-  });
+  res.json({ cwd, __dirname, env: process.env });
 });
 
-// Get Clients
 app.get('/api/clients', (req, res) => {
   try {
     let fileContent = EMBEDDED_CSV_DATA;
     const csvPath = getDataPath('data/reglas-clientes.csv');
     
-    // Try to read from file if it exists, otherwise use embedded
     if (fs.existsSync(csvPath)) {
       console.log(`Loading clients from file: ${csvPath}`);
       fileContent = fs.readFileSync(csvPath, 'utf-8');
@@ -148,7 +210,6 @@ app.get('/api/clients', (req, res) => {
     res.json(records);
   } catch (error) {
     console.error('Error reading CSV:', error);
-    // Fallback to embedded data even on error
     try {
       const records = parse(EMBEDDED_CSV_DATA, {
         columns: true,
@@ -161,36 +222,24 @@ app.get('/api/clients', (req, res) => {
   }
 });
 
-// Submit Audit
 app.post('/api/audit', upload.single('photo'), async (req, res) => {
   try {
-    const { usuario, clienteId, clienteNombre } = req.body;
+    const { usuario, clienteId } = req.body;
     const file = req.file;
 
-    if (!file) {
-      return res.status(400).json({ error: 'No photo uploaded' });
-    }
+    if (!file) return res.status(400).json({ error: 'No photo uploaded' });
 
-    // 1. Load Client Rules
+    // Load Client Rules
     let fileContent = EMBEDDED_CSV_DATA;
     const csvPath = getDataPath('data/reglas-clientes.csv');
-    if (fs.existsSync(csvPath)) {
-      fileContent = fs.readFileSync(csvPath, 'utf-8');
-    }
+    if (fs.existsSync(csvPath)) fileContent = fs.readFileSync(csvPath, 'utf-8');
     
-    const records = parse(fileContent, {
-      columns: true,
-      skip_empty_lines: true
-    });
-    
-    // Find client by Codigo FEMSA (assuming clienteId is the code)
+    const records = parse(fileContent, { columns: true, skip_empty_lines: true });
     const clientRule = records.find((r: any) => r['Codigo FEMSA'] === clienteId);
     
-    if (!clientRule) {
-      return res.status(404).json({ error: 'Client not found' });
-    }
+    if (!clientRule) return res.status(404).json({ error: 'Client not found' });
 
-    // 2. Identify required products
+    // Identify required products
     const productColumns = [
       "Gin Gordons", "Gin Tanqueray", "Gin Royale", "Gin Sevilla", 
       "JW Blonde", "Smirnoff Ice", "Vodka Smirnoff 750mL", 
@@ -200,121 +249,56 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     const requiredProducts = productColumns.filter(prod => clientRule[prod] === 'Si');
 
-    // 3. Call Gemini
+    // Call Gemini
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    
-    // Prepare prompt
     const prompt = `
-      Analyze this image of a liquor shelf (the first image provided).
-      Check for the presence of the following products: ${productColumns.join(', ')}.
-      
-      I have provided reference images for the required products below the main audit photo.
-      Use these references to strictly identify the products.
-      
-      For each product, determine if it is present or missing.
-      Return a JSON object where keys are the product names and values are "Present" or "Missing".
-      
-      Example output format:
-      {
-        "Gin Gordons": "Present",
-        "Gin Tanqueray": "Missing"
-      }
-      
-      ONLY return the JSON. Do not include markdown formatting.
+      Analyze this image of a liquor shelf.
+      Check for: ${productColumns.join(', ')}.
+      Return JSON: { "Product Name": "Present" | "Missing" }
     `;
 
-    // Read file buffer (from memory)
-    const imageBase64 = file.buffer.toString('base64');
-
-    // Build parts array with main image and references
     const parts: any[] = [
       { text: prompt },
-      { text: "Main Audit Photo:" },
-      {
-        inlineData: {
-          mimeType: file.mimetype,
-          data: imageBase64
-        }
-      }
+      { inlineData: { mimeType: file.mimetype, data: file.buffer.toString('base64') } }
     ];
 
-    // Add reference images if they exist
-    let referencesFound = 0;
+    // Add references
     for (const prod of requiredProducts) {
-      // Try exact match first
       let refPath = getDataPath(`public/referencias/${prod}.jpg`);
-      
-      // Try with sanitized name if exact match fails (optional safety)
-      if (!fs.existsSync(refPath)) {
-         refPath = getDataPath(`public/referencias/${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`);
-      }
+      if (!fs.existsSync(refPath)) refPath = getDataPath(`public/referencias/${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`);
 
       if (fs.existsSync(refPath)) {
-        const refBuffer = fs.readFileSync(refPath);
         parts.push({ text: `Reference for ${prod}:` });
-        parts.push({
-          inlineData: {
-            mimeType: 'image/jpeg',
-            data: refBuffer.toString('base64')
-          }
-        });
-        referencesFound++;
+        parts.push({ inlineData: { mimeType: 'image/jpeg', data: fs.readFileSync(refPath).toString('base64') } });
       }
     }
     
-    console.log(`Sending request to Gemini with ${referencesFound} reference images.`);
-
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-latest",
-      contents: {
-        parts: parts
-      }
+      contents: { parts }
     });
 
-    const responseText = response.text;
-    if (!responseText) {
-      throw new Error("Empty response from Gemini");
-    }
+    const jsonString = response.text?.replace(/```json/g, '').replace(/```/g, '').trim() || '{}';
+    const analysisResult = JSON.parse(jsonString);
 
-    // Clean up markdown code blocks if present
-    const jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    let analysisResult;
-    try {
-      analysisResult = JSON.parse(jsonString);
-    } catch (e) {
-      console.error("Failed to parse Gemini response:", responseText);
-      return res.status(500).json({ error: "AI analysis failed to return valid JSON" });
-    }
-
-    // 4. Evaluate Global Result
+    // Evaluate
     let globalResult = 'OK';
     const detailedResult: any[] = [];
 
     productColumns.forEach(prod => {
       const isRequired = clientRule[prod] === 'Si';
       const isPresent = analysisResult[prod] === 'Present';
-      
-      detailedResult.push({
-        productName: prod,
-        required: isRequired,
-        present: isPresent,
-        status: isPresent ? 'Present' : 'Missing'
-      });
-
-      if (isRequired && !isPresent) {
-        globalResult = 'Falta Referencia';
-      }
+      detailedResult.push({ productName: prod, required: isRequired, present: isPresent });
+      if (isRequired && !isPresent) globalResult = 'Falta Referencia';
     });
 
-    // 5. Rename and Save File
+    // Save
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const safeClientName = (clientRule['Nombre Store'] || 'Client').replace(/[^a-z0-9]/gi, '_');
     const newFilename = `${safeClientName}_${timestamp}_${globalResult.replace(' ', '_')}.jpg`;
-    
     const fileUrl = await saveFile(file, newFilename);
 
-    // 6. Save to DB
-    await saveAudit({
+    await saveToDb({
       usuario,
       fecha: new Date().toISOString(),
       cliente: clientRule['Nombre Store'],
@@ -323,22 +307,17 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       url_imagen: fileUrl
     });
 
-    res.json({
-      globalResult,
-      detailedResult,
-      fileUrl
-    });
+    res.json({ globalResult, detailedResult, fileUrl });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Audit processing error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
-// Get History
 app.get('/api/history', async (req, res) => {
   try {
-    const rows = await getHistory();
+    const rows = await getDb();
     res.json(rows);
   } catch (error) {
     console.error('History fetch error:', error);
@@ -346,9 +325,8 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-// Vite Middleware (only for local dev)
-if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
-  // Use dynamic import for vite to avoid build issues in production
+// Vite Middleware (local only)
+if (!isVercel && process.env.NODE_ENV !== 'production') {
   import('vite').then(async (viteModule) => {
     const vite = await viteModule.createServer({
       server: { middlewareMode: true },
