@@ -89,13 +89,16 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
         body: formData
       });
       
-      if (!res.ok) throw new Error('Error en la auditoría');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || errorData.details || 'Error en la auditoría');
+      }
       
       const data = await res.json();
       setResult(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert('Error al enviar la auditoría');
+      alert(`Error: ${error.message}`);
     } finally {
       setLoading(false);
     }

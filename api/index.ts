@@ -177,6 +177,12 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     const requiredProducts = productColumns.filter(prod => clientRule[prod] === 'Si');
 
+    // Check API Key
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is missing");
+      return res.status(500).json({ error: 'Server configuration error: Missing API Key' });
+    }
+
     // Call Gemini
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const prompt = `
