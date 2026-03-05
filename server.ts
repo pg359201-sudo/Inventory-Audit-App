@@ -7,12 +7,38 @@ import { parse } from 'csv-parse/sync';
 import { GoogleGenAI } from '@google/genai';
 import { initDb, saveAudit, getHistory } from './src/db';
 import { saveFile } from './src/storage';
+import { fileURLToPath } from 'url';
 
 // Initialize DB
 initDb();
 
 const app = express();
 const PORT = 3000;
+
+// Helper to get absolute path that works in both local and Vercel
+function getDataPath(relativePath: string): string {
+  // Try process.cwd() first (standard Vercel/Local root)
+  let absolutePath = path.join(process.cwd(), relativePath);
+  if (fs.existsSync(absolutePath)) {
+    return absolutePath;
+  }
+  
+  // Try relative to __dirname (fallback for some bundled environments)
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  absolutePath = path.resolve(__dirname, relativePath);
+  if (fs.existsSync(absolutePath)) {
+    return absolutePath;
+  }
+
+  // Try relative to 'public' if it's a reference image (Vercel sometimes puts public at root)
+  if (relativePath.startsWith('public/')) {
+     absolutePath = path.join(process.cwd(), '..', relativePath); // Try one level up
+     if (fs.existsSync(absolutePath)) return absolutePath;
+  }
+
+  console.warn(`Warning: File not found at ${relativePath}. Checked: ${path.join(process.cwd(), relativePath)}`);
+  return path.join(process.cwd(), relativePath); // Return default to let it fail with clear error
+}
 
 // Configure Multer for memory storage (needed for Vercel Blob)
 const upload = multer({ storage: multer.memoryStorage() });
@@ -27,7 +53,13 @@ if (process.env.VERCEL !== '1') {
 // Get Clients
 app.get('/api/clients', (req, res) => {
   try {
-    const csvPath = path.resolve('data/reglas-clientes.csv');
+    const csvPath = getDataPath('data/reglas-clientes.csv');
+    
+    if (!fs.existsSync(csvPath)) {
+      console.error(`CSV File missing at: ${csvPath}`);
+      return res.status(500).json({ error: 'Configuration file missing on server' });
+    }
+
     const fileContent = fs.readFileSync(csvPath, 'utf-8');
     const records = parse(fileContent, {
       columns: true,
@@ -51,7 +83,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     }
 
     // 1. Load Client Rules
-    const csvPath = path.resolve('data/reglas-clientes.csv');
+    const csvPath = getDataPath('data/reglas-clientes.csv');
     const fileContent = fs.readFileSync(csvPath, 'utf-8');
     const records = parse(fileContent, {
       columns: true,
@@ -117,11 +149,11 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     let referencesFound = 0;
     for (const prod of requiredProducts) {
       // Try exact match first
-      let refPath = path.resolve('public/referencias', `${prod}.jpg`);
+      let refPath = getDataPath(`public/referencias/${prod}.jpg`);
       
       // Try with sanitized name if exact match fails (optional safety)
       if (!fs.existsSync(refPath)) {
-         refPath = path.resolve('public/referencias', `${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`);
+         refPath = getDataPath(`public/referencias/${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`);
       }
 
       if (fs.existsSync(refPath)) {
