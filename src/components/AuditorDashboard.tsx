@@ -145,12 +145,20 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
             </div>
           </div>
 
-          <button
-            onClick={resetForm}
-            className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
-          >
-            Nueva Auditoría
-          </button>
+          <div className="mt-4 flex flex-col gap-2">
+            <button
+              onClick={resetForm}
+              className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
+            >
+              Nueva Auditoría
+            </button>
+            <button
+              onClick={onLogout}
+              className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              Salir
+            </button>
+          </div>
         </div>
       </div>
     );
