@@ -125,8 +125,14 @@ async function saveFile(file: Express.Multer.File, filename: string): Promise<st
     return blob.url;
   } catch (error: any) {
     console.error("Blob upload failed:", error);
+    
+    // Detect Private Store Error
+    if (error.message && error.message.includes('Cannot use public')) {
+      return "https://placehold.co/600x400?text=Error:+Tu+Blob+Store+es+Privado+(Debe+ser+Publico)";
+    }
+
     // Return a placeholder that indicates the specific error
-    const safeError = error.message.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 30);
+    const safeError = error.message.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 50);
     return `https://placehold.co/600x400?text=Error+Upload:+${safeError}`;
   }
 }
@@ -330,8 +336,26 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       contents: { parts }
     });
 
-    const jsonString = response.text?.replace(/```json/g, '').replace(/```/g, '').trim() || '{}';
-    const analysisResult = JSON.parse(jsonString);
+    let jsonString = response.text || '{}';
+    
+    // Robust JSON extraction: Find the first '{' and the last '}'
+    const firstOpen = jsonString.indexOf('{');
+    const lastClose = jsonString.lastIndexOf('}');
+    
+    if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+      jsonString = jsonString.substring(firstOpen, lastClose + 1);
+    } else {
+      // Fallback: Try to clean markdown code blocks if simple extraction failed
+      jsonString = jsonString.replace(/```json/g, '').replace(/```/g, '').trim();
+    }
+
+    let analysisResult;
+    try {
+      analysisResult = JSON.parse(jsonString);
+    } catch (e) {
+      console.error("JSON Parse Error. Raw text:", response.text);
+      throw new Error("Failed to parse AI response. The model returned invalid JSON.");
+    }
 
     // Evaluate
     let globalResult = 'OK';
