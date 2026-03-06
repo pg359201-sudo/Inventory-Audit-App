@@ -129,7 +129,12 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
           <div className="mb-4 max-h-[60vh] overflow-y-auto">
             <h3 className="mb-2 text-sm font-semibold text-gray-700">Detalle:</h3>
             <div className="grid grid-cols-2 gap-2">
-              {result.detailedResult.map((item, idx) => (
+              {[...result.detailedResult].sort((a, b) => {
+                // Priority: 0 = Falta (Required & !Present), 1 = Presente, 2 = Others
+                const pA = (a.required && !a.present) ? 0 : (a.present ? 1 : 2);
+                const pB = (b.required && !b.present) ? 0 : (b.present ? 1 : 2);
+                return pA - pB;
+              }).map((item, idx) => (
                 <div key={idx} className={`flex flex-col rounded p-1.5 text-xs ${item.present ? 'bg-green-50' : item.required ? 'bg-red-50' : 'bg-gray-50'}`}>
                   <span className="font-medium truncate" title={item.productName}>{item.productName}</span>
                   <span className={`font-semibold ${item.present ? 'text-green-700' : item.required ? 'text-red-700' : 'text-gray-500'}`}>

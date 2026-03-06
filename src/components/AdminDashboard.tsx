@@ -268,7 +268,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
-                      {parseDetails(selectedAudit.resultado_detallado).map((item: any, idx: number) => (
+                      {parseDetails(selectedAudit.resultado_detallado)
+                        .sort((a: any, b: any) => {
+                          // Priority: 0 = Falta (Required & !Present), 1 = Presente, 2 = Others
+                          const pA = (a.required && !a.present) ? 0 : (a.present ? 1 : 2);
+                          const pB = (b.required && !b.present) ? 0 : (b.present ? 1 : 2);
+                          return pA - pB;
+                        })
+                        .map((item: any, idx: number) => (
                         <tr key={idx} className={item.present ? 'bg-green-50/50' : item.required ? 'bg-red-50/50' : ''}>
                           <td className="px-4 py-2 text-sm text-gray-900">{item.productName}</td>
                           <td className="px-4 py-2 text-sm">
