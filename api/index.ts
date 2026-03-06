@@ -93,6 +93,39 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
   return newRecord;
 }
 
+async function deleteFromDb(ids: number[]) {
+  if (ids.length === 0) return;
+
+  // Try Postgres
+  if (process.env.POSTGRES_URL) {
+    try {
+      // Construct a parameterized query for multiple IDs
+      // Note: @vercel/postgres supports simple arrays in some contexts, but let's be safe with a loop or ANY
+      // Using a loop for simplicity and safety with the template literal tag
+      for (const id of ids) {
+        await sql`DELETE FROM audits WHERE id = ${id}`;
+      }
+      return;
+    } catch (error) {
+      console.error("Postgres delete failed (trying memory):", error);
+    }
+  }
+
+  // Fallback to Memory
+  // We modify the array in place or replace it. Since it's const, we can't reassign, but we can splice.
+  // Actually, globalHistory is const but it's an array, so we can mutate it.
+  // However, filtering is cleaner. Let's just mutate it for now to match the "const" declaration.
+  // Or better, let's just find indices and splice.
+  const indicesToRemove = globalHistory
+    .map((item, index) => ids.includes(item.id) ? index : -1)
+    .filter(index => index !== -1)
+    .sort((a, b) => b - a); // Sort descending to splice from end
+
+  for (const index of indicesToRemove) {
+    globalHistory.splice(index, 1);
+  }
+}
+
 // Route to manually initialize DB (useful for first setup)
 app.get('/api/init-db', async (req, res) => {
   if (!process.env.POSTGRES_URL) {
@@ -421,6 +454,20 @@ app.get('/api/history', async (req, res) => {
   } catch (error) {
     console.error('History fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+app.post('/api/history/delete', express.json(), async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) {
+      return res.status(400).json({ error: 'Invalid input: ids must be an array' });
+    }
+    await deleteFromDb(ids);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete error:', error);
+    res.status(500).json({ error: 'Failed to delete records', details: error.message });
   }
 });
 

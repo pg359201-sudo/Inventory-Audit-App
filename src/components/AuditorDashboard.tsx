@@ -227,7 +227,6 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                         type="file"
                         className="sr-only"
                         accept="image/*"
-                        capture="environment"
                         onChange={handleFileChange}
                       />
                     </label>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AuditResult } from '../types';
-import { Download, Eye, X, Image as ImageIcon, List } from 'lucide-react';
+import { Download, Eye, X, Image as ImageIcon, List, Trash2 } from 'lucide-react';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -9,8 +9,13 @@ interface AdminDashboardProps {
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [history, setHistory] = useState<AuditResult[]>([]);
   const [selectedAudit, setSelectedAudit] = useState<AuditResult | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = () => {
     fetch('/api/history')
       .then(res => res.json())
       .then(data => {
@@ -19,7 +24,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         }
       })
       .catch(err => console.error('Error fetching history:', err));
-  }, []);
+  };
 
   const handleExport = () => {
     const headers = ['ID', 'Usuario', 'Fecha', 'Cliente', 'Resultado Global', 'URL Imagen'];
@@ -52,12 +57,63 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(history.map(h => h.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: number) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(sid => sid !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`¿Estás seguro de que deseas eliminar ${selectedIds.length} registros?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/history/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds })
+      });
+
+      if (res.ok) {
+        setSelectedIds([]);
+        fetchHistory();
+      } else {
+        alert('Error al eliminar registros');
+      }
+    } catch (error) {
+      console.error('Error deleting records:', error);
+      alert('Error al eliminar registros');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">Panel de Administrador</h1>
           <div className="flex gap-4">
+            {selectedIds.length > 0 && (
+              <button
+                onClick={handleDelete}
+                className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+              >
+                <Trash2 size={20} />
+                Eliminar ({selectedIds.length})
+              </button>
+            )}
             <button
               onClick={handleExport}
               className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
@@ -74,6 +130,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={history.length > 0 && selectedIds.length === history.length}
+                      onChange={handleSelectAll}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Fecha</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Usuario</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Cliente</th>
@@ -84,13 +148,21 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {history.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
                       No hay auditorías registradas aún.
                     </td>
                   </tr>
                 ) : (
                   history.map((item) => (
                     <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(item.id)}
+                          onChange={() => handleSelectOne(item.id)}
+                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                      </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
                         {new Date(item.fecha).toLocaleString()}
                       </td>
