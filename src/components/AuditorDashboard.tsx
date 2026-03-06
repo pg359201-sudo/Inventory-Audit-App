@@ -113,50 +113,49 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
 
   if (result) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-gray-50 p-2">
-        <div className="w-full max-w-lg rounded-xl bg-white p-4 shadow-md">
-          <div className="mb-4 text-center">
-            {result.globalResult === 'OK' ? (
-              <CheckCircle className="mx-auto h-10 w-10 text-green-500" />
-            ) : (
-              <XCircle className="mx-auto h-10 w-10 text-red-500" />
-            )}
-            <h2 className="mt-2 text-lg font-bold">
-              Resultado: {result.globalResult}
-            </h2>
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="mx-auto max-w-md space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-gray-900">Resultado Auditoría</h1>
+            <button onClick={onLogout} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
           </div>
 
-          <div className="mb-4 max-h-[60vh] overflow-y-auto">
-            <h3 className="mb-2 text-sm font-semibold text-gray-700">Detalle:</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {[...result.detailedResult].sort((a, b) => {
-                // Priority: 0 = Falta (Required & !Present), 1 = Presente, 2 = Others
-                const pA = (a.required && !a.present) ? 0 : (a.present ? 1 : 2);
-                const pB = (b.required && !b.present) ? 0 : (b.present ? 1 : 2);
-                return pA - pB;
-              }).map((item, idx) => (
-                <div key={idx} className={`flex flex-col rounded p-1.5 text-xs ${item.present ? 'bg-green-50' : item.required ? 'bg-red-50' : 'bg-gray-50'}`}>
-                  <span className="font-medium truncate" title={item.productName}>{item.productName}</span>
-                  <span className={`font-semibold ${item.present ? 'text-green-700' : item.required ? 'text-red-700' : 'text-gray-500'}`}>
-                    {item.present ? 'Presente' : item.required ? 'Falta' : '-'}
-                  </span>
-                </div>
-              ))}
+          <div className="w-full rounded-xl bg-white p-6 shadow-sm">
+            <div className="mb-4 text-center">
+              {result.globalResult === 'OK' ? (
+                <CheckCircle className="mx-auto h-10 w-10 text-green-500" />
+              ) : (
+                <XCircle className="mx-auto h-10 w-10 text-red-500" />
+              )}
+              <h2 className="mt-2 text-lg font-bold">
+                Resultado: {result.globalResult}
+              </h2>
             </div>
-          </div>
 
-          <div className="mt-4 flex flex-col gap-2">
+            <div className="mb-4 max-h-[60vh] overflow-y-auto">
+              <h3 className="mb-2 text-sm font-semibold text-gray-700">Detalle:</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[...result.detailedResult].sort((a, b) => {
+                  // Priority: 0 = Falta (Required & !Present), 1 = Presente, 2 = Others
+                  const pA = (a.required && !a.present) ? 0 : (a.present ? 1 : 2);
+                  const pB = (b.required && !b.present) ? 0 : (b.present ? 1 : 2);
+                  return pA - pB;
+                }).map((item, idx) => (
+                  <div key={idx} className={`flex flex-col rounded p-1.5 text-xs ${item.present ? 'bg-green-50' : item.required ? 'bg-red-50' : 'bg-gray-50'}`}>
+                    <span className="font-medium truncate" title={item.productName}>{item.productName}</span>
+                    <span className={`font-semibold ${item.present ? 'text-green-700' : item.required ? 'text-red-700' : 'text-gray-500'}`}>
+                      {item.present ? 'Presente' : item.required ? 'Falta' : '-'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <button
               onClick={resetForm}
               className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
             >
               Nueva Auditoría
-            </button>
-            <button
-              onClick={onLogout}
-              className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-            >
-              Salir
             </button>
           </div>
         </div>

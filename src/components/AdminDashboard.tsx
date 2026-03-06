@@ -173,11 +173,25 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         {item.cliente}
                       </td>
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4">
-                        <span className={`inline-flex rounded-full px-2 text-[10px] md:text-xs font-semibold leading-5 ${
-                          item.resultado_global === 'OK' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {item.resultado_global}
-                        </span>
+                        {(() => {
+                          const details = parseDetails(item.resultado_detallado);
+                          const required = details.filter((d: any) => d.required);
+                          const missingCount = required.filter((d: any) => !d.present).length;
+                          
+                          if (missingCount === 0) {
+                            return (
+                              <span className="inline-flex rounded-full bg-green-100 px-2 text-[10px] font-semibold leading-5 text-green-800 md:text-xs">
+                                OK
+                              </span>
+                            );
+                          } else {
+                            return (
+                              <span className="inline-flex rounded-full bg-red-100 px-2 text-[10px] font-semibold leading-5 text-red-800 md:text-xs">
+                                Faltan: {missingCount}
+                              </span>
+                            );
+                          }
+                        })()}
                       </td>
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm font-medium">
                         <button
