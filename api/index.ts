@@ -110,22 +110,25 @@ import { put } from '@vercel/blob';
 
 // --- STORAGE LOGIC (Hybrid: Vercel Blob with Fallback) ---
 async function saveFile(file: Express.Multer.File, filename: string): Promise<string> {
-  // Try Vercel Blob
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    try {
-      const blob = await put(filename, file.buffer, {
-        access: 'public',
-        contentType: file.mimetype
-      });
-      return blob.url;
-    } catch (error) {
-      console.error("Blob upload failed (using fallback):", error);
-    }
+  // Check for Token
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.error("BLOB_READ_WRITE_TOKEN is missing from environment variables.");
+    return "https://placehold.co/600x400?text=Error:+Falta+Token+Blob+(Redesplegar)";
   }
-  
-  // Fallback (Mock URL for now, or local if needed)
-  console.warn("BLOB_READ_WRITE_TOKEN not found. Using placeholder image.");
-  return "https://placehold.co/600x400?text=Imagen+No+Guardada+(Configurar+Blob)";
+
+  // Try Vercel Blob
+  try {
+    const blob = await put(filename, file.buffer, {
+      access: 'public',
+      contentType: file.mimetype
+    });
+    return blob.url;
+  } catch (error: any) {
+    console.error("Blob upload failed:", error);
+    // Return a placeholder that indicates the specific error
+    const safeError = error.message.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 30);
+    return `https://placehold.co/600x400?text=Error+Upload:+${safeError}`;
+  }
 }
 
 // --- HELPER: Manual CSV Parser ---
@@ -252,6 +255,15 @@ app.get('/api/debug-models', async (req, res) => {
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
+});
+
+app.get('/api/debug-config', (req, res) => {
+  res.json({
+    hasPostgres: !!process.env.POSTGRES_URL,
+    hasBlob: !!process.env.BLOB_READ_WRITE_TOKEN,
+    hasGemini: !!process.env.GEMINI_API_KEY,
+    nodeEnv: process.env.NODE_ENV
+  });
 });
 
 app.post('/api/audit', upload.single('photo'), async (req, res) => {
