@@ -130,7 +130,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left">
+                  <th className="px-2 py-2 md:px-6 md:py-3 text-left">
                     <input
                       type="checkbox"
                       checked={history.length > 0 && selectedIds.length === history.length}
@@ -138,11 +138,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Fecha</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Usuario</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Cliente</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Resultado</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Acciones</th>
+                  <th className="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider text-gray-500">Fecha</th>
+                  <th className="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider text-gray-500">Usuario</th>
+                  <th className="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider text-gray-500">Cliente</th>
+                  <th className="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider text-gray-500">Resultado</th>
+                  <th className="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider text-gray-500">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
@@ -155,7 +155,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 ) : (
                   history.map((item) => (
                     <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
+                      <td className="px-2 py-2 md:px-6 md:py-4">
                         <input
                           type="checkbox"
                           checked={selectedIds.includes(item.id)}
@@ -163,29 +163,30 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                         />
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                      <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-900">
                         {new Date(item.fecha).toLocaleString()}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                      <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-900">
                         Auditor {item.usuario}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                      <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-900">
                         {item.cliente}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                      <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4">
+                        <span className={`inline-flex rounded-full px-2 text-[10px] md:text-xs font-semibold leading-5 ${
                           item.resultado_global === 'OK' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
                           {item.resultado_global}
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                      <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm font-medium">
                         <button
                           onClick={() => setSelectedAudit(item)}
                           className="flex items-center gap-1 text-indigo-600 hover:text-indigo-900"
                         >
-                          <Eye size={18} />
-                          Ver Detalle
+                          <Eye size={16} className="md:h-[18px] md:w-[18px]" />
+                          <span className="hidden md:inline">Ver Detalle</span>
+                          <span className="md:hidden">Ver</span>
                         </button>
                       </td>
                     </tr>
