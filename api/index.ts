@@ -350,6 +350,9 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     const prompt = `
       Analyze this image of a liquor shelf.
       Check for: ${productColumns.join(', ')}.
+      
+      IMPORTANT CONTEXT: The reference images provided generally have brighter and more vivid tones than the audit photos being analyzed, which are typically darker. Please account for these lighting differences and do not disqualify a match solely based on brightness or color saturation. Focus on shapes, logos, and text.
+
       Return JSON: { "Product Name": "Present" | "Missing" }
     `;
 
