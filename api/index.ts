@@ -319,16 +319,16 @@ app.get('/api/references/count', async (req, res) => {
       // Fallback to local if no token (dev mode without blob)
       const referencesDir = path.join(process.cwd(), 'public', 'referencias');
       if (!fs.existsSync(referencesDir)) {
-        return res.json({ count: 0 });
+        return res.json({ count: 0, source: 'local' });
       }
       const files = fs.readdirSync(referencesDir).filter(file => {
         return !file.startsWith('.') && (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png'));
       });
-      return res.json({ count: files.length });
+      return res.json({ count: files.length, source: 'local' });
     }
 
     const { blobs } = await list({ prefix: 'referencias/' });
-    res.json({ count: blobs.length });
+    res.json({ count: blobs.length, source: 'blob' });
   } catch (error) {
     console.error('Error counting references:', error);
     res.status(500).json({ error: 'Failed to count references' });

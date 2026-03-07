@@ -35,9 +35,35 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
   return { ...audit, id: Date.now() };
 }
 
-// --- STORAGE LOGIC (Mocked for Debug) ---
+import { put, list } from '@vercel/blob';
+
+// --- STORAGE LOGIC (Hybrid: Vercel Blob with Fallback) ---
 async function saveFile(file: Express.Multer.File, filename: string): Promise<string> {
-  return "https://placeholder.url/image.jpg";
+  // Check for Token
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.error("BLOB_READ_WRITE_TOKEN is missing from environment variables.");
+    return "https://placehold.co/600x400?text=Error:+Falta+Token+Blob+(Redesplegar)";
+  }
+
+  // Try Vercel Blob
+  try {
+    const blob = await put(filename, file.buffer, {
+      access: 'public',
+      contentType: file.mimetype
+    });
+    return blob.url;
+  } catch (error: any) {
+    console.error("Blob upload failed:", error);
+    
+    // Detect Private Store Error
+    if (error.message && error.message.includes('Cannot use public')) {
+      return "https://placehold.co/600x400?text=Error:+Tu+Blob+Store+es+Privado+(Debe+ser+Publico)";
+    }
+
+    // Return a placeholder that indicates the specific error
+    const safeError = error.message.replace(/[^a-zA-Z0-9 ]/g, '').substring(0, 50);
+    return `https://placehold.co/600x400?text=Error+Upload:+${safeError}`;
+  }
 }
 
 // --- HELPER: Manual CSV Parser ---
@@ -154,6 +180,59 @@ app.get('/api/clients', (req, res) => {
   }
 });
 
+app.get('/api/references/count', async (req, res) => {
+  try {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      // Fallback to local if no token (dev mode without blob)
+      const referencesDir = path.join(process.cwd(), 'public', 'referencias');
+      if (!fs.existsSync(referencesDir)) {
+        return res.json({ count: 0, source: 'local' });
+      }
+      const files = fs.readdirSync(referencesDir).filter(file => {
+        return !file.startsWith('.') && (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png'));
+      });
+      return res.json({ count: files.length, source: 'local' });
+    }
+
+    const { blobs } = await list({ prefix: 'referencias/' });
+    res.json({ count: blobs.length, source: 'blob' });
+  } catch (error) {
+    console.error('Error counting references:', error);
+    res.status(500).json({ error: 'Failed to count references' });
+  }
+});
+
+app.post('/api/references/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const filename = path.basename(req.file.originalname);
+
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      // Upload to Vercel Blob
+      const blob = await put(`referencias/${filename}`, req.file.buffer, {
+        access: 'public',
+        contentType: req.file.mimetype
+      });
+      res.json({ message: 'File uploaded successfully to Blob', filename, url: blob.url });
+    } else {
+      // Fallback to local
+      const referencesDir = path.join(process.cwd(), 'public', 'referencias');
+      if (!fs.existsSync(referencesDir)) {
+        fs.mkdirSync(referencesDir, { recursive: true });
+      }
+      const filePath = path.join(referencesDir, filename);
+      fs.writeFileSync(filePath, req.file.buffer);
+      res.json({ message: 'File uploaded successfully to Local', filename });
+    }
+  } catch (error) {
+    console.error('Error uploading reference:', error);
+    res.status(500).json({ error: 'Failed to upload reference' });
+  }
+});
+
 app.post('/api/audit', upload.single('photo'), async (req, res) => {
   try {
     const { usuario, clienteId } = req.body;
@@ -190,16 +269,52 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       { inlineData: { mimeType: file.mimetype, data: file.buffer.toString('base64') } }
     ];
 
-    // Add references (Try to load, but don't fail if missing)
-    for (const prod of requiredProducts) {
+    // Add references (Try to load from Blob or Local)
+    let referenceBlobs: any[] = [];
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
       try {
-        // Use simplified path resolution
-        let refPath = getReferencePath(`${prod}.jpg`);
-        if (!fs.existsSync(refPath)) refPath = getReferencePath(`${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`);
+        const listResult = await list({ prefix: 'referencias/' });
+        referenceBlobs = listResult.blobs;
+      } catch (e) {
+        console.warn("Failed to list reference blobs:", e);
+      }
+    }
 
-        if (fs.existsSync(refPath)) {
-          parts.push({ text: `Reference for ${prod}:` });
-          parts.push({ inlineData: { mimeType: 'image/jpeg', data: fs.readFileSync(refPath).toString('base64') } });
+    for (const prod of requiredProducts) {
+      // 1. Add Visual Description if available
+      // (Assuming PRODUCT_DESCRIPTIONS is defined somewhere, but it's missing in src/app.ts provided content. 
+      // I will add it or assume it's global. Wait, I don't see PRODUCT_DESCRIPTIONS in src/app.ts provided content.
+      // I should check if it's there. It was in api/index.ts. I should add it to src/app.ts too.)
+      
+      // 2. Add Reference Image
+      try {
+        let refData: string | null = null;
+        const filename = `${prod}.jpg`;
+        const altFilename = `${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`;
+
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+          // Try to find in Blob list
+          const blob = referenceBlobs.find(b => b.pathname === `referencias/${filename}` || b.pathname === `referencias/${altFilename}`);
+          if (blob) {
+            const response = await fetch(blob.url);
+            const arrayBuffer = await response.arrayBuffer();
+            refData = Buffer.from(arrayBuffer).toString('base64');
+          }
+        } 
+        
+        // Fallback to local if not found in blob or no token
+        if (!refData) {
+          let refPath = getReferencePath(filename);
+          if (!fs.existsSync(refPath)) refPath = getReferencePath(altFilename);
+          
+          if (fs.existsSync(refPath)) {
+            refData = fs.readFileSync(refPath).toString('base64');
+          }
+        }
+
+        if (refData) {
+          parts.push({ text: `Reference image for ${prod}:` });
+          parts.push({ inlineData: { mimeType: 'image/jpeg', data: refData } });
         }
       } catch (e) {
         console.warn(`Failed to load reference for ${prod}:`, e);
