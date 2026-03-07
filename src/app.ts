@@ -22,6 +22,14 @@ interface AuditResult {
   url_imagen: string;
 }
 
+// --- PRODUCT DESCRIPTIONS ---
+const PRODUCT_DESCRIPTIONS: Record<string, string> = {
+  "Gin Gordons": "Botella transparente con líquido transparente. Su etiqueta tiene letras color rojo, en su parte inferior una franja amarilla y más abajo una delgada franja violeta. En su tapa superior predomina el color violeta.",
+  "White Horse 1L": "Diferencial clave: Tapa negra. Botella cilíndrica con líquido ámbar. Ancla visual: etiqueta muy grande amarilla brillante con letras rojas diagonales.",
+  "Vat 69 200 ml": "Diferencial clave: Tapa negra con una leve franja amarilla en la parte superior. Botella tipo petaca pequeña, verde oscuro y de forma plana. Su altura es casi la mitad de una botella de 1L (como 'JW Black'). Etiqueta negra con franjas amarillas muy marcadas arriba y abajo; las letras del logo son blancas con un leve ángulo de 20 grados aproximadamente.",
+  "Smirnoff Ice": "Diferencial clave: Tapa roja fina. Botella transparente pequeña. Ancla visual: líquido interior color blanco turbio. Etiqueta blanca con detalles rojos."
+};
+
 // --- CONFIG ---
 const app = express();
 const isVercel = process.env.VERCEL === '1';
@@ -260,8 +268,14 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const prompt = `
       Analyze this image of a liquor shelf.
-      Check for: ${productColumns.join(', ')}.
-      Return JSON: { "Product Name": "Present" | "Missing" }
+      Check ONLY for the following REQUIRED products: ${requiredProducts.join(', ')}.
+      
+      For each product, determine if it is "Present" or "Missing".
+      - "Present": The product is clearly visible on the shelf.
+      - "Missing": The product is NOT visible on the shelf.
+
+      Return a JSON object where keys are the exact product names and values are "Present" or "Missing".
+      Example: { "Gin Gordons": "Present", "Vat 69 200 ml": "Missing" }
     `;
 
     const parts: any[] = [
@@ -282,9 +296,9 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     for (const prod of requiredProducts) {
       // 1. Add Visual Description if available
-      // (Assuming PRODUCT_DESCRIPTIONS is defined somewhere, but it's missing in src/app.ts provided content. 
-      // I will add it or assume it's global. Wait, I don't see PRODUCT_DESCRIPTIONS in src/app.ts provided content.
-      // I should check if it's there. It was in api/index.ts. I should add it to src/app.ts too.)
+      if (PRODUCT_DESCRIPTIONS[prod]) {
+        parts.push({ text: `Visual description for ${prod}: ${PRODUCT_DESCRIPTIONS[prod]}` });
+      }
       
       // 2. Add Reference Image
       try {
@@ -323,7 +337,10 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-latest",
-      contents: { parts }
+      contents: { parts },
+      config: {
+        temperature: 0, // Force deterministic output
+      }
     });
 
     const jsonString = response.text?.replace(/```json/g, '').replace(/```/g, '').trim() || '{}';
