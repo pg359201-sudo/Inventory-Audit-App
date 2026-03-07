@@ -261,19 +261,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <div className="flex gap-3">
                           <button
                             onClick={() => { setSelectedAudit(item); setShowProcessLog(false); }}
-                            className="flex items-center gap-1 text-indigo-600 hover:text-indigo-900"
+                            className="flex items-center justify-center rounded-md p-1.5 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-900"
+                            title="Ver Detalle"
                           >
-                            <Eye size={16} className="md:h-[18px] md:w-[18px]" />
-                            <span className="hidden md:inline">Ver Detalle</span>
-                            <span className="md:hidden">Ver</span>
+                            <Eye size={20} />
                           </button>
                           <button
                             onClick={() => { setSelectedAudit(item); setShowProcessLog(true); }}
-                            className="flex items-center gap-1 text-teal-600 hover:text-teal-900"
+                            className="flex items-center justify-center rounded-md p-1.5 text-teal-600 hover:bg-teal-50 hover:text-teal-900"
+                            title="Ver Proceso"
                           >
-                            <Activity size={16} className="md:h-[18px] md:w-[18px]" />
-                            <span className="hidden md:inline">Ver Proceso</span>
-                            <span className="md:hidden">Proc</span>
+                            <Activity size={20} />
                           </button>
                         </div>
                       </td>
