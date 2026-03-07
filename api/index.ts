@@ -313,6 +313,22 @@ app.get('/api/debug-config', (req, res) => {
   });
 });
 
+app.get('/api/references/count', (req, res) => {
+  try {
+    const referencesDir = path.join(process.cwd(), 'public', 'referencias');
+    if (!fs.existsSync(referencesDir)) {
+      return res.json({ count: 0 });
+    }
+    const files = fs.readdirSync(referencesDir).filter(file => {
+      return !file.startsWith('.') && (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png'));
+    });
+    res.json({ count: files.length });
+  } catch (error) {
+    console.error('Error counting references:', error);
+    res.status(500).json({ error: 'Failed to count references' });
+  }
+});
+
 app.post('/api/audit', upload.single('photo'), async (req, res) => {
   try {
     const { usuario, clienteId } = req.body;

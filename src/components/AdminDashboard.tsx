@@ -10,10 +10,19 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [history, setHistory] = useState<AuditResult[]>([]);
   const [selectedAudit, setSelectedAudit] = useState<AuditResult | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [referenceCount, setReferenceCount] = useState<number | null>(null);
 
   useEffect(() => {
     fetchHistory();
+    fetchReferenceCount();
   }, []);
+
+  const fetchReferenceCount = () => {
+    fetch('/api/references/count')
+      .then(res => res.json())
+      .then(data => setReferenceCount(data.count))
+      .catch(err => console.error('Error fetching reference count:', err));
+  };
 
   const fetchHistory = () => {
     fetch('/api/history')
@@ -103,7 +112,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Panel de Administrador</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Panel de Administrador</h1>
+            {referenceCount !== null && (
+              <p className="text-sm text-gray-500 mt-1">
+                Imágenes de referencia cargadas: <span className="font-medium text-indigo-600">{referenceCount}</span>
+              </p>
+            )}
+          </div>
           <div className="flex gap-4">
             {selectedIds.length > 0 && (
               <button
