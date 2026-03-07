@@ -270,19 +270,15 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       Analyze this image of a liquor shelf.
       Check ONLY for the following REQUIRED products: ${requiredProducts.join(', ')}.
       
-      For each product, determine if it is "Present" or "Missing".
-      - "Present": The product is clearly visible on the shelf.
-      - "Missing": The product is NOT visible on the shelf.
+      You MUST return a JSON object where the keys are the exact product names.
+      The value for each key MUST be an object with two fields:
+      1. "status": either "Present" or "Missing".
+      2. "reason": a short explanation (string) of why you determined this status.
 
-      IMPORTANT: Provide a brief reason for your decision for each product. 
-      - If Present, describe where it is (e.g., "Top shelf, left side").
-      - If Missing, explain why (e.g., "Not found among similar bottles").
-
-      Return a JSON object where keys are the exact product names and values are objects with "status" and "reason".
-      Example: 
-      { 
-        "Gin Gordons": { "status": "Present", "reason": "Visible on the second shelf, red label matches reference." }, 
-        "Vat 69 200 ml": { "status": "Missing", "reason": "Only 1L version found, small flask shape not visible." } 
+      Example Output:
+      {
+        "Gin Gordons": { "status": "Present", "reason": "Red label bottle visible on top shelf" },
+        "Gin Royale": { "status": "Missing", "reason": "No purple bottle found" }
       }
     `;
 
@@ -373,21 +369,18 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       const resultData = analysisResult[prod];
       
       let isPresent = false;
-      let reason = '';
+      let reason = 'No reason provided';
 
       if (resultData) {
         if (typeof resultData === 'object') {
           isPresent = resultData.status === 'Present';
-          reason = resultData.reason || '';
+          reason = resultData.reason || 'No reason text in object';
         } else if (typeof resultData === 'string') {
           isPresent = resultData === 'Present';
-          reason = ''; // Legacy string response has no reason
+          reason = 'AI returned legacy string format'; 
         }
-      }
-
-      // If required but missing from AI response entirely
-      if (isRequired && !resultData) {
-        reason = "AI did not return data for this required product.";
+      } else {
+         reason = 'AI did not return data for this product';
       }
 
       detailedResult.push({ productName: prod, required: isRequired, present: isPresent, reason });
