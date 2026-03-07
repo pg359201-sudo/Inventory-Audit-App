@@ -148,12 +148,14 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                         {item.present ? 'Presente' : item.required ? 'Falta' : '-'}
                       </span>
                     </div>
-                    <div className="mt-2 border-t border-black/5 pt-1">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase">Análisis IA:</span>
-                      <p className="text-gray-700 italic leading-tight">
-                        "{item.reason || 'Sin detalles'}"
-                      </p>
-                    </div>
+                    {item.reason && (
+                      <div className="mt-2 border-t border-black/5 pt-1">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Análisis IA:</span>
+                        <p className="text-gray-700 italic leading-tight">
+                          "{item.reason}"
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
