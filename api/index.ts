@@ -29,7 +29,7 @@ import { sql } from '@vercel/postgres';
 
 // --- PRODUCT DESCRIPTIONS ---
 const PRODUCT_DESCRIPTIONS: Record<string, string> = {
-  "Gin Gordons": "Diferencial clave: Tapa violeta con una franja amarilla en su base y parte superior. Botella transparente con líquido transparente. Buscar etiqueta predominantemente blanca con una franja amarilla en la parte inferior y letras grandes y oscuras.",
+  "Gin Gordons": "Botella transparente con líquido transparente. Su etiqueta tiene letras color rojo, en su parte inferior una franja amarilla y más abajo una delgada franja violeta. En su tapa superior predomina el color violeta.",
   "Gin Tanqueray": "Diferencial clave: Tapa color plateado. Buscar bloque de vidrio verde oscuro. Etiqueta blanca con un punto/sello rojo brillante encima.",
   "Gin Sevilla": "Diferencial clave: Tapa color rojo o anaranjado. Buscar bloque de color naranja claro o ámbar. Etiqueta blanca con un punto/sello rojo brillante encima. Palabra 'Sevilla'.",
   "Gin Royale": "Diferencial clave: Tapa color violeta. Buscar bloque de color violeta muy oscuro. Etiqueta blanca con un punto/sello rojo brillante encima. Palabra 'Royale'.",
