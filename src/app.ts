@@ -43,6 +43,13 @@ async function getDb(): Promise<AuditResult[]> {
 }
 
 async function saveToDb(audit: Omit<AuditResult, 'id'>) {
+  console.log('DEBUG: saveToDb called with keys:', Object.keys(audit));
+  if ('proceso_auditoria' in audit) {
+      console.log('DEBUG: proceso_auditoria present in saveToDb payload. Length:', audit.proceso_auditoria?.length);
+  } else {
+      console.error('DEBUG: proceso_auditoria MISSING in saveToDb payload');
+  }
+  
   const newRecord = { ...audit, id: Date.now() };
   globalHistory.unshift(newRecord);
   return newRecord;
