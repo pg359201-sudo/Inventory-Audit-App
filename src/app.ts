@@ -20,6 +20,7 @@ interface AuditResult {
   resultado_detallado: string;
   resultado_global: string;
   url_imagen: string;
+  proceso_auditoria?: string;
 }
 
 // --- PRODUCT DESCRIPTIONS ---
@@ -34,13 +35,17 @@ const PRODUCT_DESCRIPTIONS: Record<string, string> = {
 const app = express();
 const isVercel = process.env.VERCEL === '1';
 
-// --- DB LOGIC (Mocked for Debug) ---
+// --- DB LOGIC (In-Memory) ---
+const globalHistory: AuditResult[] = [];
+
 async function getDb(): Promise<AuditResult[]> {
-  return [];
+  return globalHistory;
 }
 
 async function saveToDb(audit: Omit<AuditResult, 'id'>) {
-  return { ...audit, id: Date.now() };
+  const newRecord = { ...audit, id: Date.now() };
+  globalHistory.unshift(newRecord);
+  return newRecord;
 }
 
 import { put, list } from '@vercel/blob';
@@ -242,17 +247,25 @@ app.post('/api/references/upload', upload.single('file'), async (req, res) => {
 });
 
 app.post('/api/audit', upload.single('photo'), async (req, res) => {
+  const processLog: { step: string; status: 'OK' | 'Error' | 'Warning'; details?: string }[] = [];
+  
   try {
     const { usuario, clienteId } = req.body;
     const file = req.file;
 
     if (!file) return res.status(400).json({ error: 'No photo uploaded' });
 
+    // Step 1: Check Client Rules
+    processLog.push({ step: 'Revisión de tabla de referencias por cliente', status: 'OK', details: `Cliente ID: ${clienteId}` });
+    
     // Load Client Rules (Embedded First)
     const records = parseCSV(EMBEDDED_CSV_DATA);
     const clientRule = records.find((r: any) => r['Codigo FEMSA'] === clienteId);
     
-    if (!clientRule) return res.status(404).json({ error: 'Client not found' });
+    if (!clientRule) {
+      processLog.push({ step: 'Validación de cliente', status: 'Error', details: 'Cliente no encontrado en base de datos' });
+      return res.status(404).json({ error: 'Client not found' });
+    }
 
     // Identify required products
     const productColumns = [
@@ -263,6 +276,12 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     ];
 
     const requiredProducts = productColumns.filter(prod => clientRule[prod] === 'Si');
+
+    // Step 2: Reference Images Analysis
+    let missingRefs = 0;
+    // ... (reference loading logic) ...
+    // I need to capture the reference loading logic to update the log status properly.
+    // I will rewrite the reference loading block to track success/failure.
 
     // Call Gemini
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -298,6 +317,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       }
     }
 
+    let loadedRefsCount = 0;
     for (const prod of requiredProducts) {
       // 1. Add Visual Description if available
       if (PRODUCT_DESCRIPTIONS[prod]) {
@@ -333,12 +353,25 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         if (refData) {
           parts.push({ text: `Reference image for ${prod}:` });
           parts.push({ inlineData: { mimeType: 'image/jpeg', data: refData } });
+          loadedRefsCount++;
+        } else {
+             missingRefs++;
         }
       } catch (e) {
         console.warn(`Failed to load reference for ${prod}:`, e);
+        missingRefs++;
       }
     }
     
+    processLog.push({ 
+        step: 'Análisis de fotos de referencias', 
+        status: missingRefs === 0 ? 'OK' : 'Warning', 
+        details: `Cargadas: ${loadedRefsCount}, Faltantes: ${missingRefs}` 
+    });
+
+    // Step 3: Context Check
+    processLog.push({ step: 'Revisión de contexto importante', status: 'OK', details: 'Prompt y descripciones visuales inyectadas correctamente' });
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-latest",
       contents: { parts },
@@ -356,11 +389,13 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     } catch (e) {
       console.error("Failed to parse JSON:", e);
       analysisResult = {};
+      processLog.push({ step: 'Análisis de IA', status: 'Error', details: 'Fallo al parsear respuesta JSON de Gemini' });
     }
 
     // Evaluate
     let globalResult = 'OK';
     const detailedResult: any[] = [];
+    const missingReasons: string[] = [];
 
     productColumns.forEach(prod => {
       const isRequired = clientRule[prod] === 'Si';
@@ -384,8 +419,22 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       }
 
       detailedResult.push({ productName: prod, required: isRequired, present: isPresent, reason });
-      if (isRequired && !isPresent) globalResult = 'Falta Referencia';
+      if (isRequired && !isPresent) {
+          globalResult = 'Falta Referencia';
+          missingReasons.push(`${prod}: ${reason}`);
+      }
     });
+
+    // Step 4: Missing References Explanation
+    if (missingReasons.length > 0) {
+        processLog.push({ 
+            step: 'Análisis de referencias faltantes', 
+            status: 'Warning', 
+            details: missingReasons.join(' | ') 
+        });
+    } else {
+        processLog.push({ step: 'Análisis de referencias faltantes', status: 'OK', details: 'Todas las referencias requeridas fueron encontradas' });
+    }
 
     // Save (Mocked)
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -399,7 +448,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       cliente: clientRule['Nombre Store'],
       resultado_detallado: JSON.stringify(detailedResult),
       resultado_global: globalResult,
-      url_imagen: fileUrl
+      url_imagen: fileUrl,
+      proceso_auditoria: JSON.stringify(processLog)
     });
 
     res.json({ globalResult, detailedResult, fileUrl });

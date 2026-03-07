@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { AuditResult } from '../types';
-import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload } from 'lucide-react';
+import { AuditResult, AuditProcessStep } from '../types';
+import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity } from 'lucide-react';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -9,6 +9,7 @@ interface AdminDashboardProps {
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [history, setHistory] = useState<AuditResult[]>([]);
   const [selectedAudit, setSelectedAudit] = useState<AuditResult | null>(null);
+  const [showProcessLog, setShowProcessLog] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [referenceCount, setReferenceCount] = useState<number | null>(null);
 
@@ -89,6 +90,15 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const parseDetails = (jsonDetails: string) => {
     try {
       return JSON.parse(jsonDetails);
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const parseProcessLog = (jsonLog?: string): AuditProcessStep[] => {
+    if (!jsonLog) return [];
+    try {
+      return JSON.parse(jsonLog);
     } catch (e) {
       return [];
     }
@@ -248,14 +258,24 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         })()}
                       </td>
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm font-medium">
-                        <button
-                          onClick={() => setSelectedAudit(item)}
-                          className="flex items-center gap-1 text-indigo-600 hover:text-indigo-900"
-                        >
-                          <Eye size={16} className="md:h-[18px] md:w-[18px]" />
-                          <span className="hidden md:inline">Ver Detalle</span>
-                          <span className="md:hidden">Ver</span>
-                        </button>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => { setSelectedAudit(item); setShowProcessLog(false); }}
+                            className="flex items-center gap-1 text-indigo-600 hover:text-indigo-900"
+                          >
+                            <Eye size={16} className="md:h-[18px] md:w-[18px]" />
+                            <span className="hidden md:inline">Ver Detalle</span>
+                            <span className="md:hidden">Ver</span>
+                          </button>
+                          <button
+                            onClick={() => { setSelectedAudit(item); setShowProcessLog(true); }}
+                            className="flex items-center gap-1 text-teal-600 hover:text-teal-900"
+                          >
+                            <Activity size={16} className="md:h-[18px] md:w-[18px]" />
+                            <span className="hidden md:inline">Ver Proceso</span>
+                            <span className="md:hidden">Proc</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -272,98 +292,145 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
             
             <div className="flex items-center justify-between border-b p-6">
-              <h2 className="text-xl font-bold text-gray-900">Detalle de Auditoría</h2>
-              <button onClick={() => setSelectedAudit(null)} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
-              </button>
+              <h2 className="text-xl font-bold text-gray-900">
+                {showProcessLog ? 'Registro del Proceso de Auditoría' : 'Detalle de Auditoría'}
+              </h2>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setShowProcessLog(!showProcessLog)}
+                  className="rounded-md bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                >
+                  {showProcessLog ? 'Ver Resultados' : 'Ver Proceso'}
+                </button>
+                <button onClick={() => setSelectedAudit(null)} className="text-gray-400 hover:text-gray-600">
+                  <X size={24} />
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 p-6 md:grid-cols-2">
-              {/* Left Column: Info & Image */}
-              <div className="space-y-6">
-                <div className="rounded-lg bg-gray-50 p-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500">Cliente</p>
-                      <p className="font-medium text-gray-900">{selectedAudit.cliente}</p>
+            {showProcessLog ? (
+              <div className="p-6">
+                <div className="space-y-4">
+                  {parseProcessLog(selectedAudit.proceso_auditoria).length === 0 ? (
+                    <p className="text-gray-500 italic">No hay registro de proceso disponible para esta auditoría (versión anterior).</p>
+                  ) : (
+                    parseProcessLog(selectedAudit.proceso_auditoria).map((step, idx) => (
+                      <div key={idx} className="flex items-start gap-4 rounded-lg border p-4 shadow-sm">
+                        <div className={`mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
+                          step.status === 'OK' ? 'bg-green-100 text-green-600' : 
+                          step.status === 'Warning' ? 'bg-yellow-100 text-yellow-600' : 
+                          'bg-red-100 text-red-600'
+                        }`}>
+                          {step.status === 'OK' ? '✓' : step.status === 'Warning' ? '!' : 'X'}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">{step.step}</h4>
+                          <p className={`text-sm font-medium ${
+                            step.status === 'OK' ? 'text-green-700' : 
+                            step.status === 'Warning' ? 'text-yellow-700' : 
+                            'text-red-700'
+                          }`}>
+                            Estado: {step.status}
+                          </p>
+                          {step.details && (
+                            <p className="mt-1 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
+                              {step.details}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 p-6 md:grid-cols-2">
+                {/* Left Column: Info & Image */}
+                <div className="space-y-6">
+                  <div className="rounded-lg bg-gray-50 p-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-500">Cliente</p>
+                        <p className="font-medium text-gray-900">{selectedAudit.cliente}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Auditor</p>
+                        <p className="font-medium text-gray-900">{selectedAudit.usuario}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Fecha</p>
+                        <p className="font-medium text-gray-900">{new Date(selectedAudit.fecha).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Resultado</p>
+                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                          selectedAudit.resultado_global === 'OK' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {selectedAudit.resultado_global}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-gray-500">Auditor</p>
-                      <p className="font-medium text-gray-900">{selectedAudit.usuario}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Fecha</p>
-                      <p className="font-medium text-gray-900">{new Date(selectedAudit.fecha).toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Resultado</p>
-                      <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                        selectedAudit.resultado_global === 'OK' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {selectedAudit.resultado_global}
-                      </span>
+                  </div>
+
+                  <div>
+                    <h3 className="mb-2 flex items-center gap-2 font-semibold text-gray-900">
+                      <ImageIcon size={18} />
+                      Evidencia Fotográfica
+                    </h3>
+                    <div className="overflow-hidden rounded-lg border bg-gray-100">
+                      <img 
+                        src={selectedAudit.url_imagen} 
+                        alt="Evidencia" 
+                        className="h-auto w-full object-contain"
+                      />
                     </div>
                   </div>
                 </div>
 
+                {/* Right Column: Product List */}
                 <div>
-                  <h3 className="mb-2 flex items-center gap-2 font-semibold text-gray-900">
-                    <ImageIcon size={18} />
-                    Evidencia Fotográfica
+                  <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900">
+                    <List size={18} />
+                    Productos Evaluados
                   </h3>
-                  <div className="overflow-hidden rounded-lg border bg-gray-100">
-                    <img 
-                      src={selectedAudit.url_imagen} 
-                      alt="Evidencia" 
-                      className="h-auto w-full object-contain"
-                    />
+                  <div className="max-h-[60vh] overflow-y-auto rounded-lg border">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Producto</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 bg-white">
+                        {parseDetails(selectedAudit.resultado_detallado)
+                          .sort((a: any, b: any) => {
+                            // Priority: 0 = Falta (Required & !Present), 1 = Presente, 2 = Others
+                            const pA = (a.required && !a.present) ? 0 : (a.present ? 1 : 2);
+                            const pB = (b.required && !b.present) ? 0 : (b.present ? 1 : 2);
+                            return pA - pB;
+                          })
+                          .map((item: any, idx: number) => (
+                          <tr key={idx} className={item.present ? 'bg-green-50/50' : item.required ? 'bg-red-50/50' : ''}>
+                            <td className="px-4 py-2 text-sm text-gray-900">{item.productName}</td>
+                            <td className="px-4 py-2 text-sm">
+                              <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                                item.present 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : item.required 
+                                    ? 'bg-red-100 text-red-700' 
+                                    : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {item.present ? 'Presente' : item.required ? 'Falta' : 'No Requerido'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
-
-              {/* Right Column: Product List */}
-              <div>
-                <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900">
-                  <List size={18} />
-                  Productos Evaluados
-                </h3>
-                <div className="max-h-[60vh] overflow-y-auto rounded-lg border">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Producto</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {parseDetails(selectedAudit.resultado_detallado)
-                        .sort((a: any, b: any) => {
-                          // Priority: 0 = Falta (Required & !Present), 1 = Presente, 2 = Others
-                          const pA = (a.required && !a.present) ? 0 : (a.present ? 1 : 2);
-                          const pB = (b.required && !b.present) ? 0 : (b.present ? 1 : 2);
-                          return pA - pB;
-                        })
-                        .map((item: any, idx: number) => (
-                        <tr key={idx} className={item.present ? 'bg-green-50/50' : item.required ? 'bg-red-50/50' : ''}>
-                          <td className="px-4 py-2 text-sm text-gray-900">{item.productName}</td>
-                          <td className="px-4 py-2 text-sm">
-                            <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
-                              item.present 
-                                ? 'bg-green-100 text-green-700' 
-                                : item.required 
-                                  ? 'bg-red-100 text-red-700' 
-                                  : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {item.present ? 'Presente' : item.required ? 'Falta' : 'No Requerido'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            )}
 
             <div className="border-t bg-gray-50 p-4 text-right">
               <button

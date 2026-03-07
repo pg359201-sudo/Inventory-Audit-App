@@ -18,6 +18,12 @@ export interface ClientRule {
   "ruta de venta": string;
 }
 
+export interface AuditProcessStep {
+  step: string;
+  status: 'OK' | 'Error' | 'Warning';
+  details?: string;
+}
+
 export interface AuditResult {
   id: number;
   usuario: string;
@@ -26,6 +32,7 @@ export interface AuditResult {
   resultado_detallado: string; // JSON string
   resultado_global: string;
   url_imagen: string;
+  proceso_auditoria?: string; // JSON string of AuditProcessStep[]
 }
 
 export interface ProductStatus {
