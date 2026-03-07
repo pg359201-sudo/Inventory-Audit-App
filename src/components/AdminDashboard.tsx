@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AuditResult } from '../types';
-import { Download, Eye, X, Image as ImageIcon, List, Trash2 } from 'lucide-react';
+import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload } from 'lucide-react';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -22,6 +22,34 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       .then(res => res.json())
       .then(data => setReferenceCount(data.count))
       .catch(err => console.error('Error fetching reference count:', err));
+  };
+
+  const handleUploadReference = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/references/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (res.ok) {
+        alert('Referencia subida correctamente');
+        fetchReferenceCount(); // Refresh count
+      } else {
+        alert('Error al subir referencia');
+      }
+    } catch (error) {
+      console.error('Error uploading reference:', error);
+      alert('Error al subir referencia');
+    } finally {
+        // Reset input
+        e.target.value = '';
+    }
   };
 
   const fetchHistory = () => {
@@ -137,6 +165,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <Download size={20} />
               Descargar Historial
             </button>
+            <label className="flex cursor-pointer items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
+              <Upload size={20} />
+              Subir Referencia
+              <input 
+                type="file" 
+                className="hidden" 
+                accept=".jpg,.jpeg,.png"
+                onChange={handleUploadReference}
+              />
+            </label>
             <button onClick={onLogout} className="text-gray-600 hover:text-gray-900">Salir</button>
           </div>
         </div>
