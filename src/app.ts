@@ -478,6 +478,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     const newFilename = `${safeClientName}_${timestamp}_${globalResult.replace(' ', '_')}.jpg`;
     const fileUrl = await saveFile(file, newFilename);
 
+    console.log('Saving audit with process log length:', processLog.length); // DEBUG
+
     await saveToDb({
       usuario,
       fecha: new Date().toISOString(),
