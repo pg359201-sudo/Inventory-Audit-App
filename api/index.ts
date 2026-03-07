@@ -347,6 +347,9 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     const prompt = `
       Analyze this image of a liquor shelf.
       Check for: ${productColumns.join(', ')}.
+      
+      IMPORTANT CONTEXT: There may be differences in tones and brightness between the uploaded photo for analysis and the loaded reference photo.
+
       Return JSON: { "Product Name": "Present" | "Missing" }
     `;
 
