@@ -27,6 +27,17 @@ const isVercel = process.env.VERCEL === '1';
 
 import { sql } from '@vercel/postgres';
 
+// --- PRODUCT DESCRIPTIONS ---
+const PRODUCT_DESCRIPTIONS: Record<string, string> = {
+  "Gin Gordons": "Botella transparente con líquido transparente. Su etiqueta tiene letras color rojo, en su parte inferior una franja amarilla y más abajo una delgada franja violeta. En su tapa superior predomina el color violeta.",
+  "Gin Tanqueray": "Botella color verde oscuro, tiene una altura algo inferior a la de: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L', 'Gin Gordons'. Su etiqueta es blanca con un trazo verde inglés en su centro. Arriba de la etiqueta y debajo de la tapa tiene un sello rojo con forma redonda. Su tapa superior es de color plateado.",
+  "Gin Sevilla": "Botella color naranja oscuro o ámbar, tiene una altura algo inferior a la de: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L', 'Gin Gordons'. Su etiqueta es blanca con un trazo verde inglés y un marco con detalle en púrpura o uva, verdes y amarillos. Arriba de la etiqueta y debajo de la tapa tiene un sello rojo con forma redonda. Su tapa superior es de color plateado.",
+  "Gin Royale": "Botella color violeta o uva, tiene una altura algo inferior a la de: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L', 'Gin Gordons'. Su etiqueta es blanca con un trazo verde inglés y un marco con detalle en púrpura o uva, verdes y amarillos. Arriba de la etiqueta y debajo de la tapa tiene un sello rojo con forma redonda. Su tapa superior es de color violeta.",
+  "White Horse 1L": "Botella cilíndrica con contenido color ámbar. Tiene una gran etiqueta de fondo amarillo y sus letras son rojas con cierto ángulo ascendente. Tiene una altura similar a la de: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L'. Su tapa superior es de color negro.",
+  "Vat 69 200 ml": "Botella color verde oscuro, con forma plana. Tiene una altura que es casi la mitad de: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L', 'Gin Gordons'. Su etiqueta es negra con franjas superior e inferior color amarillo, las letras del logo son blancas con un leve ángulo de 20 grados aproximadamente. Su tapa superior es de color negro con una leve franja amarilla en la parte superior.",
+  "Smirnoff Ice": "Botella transparente cilíndrica, con un líquido interno color blanco turbio o nublado. Tiene una altura que es aproximadamente el 60% de: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L'. El pico de la botella está recubierto con una etiqueta blanca que en su interior tiene letras negras y rojas con detalles en rojo. Su tapa superior es fina, de poca altura y de color rojo."
+};
+
 // --- DB LOGIC (Hybrid: Postgres with In-Memory Fallback) ---
 const globalHistory: AuditResult[] = [];
 
@@ -349,13 +360,19 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     // Add references (Try to load, but don't fail if missing)
     for (const prod of requiredProducts) {
+      // 1. Add Visual Description if available
+      if (PRODUCT_DESCRIPTIONS[prod]) {
+        parts.push({ text: `Visual description for ${prod}: ${PRODUCT_DESCRIPTIONS[prod]}` });
+      }
+
+      // 2. Add Reference Image
       try {
         // Use simplified path resolution
         let refPath = getReferencePath(`${prod}.jpg`);
         if (!fs.existsSync(refPath)) refPath = getReferencePath(`${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`);
 
         if (fs.existsSync(refPath)) {
-          parts.push({ text: `Reference for ${prod}:` });
+          parts.push({ text: `Reference image for ${prod}:` });
           parts.push({ inlineData: { mimeType: 'image/jpeg', data: fs.readFileSync(refPath).toString('base64') } });
         }
       } catch (e) {
