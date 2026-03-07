@@ -277,12 +277,6 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     const requiredProducts = productColumns.filter(prod => clientRule[prod] === 'Si');
 
-    // Step 2: Reference Images Analysis
-    let missingRefs = 0;
-    // ... (reference loading logic) ...
-    // I need to capture the reference loading logic to update the log status properly.
-    // I will rewrite the reference loading block to track success/failure.
-
     // Call Gemini
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const prompt = `
@@ -305,6 +299,48 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       { text: prompt },
       { inlineData: { mimeType: file.mimetype, data: file.buffer.toString('base64') } }
     ];
+
+    // Step 2: Reference Images Analysis
+    let missingRefs = 0;
+    
+    // NEW: Load Master Reference Image
+    try {
+        const masterRefName = 'referencias_visuales.jpg';
+        let masterRefData: string | null = null;
+        
+        // Try Blob
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+             try {
+                const listResult = await list({ prefix: 'referencias/' });
+                const blob = listResult.blobs.find(b => b.pathname.includes(masterRefName));
+                if (blob) {
+                    const response = await fetch(blob.url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    masterRefData = Buffer.from(arrayBuffer).toString('base64');
+                }
+             } catch (e) {
+                 console.warn("Failed to list blobs for master ref:", e);
+             }
+        }
+
+        // Try Local
+        if (!masterRefData) {
+             const refPath = getReferencePath(masterRefName);
+             if (fs.existsSync(refPath)) {
+                masterRefData = fs.readFileSync(refPath).toString('base64');
+             }
+        }
+
+        if (masterRefData) {
+            parts.push({ text: `IMPORTANT: Here is a MASTER REFERENCE IMAGE acting as the absolute source of truth. It contains 6 specific references marked with RED ARROWS and their names. Use this image to strictly validate the presence of these specific products if they are required.` });
+            parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
+            processLog.push({ step: 'Carga de Referencias Visuales Maestras', status: 'OK', details: 'Archivo referencias_visuales.jpg cargado y enviado a la IA' });
+        } else {
+             // processLog.push({ step: 'Carga de Referencias Visuales Maestras', status: 'Warning', details: 'No se encontró el archivo referencias_visuales.jpg' });
+        }
+    } catch (e) {
+        console.warn("Failed to load master reference:", e);
+    }
 
     // Add references (Try to load from Blob or Local)
     let referenceBlobs: any[] = [];
