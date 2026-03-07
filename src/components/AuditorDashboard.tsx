@@ -149,9 +149,12 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                       </span>
                     </div>
                     {item.reason && (
-                      <p className="text-gray-600 italic border-t border-black/5 pt-1 mt-1">
-                        "{item.reason}"
-                      </p>
+                      <div className="mt-2 border-t border-black/5 pt-1">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Análisis IA:</span>
+                        <p className="text-gray-700 italic leading-tight">
+                          "{item.reason}"
+                        </p>
+                      </div>
                     )}
                   </div>
                 ))}

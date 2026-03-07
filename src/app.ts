@@ -352,7 +352,15 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     });
 
     const jsonString = response.text?.replace(/```json/g, '').replace(/```/g, '').trim() || '{}';
-    const analysisResult = JSON.parse(jsonString);
+    console.log("Gemini Raw Response:", jsonString); // DEBUG LOG
+    
+    let analysisResult;
+    try {
+      analysisResult = JSON.parse(jsonString);
+    } catch (e) {
+      console.error("Failed to parse JSON:", e);
+      analysisResult = {};
+    }
 
     // Evaluate
     let globalResult = 'OK';
@@ -360,10 +368,27 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     productColumns.forEach(prod => {
       const isRequired = clientRule[prod] === 'Si';
+      
       // Handle new object structure or fallback to old string
       const resultData = analysisResult[prod];
-      const isPresent = (typeof resultData === 'object' ? resultData.status : resultData) === 'Present';
-      const reason = typeof resultData === 'object' ? resultData.reason : '';
+      
+      let isPresent = false;
+      let reason = '';
+
+      if (resultData) {
+        if (typeof resultData === 'object') {
+          isPresent = resultData.status === 'Present';
+          reason = resultData.reason || '';
+        } else if (typeof resultData === 'string') {
+          isPresent = resultData === 'Present';
+          reason = ''; // Legacy string response has no reason
+        }
+      }
+
+      // If required but missing from AI response entirely
+      if (isRequired && !resultData) {
+        reason = "AI did not return data for this required product.";
+      }
 
       detailedResult.push({ productName: prod, required: isRequired, present: isPresent, reason });
       if (isRequired && !isPresent) globalResult = 'Falta Referencia';
