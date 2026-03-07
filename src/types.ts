@@ -32,4 +32,5 @@ export interface ProductStatus {
   productName: string;
   required: boolean;
   present: boolean;
+  reason?: string;
 }

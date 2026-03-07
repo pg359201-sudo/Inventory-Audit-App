@@ -141,11 +141,18 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                   const pB = (b.required && !b.present) ? 0 : (b.present ? 1 : 2);
                   return pA - pB;
                 }).map((item, idx) => (
-                  <div key={idx} className={`flex flex-col rounded p-1.5 text-xs ${item.present ? 'bg-green-50' : item.required ? 'bg-red-50' : 'bg-gray-50'}`}>
-                    <span className="font-medium truncate" title={item.productName}>{item.productName}</span>
-                    <span className={`font-semibold ${item.present ? 'text-green-700' : item.required ? 'text-red-700' : 'text-gray-500'}`}>
-                      {item.present ? 'Presente' : item.required ? 'Falta' : '-'}
-                    </span>
+                  <div key={idx} className={`flex flex-col rounded p-2 text-xs border ${item.present ? 'bg-green-50 border-green-100' : item.required ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-medium truncate text-sm" title={item.productName}>{item.productName}</span>
+                      <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider ${item.present ? 'bg-green-200 text-green-800' : item.required ? 'bg-red-200 text-red-800' : 'text-gray-400'}`}>
+                        {item.present ? 'Presente' : item.required ? 'Falta' : '-'}
+                      </span>
+                    </div>
+                    {item.reason && (
+                      <p className="text-gray-600 italic border-t border-black/5 pt-1 mt-1">
+                        "{item.reason}"
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>

@@ -274,8 +274,16 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       - "Present": The product is clearly visible on the shelf.
       - "Missing": The product is NOT visible on the shelf.
 
-      Return a JSON object where keys are the exact product names and values are "Present" or "Missing".
-      Example: { "Gin Gordons": "Present", "Vat 69 200 ml": "Missing" }
+      IMPORTANT: Provide a brief reason for your decision for each product. 
+      - If Present, describe where it is (e.g., "Top shelf, left side").
+      - If Missing, explain why (e.g., "Not found among similar bottles").
+
+      Return a JSON object where keys are the exact product names and values are objects with "status" and "reason".
+      Example: 
+      { 
+        "Gin Gordons": { "status": "Present", "reason": "Visible on the second shelf, red label matches reference." }, 
+        "Vat 69 200 ml": { "status": "Missing", "reason": "Only 1L version found, small flask shape not visible." } 
+      }
     `;
 
     const parts: any[] = [
@@ -352,8 +360,12 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     productColumns.forEach(prod => {
       const isRequired = clientRule[prod] === 'Si';
-      const isPresent = analysisResult[prod] === 'Present';
-      detailedResult.push({ productName: prod, required: isRequired, present: isPresent });
+      // Handle new object structure or fallback to old string
+      const resultData = analysisResult[prod];
+      const isPresent = (typeof resultData === 'object' ? resultData.status : resultData) === 'Present';
+      const reason = typeof resultData === 'object' ? resultData.reason : '';
+
+      detailedResult.push({ productName: prod, required: isRequired, present: isPresent, reason });
       if (isRequired && !isPresent) globalResult = 'Falta Referencia';
     });
 
