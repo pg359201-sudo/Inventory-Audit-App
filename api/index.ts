@@ -29,13 +29,13 @@ import { sql } from '@vercel/postgres';
 
 // --- PRODUCT DESCRIPTIONS ---
 const PRODUCT_DESCRIPTIONS: Record<string, string> = {
-  "Gin Gordons": "Botella transparente con líquido transparente. Su etiqueta tiene letras color rojo, en su parte inferior una franja amarilla y más abajo una delgada franja violeta. En su tapa superior predomina el color violeta.",
-  "Gin Tanqueray": "Botella color verde oscuro, tiene una altura algo inferior a la de: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L', 'Gin Gordons'. Su etiqueta es blanca con un trazo verde inglés en su centro. Arriba de la etiqueta y debajo de la tapa tiene un sello rojo con forma redonda. Su tapa superior es de color plateado.",
-  "Gin Sevilla": "Botella color naranja oscuro o ámbar, tiene una altura algo inferior a la de: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L', 'Gin Gordons'. Su etiqueta es blanca con un trazo verde inglés y un marco con detalle en púrpura o uva, verdes y amarillos. Arriba de la etiqueta y debajo de la tapa tiene un sello rojo con forma redonda. Su tapa superior es de color plateado.",
-  "Gin Royale": "Botella color violeta o uva, tiene una altura algo inferior a la de: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L', 'Gin Gordons'. Su etiqueta es blanca con un trazo verde inglés y un marco con detalle en púrpura o uva, verdes y amarillos. Arriba de la etiqueta y debajo de la tapa tiene un sello rojo con forma redonda. Su tapa superior es de color violeta.",
-  "White Horse 1L": "Botella cilíndrica con contenido color ámbar. Tiene una gran etiqueta de fondo amarillo y sus letras son rojas con cierto ángulo ascendente. Tiene una altura similar a la de: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L'. Su tapa superior es de color negro.",
-  "Vat 69 200 ml": "Botella color verde oscuro, con forma plana. Tiene una altura que es casi la mitad de: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L', 'Gin Gordons'. Su etiqueta es negra con franjas superior e inferior color amarillo, las letras del logo son blancas con un leve ángulo de 20 grados aproximadamente. Su tapa superior es de color negro con una leve franja amarilla en la parte superior.",
-  "Smirnoff Ice": "Botella transparente cilíndrica, con un líquido interno color blanco turbio o nublado. Tiene una altura que es aproximadamente el 60% de: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L'. El pico de la botella está recubierto con una etiqueta blanca que en su interior tiene letras negras y rojas con detalles en rojo. Su tapa superior es fina, de poca altura y de color rojo."
+  "Gin Gordons": "Diferencial clave: Tapa violeta con una franja amarilla en su base y parte superior. Botella transparente con líquido transparente. Buscar etiqueta predominantemente blanca con una franja amarilla en la parte inferior y letras grandes y oscuras.",
+  "Gin Tanqueray": "Diferencial clave: Tapa color plateado. Buscar bloque de vidrio verde oscuro. Etiqueta blanca con un punto/sello rojo brillante encima.",
+  "Gin Sevilla": "Diferencial clave: Tapa color rojo o anaranjado. Buscar bloque de color naranja claro o ámbar. Etiqueta blanca con un punto/sello rojo brillante encima. Palabra 'Sevilla'.",
+  "Gin Royale": "Diferencial clave: Tapa color violeta. Buscar bloque de color violeta muy oscuro. Etiqueta blanca con un punto/sello rojo brillante encima. Palabra 'Royale'.",
+  "White Horse 1L": "Diferencial clave: Tapa negra. Botella cilíndrica con líquido ámbar. Ancla visual: etiqueta muy grande amarilla brillante con letras rojas diagonales.",
+  "Vat 69 200 ml": "Diferencial clave: Tapa negra con una leve franja amarilla en la parte superior. Botella tipo petaca pequeña, verde oscuro y de forma plana. Su altura es casi la mitad de una botella de 1L (como 'JW Black'). Etiqueta negra con franjas amarillas muy marcadas arriba y abajo; las letras del logo son blancas con un leve ángulo de 20 grados aproximadamente.",
+  "Smirnoff Ice": "Diferencial clave: Tapa roja fina. Botella transparente pequeña. Ancla visual: líquido interior color blanco turbio. Etiqueta blanca con detalles rojos."
 };
 
 // --- DB LOGIC (Hybrid: Postgres with In-Memory Fallback) ---
