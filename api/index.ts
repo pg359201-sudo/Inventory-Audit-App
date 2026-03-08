@@ -507,11 +507,10 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       
       INPUT STRUCTURE:
       - IMAGE 1: The "Shelf Photo" (The ONLY image to be audited).
-      - IMAGE 2 (Optional): "Master Reference Guide" (Visual dictionary only).
       - SUBSEQUENT IMAGES: Individual product references (Visual dictionary only).
 
       STRICT RULES:
-      1. IGNORE all bottles seen in Image 2 or subsequent reference images. They are NOT on the shelf. They are just examples of what to look for.
+      1. IGNORE all bottles seen in subsequent reference images. They are NOT on the shelf. They are just examples of what to look for.
       2. ONLY report a product as "Present" if you clearly see it in IMAGE 1 (Shelf Photo).
       3. If a product is visible in a reference image but NOT in Image 1, it is "Missing".
       4. List of products to find: ${productColumns.join(', ')}.
@@ -529,42 +528,15 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     // Step 2: Reference Images Analysis
     let missingRefs = 0;
     
-    // NEW: Load Master Reference Image
+    // NEW: Load Master Reference Image (DISABLED TO PREVENT HALLUCINATIONS)
+    /*
     try {
         const masterRefName = 'referencias_visuales.jpeg';
-        let masterRefData: string | null = null;
-        
-        // Try Blob
-        if (process.env.BLOB_READ_WRITE_TOKEN) {
-             try {
-                const listResult = await list({ prefix: 'referencias/' });
-                const blob = listResult.blobs.find(b => b.pathname.includes(masterRefName));
-                if (blob) {
-                    const response = await fetch(blob.url);
-                    const arrayBuffer = await response.arrayBuffer();
-                    masterRefData = Buffer.from(arrayBuffer).toString('base64');
-                }
-             } catch (e) {
-                 console.warn("Failed to list blobs for master ref:", e);
-             }
-        }
-
-        // Try Local
-        if (!masterRefData) {
-             const refPath = getReferencePath(masterRefName);
-             if (fs.existsSync(refPath)) {
-                masterRefData = fs.readFileSync(refPath).toString('base64');
-             }
-        }
-
-        if (masterRefData) {
-            parts.push({ text: `[REFERENCE IMAGE START] This is the Master Reference Guide. DO NOT AUDIT THIS IMAGE. It shows: "JW Blonde", "Vat 69 200 ml", "Smirnoff Ice", "Gin Tanqueray", "Gin Royale", "Gin Sevilla". [REFERENCE IMAGE END]` });
-            parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
-            processLog.push({ step: 'Carga de Referencias Visuales Maestras', status: 'OK', details: 'Archivo referencias_visuales.jpeg cargado y enviado a la IA' });
-        }
+        // ... (Code disabled)
     } catch (e) {
         console.warn("Failed to load master reference:", e);
     }
+    */
 
     // Add references (Try to load from Blob or Local)
     let referenceBlobs: any[] = [];
@@ -578,6 +550,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     }
 
     let loadedRefsCount = 0;
+    let loadedRefNames: string[] = [];
+    
     for (const prod of requiredProducts) {
       // 1. Add Visual Description if available
       if (PRODUCT_DESCRIPTIONS[prod]) {
@@ -627,19 +601,28 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
           parts.push({ text: `Reference image for ${prod}:` });
           parts.push({ inlineData: { mimeType: mimeType, data: refData } });
           loadedRefsCount++;
+          loadedRefNames.push(prod);
         } else {
              missingRefs++;
+             parts.push({ text: `[WARNING] No reference image found for "${prod}". Rely strictly on the product name and any description provided.` });
         }
       } catch (e) {
         console.warn(`Failed to load reference for ${prod}:`, e);
         missingRefs++;
+        parts.push({ text: `[WARNING] Failed to load reference image for "${prod}". Rely strictly on the product name.` });
       }
     }
     
+    const contextDetails = [
+        `Reglas (JSON): Buscar ${requiredProducts.length} productos (${requiredProducts.join(', ')})`,
+        `Guía Maestra: DESHABILITADA (Para evitar alucinaciones)`,
+        `Refs Individuales: ${loadedRefsCount} cargadas (${loadedRefNames.join(', ')})`
+    ].join(' | ');
+
     processLog.push({ 
-        step: 'Análisis de fotos de referencias', 
+        step: 'Carga de Referencias y Contexto IA', 
         status: missingRefs === 0 ? 'OK' : 'Warning', 
-        details: `Cargadas: ${loadedRefsCount}, Faltantes: ${missingRefs}` 
+        details: contextDetails
     });
 
     // Step 3: Context Check
