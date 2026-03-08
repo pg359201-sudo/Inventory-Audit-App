@@ -254,16 +254,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <Download size={20} />
               Descargar Historial
             </button>
-            <label className="flex cursor-pointer items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-              <Upload size={20} />
-              Subir Referencia
-              <input 
-                type="file" 
-                className="hidden" 
-                accept=".jpg,.jpeg,.png"
-                onChange={handleUploadReference}
-              />
-            </label>
             <button onClick={onLogout} className="text-gray-600 hover:text-gray-900">Salir</button>
           </div>
         </div>
@@ -375,17 +365,29 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             </div>
             
             <div className="p-6">
-              <div className="mb-4 flex justify-between items-center">
-                <p className="text-sm text-gray-500">Selecciona las imágenes que deseas eliminar.</p>
-                {selectedReferences.length > 0 && (
-                  <button
-                    onClick={handleDeleteReferences}
-                    className="flex items-center gap-2 rounded-md bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
-                  >
-                    <Trash2 size={16} />
-                    Eliminar ({selectedReferences.length})
-                  </button>
-                )}
+              <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-gray-500">Gestiona las imágenes de referencia.</p>
+                <div className="flex gap-2">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700">
+                    <Upload size={16} />
+                    Subir Referencia
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept=".jpg,.jpeg,.png"
+                      onChange={handleUploadReference}
+                    />
+                  </label>
+                  {selectedReferences.length > 0 && (
+                    <button
+                      onClick={handleDeleteReferences}
+                      className="flex items-center gap-2 rounded-md bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
+                    >
+                      <Trash2 size={16} />
+                      Eliminar ({selectedReferences.length})
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="max-h-[60vh] overflow-y-auto border rounded-lg">
