@@ -547,7 +547,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         let mimeType = 'image/jpeg';
         
         // Try multiple extensions
-        const extensions = ['.jpg', '.jpeg', '.png'];
+        const extensions = ['.jpeg', '.jpg', '.png'];
         const baseNames = [prod, prod.replace(/[^a-zA-Z0-9]/g, ' ')];
 
         for (const ext of extensions) {
