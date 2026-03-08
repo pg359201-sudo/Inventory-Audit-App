@@ -210,7 +210,7 @@ app.get('/api/clients', (req, res) => {
 
 app.get('/api/references/count', async (req, res) => {
   try {
-    console.log('DEBUG: /api/references/count called');
+    console.log('DEBUG: /api/references/count called (src/app.ts)');
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       // Fallback to local if no token (dev mode without blob)
       const referencesDir = path.join(process.cwd(), 'public', 'referencias');
