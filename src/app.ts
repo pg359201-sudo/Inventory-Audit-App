@@ -239,27 +239,32 @@ app.get('/api/references/test-list', (req, res) => {
     res.json({ status: 'ok', message: 'Test route works' });
 });
 
-app.get('/api/references/all', async (req, res) => {
+app.get('/api/list-references', async (req, res) => {
   try {
-    console.log('DEBUG: /api/references/all called');
+    console.log(`[${new Date().toISOString()}] DEBUG: /api/list-references called`);
     
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       // Fallback to local
       const referencesDir = path.join(process.cwd(), 'public', 'referencias');
+      console.log(`[${new Date().toISOString()}] DEBUG: Checking local dir: ${referencesDir}`);
+      
       if (!fs.existsSync(referencesDir)) {
+        console.log(`[${new Date().toISOString()}] DEBUG: Local dir does not exist`);
         return res.json([]);
       }
       const files = fs.readdirSync(referencesDir).filter(file => {
         return !file.startsWith('.') && (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png'));
       });
+      console.log(`[${new Date().toISOString()}] DEBUG: Found ${files.length} local files`);
       return res.json(files);
     }
 
     // List everything with the prefix
+    console.log(`[${new Date().toISOString()}] DEBUG: Listing blobs with prefix 'referencias/'`);
     const response = await list({ prefix: 'referencias/' });
     const blobs = response.blobs;
     
-    console.log(`DEBUG: Found ${blobs.length} blobs`);
+    console.log(`[${new Date().toISOString()}] DEBUG: Found ${blobs.length} blobs`);
     
     // Map to just filenames/pathnames to see what we have
     const filenames = blobs.map(b => {
@@ -269,7 +274,7 @@ app.get('/api/references/all', async (req, res) => {
     
     res.json(filenames);
   } catch (error) {
-    console.error('Error listing references:', error);
+    console.error(`[${new Date().toISOString()}] Error listing references:`, error);
     res.status(500).json({ error: 'Failed to list references', details: error.message });
   }
 });
