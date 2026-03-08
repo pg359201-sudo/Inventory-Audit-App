@@ -11,6 +11,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [selectedAudit, setSelectedAudit] = useState<AuditResult | null>(null);
   const [showProcessLog, setShowProcessLog] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [referenceCount, setReferenceCount] = useState<number | null>(null);
   const [showReferenceModal, setShowReferenceModal] = useState(false);
   const [referenceList, setReferenceList] = useState<string[]>([]);
   const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
