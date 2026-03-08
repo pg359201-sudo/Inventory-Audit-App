@@ -470,11 +470,19 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     // Call Gemini
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const prompt = `
-      Analyze this image of a liquor shelf.
-      Check for: ${productColumns.join(', ')}.
+      TASK: Analyze the FIRST image provided (the shelf photo) to detect the presence of specific liquor products.
       
-      IMPORTANT CONTEXT: There may be differences in tones and brightness between the uploaded photo for analysis and the loaded reference photo.
+      CONTEXT:
+      - The FIRST image is the "Shelf Photo" to be audited.
+      - The SECOND image (if provided) is a "Master Reference Guide" containing 6 products with red arrows. DO NOT audit this image. Use it ONLY as a visual dictionary to understand what the products look like.
+      - Any subsequent images are individual product references. Use them ONLY for visual comparison.
 
+      INSTRUCTIONS:
+      1. Look for the following products in the "Shelf Photo" ONLY: ${productColumns.join(', ')}.
+      2. For each product, determine if it is "Present" or "Missing" in the "Shelf Photo".
+      3. IMPORTANT: A product is "Present" ONLY if you see it in the "Shelf Photo". Seeing it in the "Master Reference Guide" or individual reference images does NOT count as "Present".
+      4. Be strict. If you are not 100% sure a product is in the "Shelf Photo", mark it as "Missing".
+      
       Return JSON: { "Product Name": "Present" | "Missing" }
     `;
 
