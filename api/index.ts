@@ -544,32 +544,45 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       // 2. Add Reference Image
       try {
         let refData: string | null = null;
-        const filename = `${prod}.jpg`;
-        const altFilename = `${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`;
-
-        if (process.env.BLOB_READ_WRITE_TOKEN) {
-          // Try to find in Blob list
-          const blob = referenceBlobs.find(b => b.pathname === `referencias/${filename}` || b.pathname === `referencias/${altFilename}`);
-          if (blob) {
-            const response = await fetch(blob.url);
-            const arrayBuffer = await response.arrayBuffer();
-            refData = Buffer.from(arrayBuffer).toString('base64');
-          }
-        } 
+        let mimeType = 'image/jpeg';
         
-        // Fallback to local if not found in blob or no token
-        if (!refData) {
-          let refPath = getReferencePath(filename);
-          if (!fs.existsSync(refPath)) refPath = getReferencePath(altFilename);
+        // Try multiple extensions
+        const extensions = ['.jpg', '.jpeg', '.png'];
+        const baseNames = [prod, prod.replace(/[^a-zA-Z0-9]/g, ' ')];
+
+        for (const ext of extensions) {
+          if (refData) break; // Stop if found
           
-          if (fs.existsSync(refPath)) {
-            refData = fs.readFileSync(refPath).toString('base64');
+          for (const baseName of baseNames) {
+             if (refData) break; // Stop if found
+             
+             const filename = `${baseName}${ext}`;
+             
+             if (process.env.BLOB_READ_WRITE_TOKEN) {
+               // Try to find in Blob list
+               const blob = referenceBlobs.find(b => b.pathname === `referencias/${filename}`);
+               if (blob) {
+                 const response = await fetch(blob.url);
+                 const arrayBuffer = await response.arrayBuffer();
+                 refData = Buffer.from(arrayBuffer).toString('base64');
+                 if (ext === '.png') mimeType = 'image/png';
+               }
+             } 
+             
+             // Fallback to local if not found in blob or no token
+             if (!refData) {
+               const refPath = getReferencePath(filename);
+               if (fs.existsSync(refPath)) {
+                 refData = fs.readFileSync(refPath).toString('base64');
+                 if (ext === '.png') mimeType = 'image/png';
+               }
+             }
           }
         }
 
         if (refData) {
           parts.push({ text: `Reference image for ${prod}:` });
-          parts.push({ inlineData: { mimeType: 'image/jpeg', data: refData } });
+          parts.push({ inlineData: { mimeType: mimeType, data: refData } });
           loadedRefsCount++;
         } else {
              missingRefs++;
