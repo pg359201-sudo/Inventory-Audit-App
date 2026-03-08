@@ -475,14 +475,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   {parseProcessLog(selectedAudit.proceso_auditoria).length === 0 ? (
                     <div className="text-gray-500 italic">
                       <p>No hay registro de proceso disponible para esta auditoría.</p>
-                      <div className="mt-2 text-xs bg-gray-100 p-2 rounded border">
-                        <strong>Debug Info:</strong>
-                        <pre>{JSON.stringify({
-                          hasField: 'proceso_auditoria' in selectedAudit,
-                          rawValue: selectedAudit.proceso_auditoria,
-                          parsedLength: parseProcessLog(selectedAudit.proceso_auditoria).length
-                        }, null, 2)}</pre>
-                      </div>
                     </div>
                   ) : (
                     parseProcessLog(selectedAudit.proceso_auditoria).map((step, idx) => (
