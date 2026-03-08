@@ -560,7 +560,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         if (masterRefData) {
             parts.push({ text: `[REFERENCE IMAGE START] This is the Master Reference Guide. DO NOT AUDIT THIS IMAGE. It shows: "JW Blonde", "Vat 69 200 ml", "Smirnoff Ice", "Gin Tanqueray", "Gin Royale", "Gin Sevilla". [REFERENCE IMAGE END]` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
-            processLog.push({ step: 'Carga de Referencias Visuales Maestras', status: 'OK', details: 'Archivo referencias_visuales.jpeg cargado y enviado a la IA' });
+            // Log deferred to end of loading phase
         }
     } catch (e) {
         console.warn("Failed to load master reference:", e);
@@ -578,6 +578,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     }
 
     let loadedRefsCount = 0;
+    let loadedRefNames: string[] = [];
+    
     for (const prod of requiredProducts) {
       // 1. Add Visual Description if available
       if (PRODUCT_DESCRIPTIONS[prod]) {
@@ -627,6 +629,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
           parts.push({ text: `Reference image for ${prod}:` });
           parts.push({ inlineData: { mimeType: mimeType, data: refData } });
           loadedRefsCount++;
+          loadedRefNames.push(prod);
         } else {
              missingRefs++;
         }
@@ -636,10 +639,16 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       }
     }
     
+    const contextDetails = [
+        `Reglas (JSON): Buscar ${requiredProducts.length} productos (${requiredProducts.join(', ')})`,
+        `Guía Maestra: ${parts.some(p => p.text?.includes('Master Reference Guide')) ? 'SI (referencias_visuales.jpeg)' : 'NO'}`,
+        `Refs Individuales: ${loadedRefsCount} cargadas (${loadedRefNames.join(', ')})`
+    ].join(' | ');
+
     processLog.push({ 
-        step: 'Análisis de fotos de referencias', 
+        step: 'Carga de Referencias y Contexto IA', 
         status: missingRefs === 0 ? 'OK' : 'Warning', 
-        details: `Cargadas: ${loadedRefsCount}, Faltantes: ${missingRefs}` 
+        details: contextDetails
     });
 
     // Step 3: Context Check

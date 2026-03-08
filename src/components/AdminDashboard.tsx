@@ -309,7 +309,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm">
                         {item.source === 'db' ? (
                           <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                            Base de Datos
+                            BBDD
                           </span>
                         ) : (
                           <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800" title="Se perderá al reiniciar el servidor">
