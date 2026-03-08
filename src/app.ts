@@ -35,6 +35,14 @@ const PRODUCT_DESCRIPTIONS: Record<string, string> = {
 const app = express();
 const isVercel = process.env.VERCEL === '1';
 
+// Request Logger
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  }
+  next();
+});
+
 // --- DB LOGIC (In-Memory) ---
 const globalHistory: AuditResult[] = [];
 
