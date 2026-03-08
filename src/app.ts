@@ -202,19 +202,23 @@ app.get('/api/clients', (req, res) => {
 
 app.get('/api/references/count', async (req, res) => {
   try {
+    console.log('DEBUG: /api/references/count called');
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       // Fallback to local if no token (dev mode without blob)
       const referencesDir = path.join(process.cwd(), 'public', 'referencias');
       if (!fs.existsSync(referencesDir)) {
+        console.log('DEBUG: Local references dir not found');
         return res.json({ count: 0, source: 'local' });
       }
       const files = fs.readdirSync(referencesDir).filter(file => {
         return !file.startsWith('.') && (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png'));
       });
+      console.log('DEBUG: Local references count:', files.length);
       return res.json({ count: files.length, source: 'local' });
     }
 
     const { blobs } = await list({ prefix: 'referencias/' });
+    console.log('DEBUG: Blob references count:', blobs.length);
     res.json({ count: blobs.length, source: 'blob' });
   } catch (error) {
     console.error('Error counting references:', error);
@@ -224,20 +228,28 @@ app.get('/api/references/count', async (req, res) => {
 
 app.get('/api/references/list', async (req, res) => {
   try {
+    console.log('DEBUG: /api/references/list called');
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       // Fallback to local
       const referencesDir = path.join(process.cwd(), 'public', 'referencias');
       if (!fs.existsSync(referencesDir)) {
+        console.log('DEBUG: Local references dir not found for list');
         return res.json([]);
       }
       const files = fs.readdirSync(referencesDir).filter(file => {
         return !file.startsWith('.') && (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png'));
       });
+      console.log('DEBUG: Local references list:', files);
       return res.json(files);
     }
 
     const { blobs } = await list({ prefix: 'referencias/' });
-    const filenames = blobs.map(b => path.basename(b.pathname));
+    console.log('DEBUG: Raw blobs found:', blobs.length);
+    const filenames = blobs.map(b => {
+        const name = path.basename(b.pathname);
+        return name;
+    });
+    console.log('DEBUG: Processed filenames:', filenames);
     res.json(filenames);
   } catch (error) {
     console.error('Error listing references:', error);

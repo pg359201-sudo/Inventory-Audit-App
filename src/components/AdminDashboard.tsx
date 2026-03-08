@@ -29,11 +29,15 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const fetchReferenceList = () => {
-    fetch('/api/references/list')
+    console.log('Fetching reference list...');
+    fetch(`/api/references/list?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
+        console.log('Reference list received:', data);
         if (Array.isArray(data)) {
           setReferenceList(data);
+        } else {
+            console.error('Reference list is not an array:', data);
         }
       })
       .catch(err => console.error('Error fetching reference list:', err));
