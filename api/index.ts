@@ -477,20 +477,22 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     // Call Gemini
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const prompt = `
-      TASK: Analyze the FIRST image provided (the shelf photo) to detect the presence of specific liquor products.
+      TASK: Perform a strict shelf audit on the FIRST image provided.
       
-      CONTEXT:
-      - The FIRST image is the "Shelf Photo" to be audited.
-      - The SECOND image (if provided) is a "Master Reference Guide" containing 6 products with red arrows. DO NOT audit this image. Use it ONLY as a visual dictionary to understand what the products look like.
-      - Any subsequent images are individual product references. Use them ONLY for visual comparison.
+      INPUT STRUCTURE:
+      - IMAGE 1: The "Shelf Photo" (The ONLY image to be audited).
+      - IMAGE 2 (Optional): "Master Reference Guide" (Visual dictionary only).
+      - SUBSEQUENT IMAGES: Individual product references (Visual dictionary only).
 
-      INSTRUCTIONS:
-      1. Look for the following products in the "Shelf Photo" ONLY: ${productColumns.join(', ')}.
-      2. For each product, determine if it is "Present" or "Missing" in the "Shelf Photo".
-      3. IMPORTANT: A product is "Present" ONLY if you see it in the "Shelf Photo". Seeing it in the "Master Reference Guide" or individual reference images does NOT count as "Present".
-      4. Be strict. If you are not 100% sure a product is in the "Shelf Photo", mark it as "Missing".
-      
-      Return JSON: { "Product Name": "Present" | "Missing" }
+      STRICT RULES:
+      1. IGNORE all bottles seen in Image 2 or subsequent reference images. They are NOT on the shelf. They are just examples of what to look for.
+      2. ONLY report a product as "Present" if you clearly see it in IMAGE 1 (Shelf Photo).
+      3. If a product is visible in a reference image but NOT in Image 1, it is "Missing".
+      4. List of products to find: ${productColumns.join(', ')}.
+
+      OUTPUT FORMAT:
+      Return a JSON object where keys are product names and values are "Present" or "Missing".
+      Example: { "Gin Gordons": "Missing", "JW Red 1L": "Present" }
     `;
 
     const parts: any[] = [
@@ -530,7 +532,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         }
 
         if (masterRefData) {
-            parts.push({ text: `IMPORTANT: I am providing a MASTER REFERENCE IMAGE ('referencias_visuales.jpeg'). This image contains 6 specific products marked with RED ARROWS and their names to help you visually identify them correctly. These products are: "JW Blonde", "Vat 69 200 ml", "Smirnoff Ice", "Gin Tanqueray", "Gin Royale", and "Gin Sevilla". Use this visual guide as the ground truth for identifying these specific bottles.` });
+            parts.push({ text: `[REFERENCE IMAGE START] This is the Master Reference Guide. DO NOT AUDIT THIS IMAGE. It shows: "JW Blonde", "Vat 69 200 ml", "Smirnoff Ice", "Gin Tanqueray", "Gin Royale", "Gin Sevilla". [REFERENCE IMAGE END]` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
             processLog.push({ step: 'Carga de Referencias Visuales Maestras', status: 'OK', details: 'Archivo referencias_visuales.jpeg cargado y enviado a la IA' });
         }
