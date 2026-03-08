@@ -35,7 +35,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const fetchReferenceList = () => {
     setDebugInfo(prev => ({ ...prev, loading: true, listStatus: 'fetching' }));
-    fetch(`/api/references/list?t=${Date.now()}`)
+    fetch(`/api/references/all?t=${Date.now()}`)
       .then(async res => {
         const text = await res.text();
         setDebugInfo(prev => ({ ...prev, rawResponse: text.substring(0, 500), status: res.status }));

@@ -226,9 +226,14 @@ app.get('/api/references/count', async (req, res) => {
   }
 });
 
-app.get('/api/references/list', async (req, res) => {
+app.get('/api/references/test-list', (req, res) => {
+    console.log('DEBUG: /api/references/test-list called');
+    res.json({ status: 'ok', message: 'Test route works' });
+});
+
+app.get('/api/references/all', async (req, res) => {
   try {
-    console.log('DEBUG: /api/references/list called');
+    console.log('DEBUG: /api/references/all called');
     
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       // Fallback to local
