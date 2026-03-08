@@ -35,7 +35,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const fetchReferenceList = () => {
     setDebugInfo(prev => ({ ...prev, loading: true, listStatus: 'fetching' }));
-    fetch(`/api/list-references?t=${Date.now()}`)
+    fetch(`/api/references/count?t=${Date.now()}`)
       .then(async res => {
         const text = await res.text();
         setDebugInfo(prev => ({ ...prev, rawResponse: text.substring(0, 500), status: res.status }));
@@ -46,11 +46,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         }
       })
       .then(data => {
-        if (Array.isArray(data)) {
-          setReferenceList(data);
-          setDebugInfo(prev => ({ ...prev, listSuccess: true, listLength: data.length }));
+        if (data.files && Array.isArray(data.files)) {
+          setReferenceList(data.files);
+          setDebugInfo(prev => ({ ...prev, listSuccess: true, listLength: data.files.length }));
         } else {
-            setDebugInfo(prev => ({ ...prev, listError: 'Not an array', dataType: typeof data }));
+            setDebugInfo(prev => ({ ...prev, listError: 'No files array in response', dataType: typeof data }));
         }
       })
       .catch(err => setDebugInfo(prev => ({ ...prev, listError: err.message })))
