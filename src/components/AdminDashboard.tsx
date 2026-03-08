@@ -54,9 +54,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const fetchHistory = () => {
-    fetch('/api/history')
+    fetch(`/api/history?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
+        console.log('History data received:', data);
         if (Array.isArray(data)) {
           setHistory(data);
         }
