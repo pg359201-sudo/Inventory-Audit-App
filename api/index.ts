@@ -94,21 +94,28 @@ async function getDb(): Promise<AuditResult[]> {
   return globalHistory;
 }
 
-async function saveToDb(audit: Omit<AuditResult, 'id'>) {
+async function saveToDb(audit: any) {
   // Try Postgres
   if (process.env.POSTGRES_URL) {
     try {
+      console.log('Attempting to save to Postgres:', audit.cliente, audit.resultado_global);
+      
       await sql`
         INSERT INTO audits (usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen, proceso_auditoria)
-        VALUES (${audit.usuario}, ${audit.fecha}, ${audit.cliente}, ${audit.resultado_detallado}, ${audit.resultado_global}, ${audit.url_imagen}, ${audit.proceso_auditoria || null})
+        VALUES (${audit.usuario}, ${audit.fecha}, ${audit.cliente}, ${audit.resultado_detallado}, ${audit.resultado_global}, ${audit.url_imagen}, ${audit.proceso_auditoria})
       `;
-      return; // Success
+      console.log('Successfully saved to Postgres');
+      return; 
     } catch (error) {
-      console.error("Postgres insert failed (saving to memory):", error);
+      console.error("Postgres insert failed:", error);
+      // Fallback to memory if DB fails
     }
+  } else {
+      console.warn("POSTGRES_URL not found, skipping DB save.");
   }
   
   // Fallback to Memory
+  console.log('Saving to memory fallback');
   const newRecord = { ...audit, id: Date.now() };
   globalHistory.unshift(newRecord);
   return newRecord;
