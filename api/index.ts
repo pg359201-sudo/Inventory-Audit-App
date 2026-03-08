@@ -71,12 +71,19 @@ async function createTableIfNotExists() {
   }
 }
 
+// Initialize DB on startup
+if (process.env.POSTGRES_URL) {
+  createTableIfNotExists();
+}
+
 async function getDb(): Promise<AuditResult[]> {
+  let dbRows: AuditResult[] = [];
+  
   // Try Postgres
   if (process.env.POSTGRES_URL) {
     try {
       const { rows } = await sql`SELECT * FROM audits ORDER BY id DESC LIMIT 100`;
-      return rows.map((row: any) => ({
+      dbRows = rows.map((row: any) => ({
         id: row.id,
         usuario: row.usuario,
         fecha: row.fecha,
@@ -87,11 +94,27 @@ async function getDb(): Promise<AuditResult[]> {
         proceso_auditoria: row.proceso_auditoria
       }));
     } catch (error) {
-      console.warn("Postgres fetch failed (using memory fallback):", error);
+      console.warn("Postgres fetch failed:", error);
     }
   }
-  // Fallback to Memory
-  return globalHistory;
+  
+  // Merge with Memory (prioritize memory for recent items if DB failed or is slow)
+  // We combine them, removing duplicates by ID if any collision (unlikely as memory IDs are timestamps)
+  const combined = [...globalHistory, ...dbRows];
+  
+  // Deduplicate just in case
+  const seen = new Set();
+  const unique = combined.filter(item => {
+    const k = item.id;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  
+  return unique.sort((a, b) => {
+      // Sort by date descending
+      return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+  });
 }
 
 async function saveToDb(audit: any) {
