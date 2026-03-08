@@ -283,7 +283,7 @@ app.get('/api/list-references', async (req, res) => {
   }
 });
 
-app.post('/api/references/delete', async (req, res) => {
+app.post('/api/references/delete', express.json(), async (req, res) => {
   try {
     const { filenames } = req.body;
     if (!Array.isArray(filenames) || filenames.length === 0) {
