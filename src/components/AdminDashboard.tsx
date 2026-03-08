@@ -374,6 +374,20 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 )}
               </div>
 
+              {/* DEBUG SECTION */}
+              <div className="mb-4 p-2 bg-gray-100 rounded text-xs font-mono overflow-x-auto">
+                <p><strong>Debug Info:</strong></p>
+                <p>Count: {referenceCount}</p>
+                <p>List Length: {referenceList.length}</p>
+                <p>First 3 items: {JSON.stringify(referenceList.slice(0, 3))}</p>
+                <button 
+                  onClick={fetchReferenceList}
+                  className="mt-2 px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                >
+                  Forzar Recarga
+                </button>
+              </div>
+
               <div className="max-h-[60vh] overflow-y-auto border rounded-lg">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0">
