@@ -245,10 +245,17 @@ app.get('/api/references/list', async (req, res) => {
 
     const { blobs } = await list({ prefix: 'referencias/' });
     console.log('DEBUG: Raw blobs found:', blobs.length);
-    const filenames = blobs.map(b => {
-        const name = path.basename(b.pathname);
-        return name;
+    
+    // Filter out the folder itself if it exists as a blob (sometimes happens)
+    const validBlobs = blobs.filter(b => !b.pathname.endsWith('/'));
+    
+    const filenames = validBlobs.map(b => {
+        // Handle cases where pathname might be full URL or relative path
+        // Vercel Blob pathnames are usually "referencias/filename.jpg"
+        const parts = b.pathname.split('/');
+        return parts[parts.length - 1];
     });
+    
     console.log('DEBUG: Processed filenames:', filenames);
     res.json(filenames);
   } catch (error) {
