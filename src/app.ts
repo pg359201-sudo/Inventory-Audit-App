@@ -229,38 +229,35 @@ app.get('/api/references/count', async (req, res) => {
 app.get('/api/references/list', async (req, res) => {
   try {
     console.log('DEBUG: /api/references/list called');
+    
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       // Fallback to local
       const referencesDir = path.join(process.cwd(), 'public', 'referencias');
       if (!fs.existsSync(referencesDir)) {
-        console.log('DEBUG: Local references dir not found for list');
         return res.json([]);
       }
       const files = fs.readdirSync(referencesDir).filter(file => {
         return !file.startsWith('.') && (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png'));
       });
-      console.log('DEBUG: Local references list:', files);
       return res.json(files);
     }
 
-    const { blobs } = await list({ prefix: 'referencias/' });
-    console.log('DEBUG: Raw blobs found:', blobs.length);
+    // List everything with the prefix
+    const response = await list({ prefix: 'referencias/' });
+    const blobs = response.blobs;
     
-    // Filter out the folder itself if it exists as a blob (sometimes happens)
-    const validBlobs = blobs.filter(b => !b.pathname.endsWith('/'));
+    console.log(`DEBUG: Found ${blobs.length} blobs`);
     
-    const filenames = validBlobs.map(b => {
-        // Handle cases where pathname might be full URL or relative path
-        // Vercel Blob pathnames are usually "referencias/filename.jpg"
-        const parts = b.pathname.split('/');
-        return parts[parts.length - 1];
+    // Map to just filenames/pathnames to see what we have
+    const filenames = blobs.map(b => {
+      // return the full pathname for now to debug
+      return b.pathname;
     });
     
-    console.log('DEBUG: Processed filenames:', filenames);
     res.json(filenames);
   } catch (error) {
     console.error('Error listing references:', error);
-    res.status(500).json({ error: 'Failed to list references' });
+    res.status(500).json({ error: 'Failed to list references', details: error.message });
   }
 });
 
