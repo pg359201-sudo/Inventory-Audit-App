@@ -11,7 +11,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [selectedAudit, setSelectedAudit] = useState<AuditResult | null>(null);
   const [showProcessLog, setShowProcessLog] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [referenceCount, setReferenceCount] = useState<number | null>(null);
+  const [showReferenceModal, setShowReferenceModal] = useState(false);
+  const [referenceList, setReferenceList] = useState<string[]>([]);
+  const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
 
   useEffect(() => {
     fetchHistory();
@@ -23,6 +25,59 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       .then(res => res.json())
       .then(data => setReferenceCount(data.count))
       .catch(err => console.error('Error fetching reference count:', err));
+  };
+
+  const fetchReferenceList = () => {
+    fetch('/api/references/list')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setReferenceList(data);
+        }
+      })
+      .catch(err => console.error('Error fetching reference list:', err));
+  };
+
+  const handleOpenReferenceModal = () => {
+    fetchReferenceList();
+    setShowReferenceModal(true);
+    setSelectedReferences([]);
+  };
+
+  const handleSelectReference = (filename: string) => {
+    if (selectedReferences.includes(filename)) {
+      setSelectedReferences(selectedReferences.filter(f => f !== filename));
+    } else {
+      setSelectedReferences([...selectedReferences, filename]);
+    }
+  };
+
+  const handleDeleteReferences = async () => {
+    if (selectedReferences.length === 0) return;
+    
+    if (!confirm(`¿Estás seguro de que deseas eliminar ${selectedReferences.length} referencias?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/references/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filenames: selectedReferences })
+      });
+
+      if (res.ok) {
+        alert('Referencias eliminadas correctamente');
+        fetchReferenceList();
+        fetchReferenceCount();
+        setSelectedReferences([]);
+      } else {
+        alert('Error al eliminar referencias');
+      }
+    } catch (error) {
+      console.error('Error deleting references:', error);
+      alert('Error al eliminar referencias');
+    }
   };
 
   const handleUploadReference = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,8 +209,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Panel de Administrador</h1>
             {referenceCount !== null && (
-              <p className="text-sm text-gray-500 mt-1">
-                Imágenes de referencia cargadas: <span className="font-medium text-indigo-600">{referenceCount}</span>
+              <p 
+                className="text-sm text-gray-500 mt-1 cursor-pointer hover:text-indigo-600 transition-colors"
+                onClick={handleOpenReferenceModal}
+                title="Click para gestionar referencias"
+              >
+                Imágenes de referencia cargadas: <span className="font-medium text-indigo-600 underline decoration-dotted">{referenceCount}</span>
               </p>
             )}
           </div>
@@ -284,6 +343,88 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* Reference Management Modal */}
+      {showReferenceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setShowReferenceModal(false)}>
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b p-6">
+              <h2 className="text-xl font-bold text-gray-900">Gestión de Referencias</h2>
+              <button onClick={() => setShowReferenceModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4 flex justify-between items-center">
+                <p className="text-sm text-gray-500">Selecciona las imágenes que deseas eliminar.</p>
+                {selectedReferences.length > 0 && (
+                  <button
+                    onClick={handleDeleteReferences}
+                    className="flex items-center gap-2 rounded-md bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
+                  >
+                    <Trash2 size={16} />
+                    Eliminar ({selectedReferences.length})
+                  </button>
+                )}
+              </div>
+
+              <div className="max-h-[60vh] overflow-y-auto border rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-2 w-10">
+                        <input
+                          type="checkbox"
+                          checked={referenceList.length > 0 && selectedReferences.length === referenceList.length}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedReferences([...referenceList]);
+                            else setSelectedReferences([]);
+                          }}
+                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Nombre de Archivo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {referenceList.length === 0 ? (
+                      <tr>
+                        <td colSpan={2} className="px-6 py-4 text-center text-sm text-gray-500">
+                          No hay referencias cargadas.
+                        </td>
+                      </tr>
+                    ) : (
+                      referenceList.map((filename, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-4 py-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedReferences.includes(filename)}
+                              onChange={() => handleSelectReference(filename)}
+                              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-900">{filename}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="border-t bg-gray-50 p-4 text-right">
+              <button
+                onClick={() => setShowReferenceModal(false)}
+                className="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 border border-gray-300"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Detail Modal */}
       {selectedAudit && (

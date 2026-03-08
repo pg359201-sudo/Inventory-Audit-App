@@ -55,7 +55,7 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
   return newRecord;
 }
 
-import { put, list } from '@vercel/blob';
+import { put, list, del } from '@vercel/blob';
 
 // --- STORAGE LOGIC (Hybrid: Vercel Blob with Fallback) ---
 async function saveFile(file: Express.Multer.File, filename: string): Promise<string> {
@@ -219,6 +219,71 @@ app.get('/api/references/count', async (req, res) => {
   } catch (error) {
     console.error('Error counting references:', error);
     res.status(500).json({ error: 'Failed to count references' });
+  }
+});
+
+app.get('/api/references/list', async (req, res) => {
+  try {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      // Fallback to local
+      const referencesDir = path.join(process.cwd(), 'public', 'referencias');
+      if (!fs.existsSync(referencesDir)) {
+        return res.json([]);
+      }
+      const files = fs.readdirSync(referencesDir).filter(file => {
+        return !file.startsWith('.') && (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png'));
+      });
+      return res.json(files);
+    }
+
+    const { blobs } = await list({ prefix: 'referencias/' });
+    const filenames = blobs.map(b => path.basename(b.pathname));
+    res.json(filenames);
+  } catch (error) {
+    console.error('Error listing references:', error);
+    res.status(500).json({ error: 'Failed to list references' });
+  }
+});
+
+app.post('/api/references/delete', async (req, res) => {
+  try {
+    const { filenames } = req.body;
+    if (!Array.isArray(filenames) || filenames.length === 0) {
+      return res.status(400).json({ error: 'No filenames provided' });
+    }
+
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const { blobs } = await list({ prefix: 'referencias/' });
+      const urlsToDelete: string[] = [];
+      
+      for (const filename of filenames) {
+        const blob = blobs.find(b => path.basename(b.pathname) === filename);
+        if (blob) {
+          urlsToDelete.push(blob.url);
+        }
+      }
+
+      if (urlsToDelete.length > 0) {
+        await del(urlsToDelete);
+      }
+      res.json({ message: `Deleted ${urlsToDelete.length} references` });
+    } else {
+      // Fallback to local
+      const referencesDir = path.join(process.cwd(), 'public', 'referencias');
+      let deletedCount = 0;
+      
+      for (const filename of filenames) {
+        const filePath = path.join(referencesDir, filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          deletedCount++;
+        }
+      }
+      res.json({ message: `Deleted ${deletedCount} references` });
+    }
+  } catch (error) {
+    console.error('Error deleting references:', error);
+    res.status(500).json({ error: 'Failed to delete references' });
   }
 });
 
