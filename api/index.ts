@@ -20,6 +20,7 @@ interface AuditResult {
   resultado_global: string;
   url_imagen: string;
   proceso_auditoria?: string;
+  source?: 'db' | 'memory';
 }
 
 // --- CONFIG ---
@@ -91,7 +92,8 @@ async function getDb(): Promise<AuditResult[]> {
         resultado_detallado: row.resultado_detallado,
         resultado_global: row.resultado_global,
         url_imagen: row.url_imagen,
-        proceso_auditoria: row.proceso_auditoria
+        proceso_auditoria: row.proceso_auditoria,
+        source: 'db'
       }));
     } catch (error) {
       console.warn("Postgres fetch failed:", error);
@@ -100,7 +102,8 @@ async function getDb(): Promise<AuditResult[]> {
   
   // Merge with Memory (prioritize memory for recent items if DB failed or is slow)
   // We combine them, removing duplicates by ID if any collision (unlikely as memory IDs are timestamps)
-  const combined = [...globalHistory, ...dbRows];
+  const memoryRows = globalHistory.map(h => ({ ...h, source: 'memory' as const }));
+  const combined = [...memoryRows, ...dbRows];
   
   // Deduplicate just in case
   const seen = new Set();

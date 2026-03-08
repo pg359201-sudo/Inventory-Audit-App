@@ -33,6 +33,7 @@ export interface AuditResult {
   resultado_global: string;
   url_imagen: string;
   proceso_auditoria?: string; // JSON string of AuditProcessStep[]
+  source?: 'db' | 'memory';
 }
 
 export interface ProductStatus {
