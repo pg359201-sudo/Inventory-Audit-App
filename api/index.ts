@@ -30,10 +30,16 @@ import { sql } from '@vercel/postgres';
 
 // --- PRODUCT DESCRIPTIONS ---
 const PRODUCT_DESCRIPTIONS: Record<string, string> = {
-  "Gin Gordons": "Botella transparente con líquido transparente. Su etiqueta tiene letras color rojo, en su parte inferior una franja amarilla y más abajo una delgada franja violeta. En su tapa superior predomina el color violeta.",
-  "White Horse 1L": "Diferencial clave: Tapa negra. Botella cilíndrica con líquido ámbar. Ancla visual: etiqueta muy grande amarilla brillante con letras rojas diagonales.",
-  "Vat 69 200 ml": "Diferencial clave: Tapa negra con una leve franja amarilla en la parte superior. Botella tipo petaca pequeña, verde oscuro y de forma plana. Su altura es casi la mitad de una botella de 1L (como 'JW Black'). Etiqueta negra con franjas amarillas muy marcadas arriba y abajo; las letras del logo son blancas con un leve ángulo de 20 grados aproximadamente.",
-  "Smirnoff Ice": "Diferencial clave: Tapa roja fina. Botella transparente pequeña. Ancla visual: líquido interior color blanco turbio. Etiqueta blanca con detalles rojos."
+  "Gin Gordons": "Botella transparente con líquido transparente. Su etiqueta tiene letras color rojo, en su parte inferior una franja amarilla y más abajo una delgada franja violeta. Tapa superior predominantemente violeta con leve franja superior e inferior color amarillo.",
+  "Gin Tanqueray": "Botella verde oscuro, altura algo inferior a: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L'. Etiqueta blanca con trazo verde inglés al centro. Sello rojo redondo entre la tapa y la etiqueta. Tapa plateada.",
+  "Gin Sevilla": "Botella naranja oscuro o ámbar, altura algo inferior a: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L'. Etiqueta blanca, trazo verde inglés, marco con detalles verdes y amarillos. Sello rojo redondo entre la tapa y la etiqueta.Tapa roja.",
+  "Gin Royale": "Botella violeta o uva, altura algo inferior a: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L'. Etiqueta blanca, trazo verde inglés, marco con detalles púrpura/uva, verdes y amarillos. Sello rojo redondo entre la tapa y la etiqueta. Tapa violeta.",
+  "White Horse 1L": "Botella cilíndrica, líquido ámbar. Gran etiqueta de fondo amarillo, letras rojas en ángulo ascendente y pequeño caballo blanco en la parte superior. Altura similar a: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L'. Tapa predominantemente negra con fina franja amarilla en la parte superior.",
+  "White Horse 200 ml": "Botella de vidrio con formato plano (tipo petaca). Altura casi la mitad de la versión 'White Horse 1L'. Mantiene la etiqueta amarilla característica, pero adaptada a un formato mucho más pequeño. Tapa color amarillo.",
+  "Vat 69 1L": "Botella cilíndrica tradicional color verde oscuro. Es aproximadamente el doble de alta que la versión de 200 ml y de formato redondo. Etiqueta negra con letras blancas y delgada franjas superior e inferior roja. Tapa predominantemente negra con fina franja roja en la parte superior y detalles blancos en el centro.",
+  "Vat 69 200 ml": "Botella color verde oscuro, con forma plana (tipo petaca). Altura casi a la mitad de: 'JW Black 1L', 'Vat 69 1L'. Etiqueta negra con franjas superior e inferior amarillas, letras blancas con leve ángulo. Tapa predominantemente negra con leve franja amarilla en la parte superior y detalles blancos en el centro.",
+  "Vodka Smirnoff 750mL": "Botella transparente cilíndrica y alta, con líquido totalmente transparente. Etiqueta principal roja y plateada. Es notablemente más alta y estilizada que la versión 'Smirnoff Ice'. Tapa roja.",
+  "Smirnoff Ice": "Botella transparente cilíndrica pequeña, líquido blanco turbio/nublado. Altura aprox. 60% de un 'Smirnoff' estándar o un 'JW Red 1L'. Pico recubierto con etiqueta blanca, su logo es rojo con letras negras. Tapa fina roja."
 };
 
 // --- DB LOGIC (Hybrid: Postgres with In-Memory Fallback) ---

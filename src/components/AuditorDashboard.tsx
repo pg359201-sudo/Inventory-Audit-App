@@ -148,11 +148,10 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                         {item.present ? 'Presente' : item.required ? 'Falta' : '-'}
                       </span>
                     </div>
-                    {item.reason && (
-                      <div className="mt-2 border-t border-black/5 pt-1">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase">Análisis IA:</span>
-                        <p className="text-gray-700 italic leading-tight">
-                          "{item.reason}"
+                    {item.reason && item.reason !== 'AI returned legacy string format' && (
+                      <div className="mt-1 border-t border-black/5 pt-1">
+                        <p className="text-gray-600 italic leading-tight">
+                          {item.reason}
                         </p>
                       </div>
                     )}
