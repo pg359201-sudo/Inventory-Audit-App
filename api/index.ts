@@ -506,14 +506,17 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       TASK: Perform a strict shelf audit on the FIRST image provided.
       
       INPUT STRUCTURE:
-      - IMAGE 1: The "Shelf Photo" (The ONLY image to be audited).
-      - SUBSEQUENT IMAGES: Individual product references (Visual dictionary only).
+      - IMAGE 1: THE ACTUAL PHOTO UPLOADED BY THE AUDITOR (The ONLY image to be audited).
+      - IMAGE 2 (Optional): "Master Reference Guide" (Visual Dictionary ONLY).
+      - SUBSEQUENT IMAGES: Individual product references (Visual Dictionary ONLY).
 
-      STRICT RULES:
-      1. IGNORE all bottles seen in subsequent reference images. They are NOT on the shelf. They are just examples of what to look for.
-      2. ONLY report a product as "Present" if you clearly see it in IMAGE 1 (Shelf Photo).
-      3. If a product is visible in a reference image but NOT in Image 1, it is "Missing".
-      4. List of products to find: ${productColumns.join(', ')}.
+      CRITICAL ANTI-HALLUCINATION RULES:
+      1. IMAGE 1 is the REALITY (The photo taken by the auditor). Only count bottles found in IMAGE 1.
+      2. IMAGE 2 is a DICTIONARY. It contains 6 specific bottles marked with arrows ("JW Blonde", "Vat 69 200 ml", "Smirnoff Ice", "Gin Tanqueray", "Gin Royale", "Gin Sevilla"). THESE ARE NOT ON THE SHELF. They are just examples.
+      3. IGNORE all bottles in Image 2 and subsequent reference images for the count.
+      4. If you see a bottle in Image 2 but NOT in Image 1, it is "Missing".
+
+      List of products to find: ${productColumns.join(', ')}.
 
       OUTPUT FORMAT:
       Return a JSON object where keys are product names and values are "Present" or "Missing".
@@ -528,15 +531,41 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     // Step 2: Reference Images Analysis
     let missingRefs = 0;
     
-    // NEW: Load Master Reference Image (DISABLED TO PREVENT HALLUCINATIONS)
-    /*
+    // NEW: Load Master Reference Image
     try {
         const masterRefName = 'referencias_visuales.jpeg';
-        // ... (Code disabled)
+        let masterRefData: string | null = null;
+        
+        // Try Blob
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+             try {
+                const listResult = await list({ prefix: 'referencias/' });
+                const blob = listResult.blobs.find(b => b.pathname.includes(masterRefName));
+                if (blob) {
+                    const response = await fetch(blob.url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    masterRefData = Buffer.from(arrayBuffer).toString('base64');
+                }
+             } catch (e) {
+                 console.warn("Failed to list blobs for master ref:", e);
+             }
+        }
+
+        // Try Local
+        if (!masterRefData) {
+             const refPath = getReferencePath(masterRefName);
+             if (fs.existsSync(refPath)) {
+                masterRefData = fs.readFileSync(refPath).toString('base64');
+             }
+        }
+
+        if (masterRefData) {
+            parts.push({ text: `[VISUAL DICTIONARY START] Image 2: Master Reference Guide. Contains 6 examples with arrows. DO NOT COUNT THESE. [VISUAL DICTIONARY END]` });
+            parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
+        }
     } catch (e) {
         console.warn("Failed to load master reference:", e);
     }
-    */
 
     // Add references (Try to load from Blob or Local)
     let referenceBlobs: any[] = [];
@@ -615,7 +644,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     
     const contextDetails = [
         `Reglas (JSON): Buscar ${requiredProducts.length} productos (${requiredProducts.join(', ')})`,
-        `Guía Maestra: DESHABILITADA (Para evitar alucinaciones)`,
+        `Guía Maestra: ${parts.some(p => p.text?.includes('Master Reference Guide')) ? 'ACTIVA (Solo Diccionario)' : 'NO'}`,
         `Refs Individuales: ${loadedRefsCount} cargadas (${loadedRefNames.join(', ')})`
     ].join(' | ');
 
