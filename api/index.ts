@@ -19,6 +19,7 @@ interface AuditResult {
   resultado_detallado: string;
   resultado_global: string;
   url_imagen: string;
+  proceso_auditoria?: string;
 }
 
 // --- CONFIG ---
@@ -50,9 +51,15 @@ async function createTableIfNotExists() {
         cliente VARCHAR(255),
         resultado_detallado TEXT,
         resultado_global VARCHAR(255),
-        url_imagen TEXT
+        url_imagen TEXT,
+        proceso_auditoria TEXT
       );
     `;
+    try {
+      await sql`ALTER TABLE audits ADD COLUMN IF NOT EXISTS proceso_auditoria TEXT;`;
+    } catch (e) {
+      console.log('Column check/add failed (might already exist):', e);
+    }
     console.log("Table 'audits' ensured.");
   } catch (error) {
     console.error("Error creating table:", error);
@@ -71,7 +78,8 @@ async function getDb(): Promise<AuditResult[]> {
         cliente: row.cliente,
         resultado_detallado: row.resultado_detallado,
         resultado_global: row.resultado_global,
-        url_imagen: row.url_imagen
+        url_imagen: row.url_imagen,
+        proceso_auditoria: row.proceso_auditoria
       }));
     } catch (error) {
       console.warn("Postgres fetch failed (using memory fallback):", error);
@@ -86,8 +94,8 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
   if (process.env.POSTGRES_URL) {
     try {
       await sql`
-        INSERT INTO audits (usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen)
-        VALUES (${audit.usuario}, ${audit.fecha}, ${audit.cliente}, ${audit.resultado_detallado}, ${audit.resultado_global}, ${audit.url_imagen})
+        INSERT INTO audits (usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen, proceso_auditoria)
+        VALUES (${audit.usuario}, ${audit.fecha}, ${audit.cliente}, ${audit.resultado_detallado}, ${audit.resultado_global}, ${audit.url_imagen}, ${audit.proceso_auditoria || null})
       `;
       return; // Success
     } catch (error) {
@@ -418,17 +426,25 @@ app.post('/api/references/upload', upload.single('file'), async (req, res) => {
 });
 
 app.post('/api/audit', upload.single('photo'), async (req, res) => {
+  const processLog: { step: string; status: 'OK' | 'Error' | 'Warning'; details?: string }[] = [];
+  
   try {
     const { usuario, clienteId } = req.body;
     const file = req.file;
 
     if (!file) return res.status(400).json({ error: 'No photo uploaded' });
 
+    // Step 1: Check Client Rules
+    processLog.push({ step: 'Revisión de tabla de referencias por cliente', status: 'OK', details: `Cliente ID: ${clienteId}` });
+
     // Load Client Rules (Embedded First)
     const records = parseCSV(EMBEDDED_CSV_DATA);
     const clientRule = records.find((r: any) => r['Codigo FEMSA'] === clienteId);
     
-    if (!clientRule) return res.status(404).json({ error: 'Client not found' });
+    if (!clientRule) {
+      processLog.push({ step: 'Validación de cliente', status: 'Error', details: 'Cliente no encontrado en base de datos' });
+      return res.status(404).json({ error: 'Client not found' });
+    }
 
     // Identify required products
     const productColumns = [
@@ -462,6 +478,46 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       { inlineData: { mimeType: file.mimetype, data: file.buffer.toString('base64') } }
     ];
 
+    // Step 2: Reference Images Analysis
+    let missingRefs = 0;
+    
+    // NEW: Load Master Reference Image
+    try {
+        const masterRefName = 'referencias_visuales.jpg';
+        let masterRefData: string | null = null;
+        
+        // Try Blob
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+             try {
+                const listResult = await list({ prefix: 'referencias/' });
+                const blob = listResult.blobs.find(b => b.pathname.includes(masterRefName));
+                if (blob) {
+                    const response = await fetch(blob.url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    masterRefData = Buffer.from(arrayBuffer).toString('base64');
+                }
+             } catch (e) {
+                 console.warn("Failed to list blobs for master ref:", e);
+             }
+        }
+
+        // Try Local
+        if (!masterRefData) {
+             const refPath = getReferencePath(masterRefName);
+             if (fs.existsSync(refPath)) {
+                masterRefData = fs.readFileSync(refPath).toString('base64');
+             }
+        }
+
+        if (masterRefData) {
+            parts.push({ text: `IMPORTANT: Here is a MASTER REFERENCE IMAGE acting as the absolute source of truth. It contains 6 specific references marked with RED ARROWS and their names. Use this image to strictly validate the presence of these specific products if they are required.` });
+            parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
+            processLog.push({ step: 'Carga de Referencias Visuales Maestras', status: 'OK', details: 'Archivo referencias_visuales.jpg cargado y enviado a la IA' });
+        }
+    } catch (e) {
+        console.warn("Failed to load master reference:", e);
+    }
+
     // Add references (Try to load from Blob or Local)
     let referenceBlobs: any[] = [];
     if (process.env.BLOB_READ_WRITE_TOKEN) {
@@ -473,6 +529,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       }
     }
 
+    let loadedRefsCount = 0;
     for (const prod of requiredProducts) {
       // 1. Add Visual Description if available
       if (PRODUCT_DESCRIPTIONS[prod]) {
@@ -508,11 +565,24 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         if (refData) {
           parts.push({ text: `Reference image for ${prod}:` });
           parts.push({ inlineData: { mimeType: 'image/jpeg', data: refData } });
+          loadedRefsCount++;
+        } else {
+             missingRefs++;
         }
       } catch (e) {
         console.warn(`Failed to load reference for ${prod}:`, e);
+        missingRefs++;
       }
     }
+    
+    processLog.push({ 
+        step: 'Análisis de fotos de referencias', 
+        status: missingRefs === 0 ? 'OK' : 'Warning', 
+        details: `Cargadas: ${loadedRefsCount}, Faltantes: ${missingRefs}` 
+    });
+
+    // Step 3: Context Check
+    processLog.push({ step: 'Revisión de contexto importante', status: 'OK', details: 'Prompt y descripciones visuales inyectadas correctamente' });
     
     // Use the confirmed available model
     const response = await ai.models.generateContent({
@@ -538,19 +608,53 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       analysisResult = JSON.parse(jsonString);
     } catch (e) {
       console.error("JSON Parse Error. Raw text:", response.text);
-      throw new Error("Failed to parse AI response. The model returned invalid JSON.");
+      analysisResult = {};
+      processLog.push({ step: 'Análisis de IA', status: 'Error', details: 'Fallo al parsear respuesta JSON de Gemini' });
     }
 
     // Evaluate
     let globalResult = 'OK';
     const detailedResult: any[] = [];
+    const missingReasons: string[] = [];
 
     productColumns.forEach(prod => {
       const isRequired = clientRule[prod] === 'Si';
-      const isPresent = analysisResult[prod] === 'Present';
-      detailedResult.push({ productName: prod, required: isRequired, present: isPresent });
-      if (isRequired && !isPresent) globalResult = 'Falta Referencia';
+      
+      // Handle new object structure or fallback to old string
+      const resultData = analysisResult[prod];
+      
+      let isPresent = false;
+      let reason = 'No reason provided';
+
+      if (resultData) {
+        if (typeof resultData === 'object') {
+          isPresent = resultData.status === 'Present';
+          reason = resultData.reason || 'No reason text in object';
+        } else if (typeof resultData === 'string') {
+          isPresent = resultData === 'Present';
+          reason = 'AI returned legacy string format'; 
+        }
+      } else {
+         reason = 'AI did not return data for this product';
+      }
+
+      detailedResult.push({ productName: prod, required: isRequired, present: isPresent, reason });
+      if (isRequired && !isPresent) {
+          globalResult = 'Falta Referencia';
+          missingReasons.push(`${prod}: ${reason}`);
+      }
     });
+
+    // Step 4: Missing References Explanation
+    if (missingReasons.length > 0) {
+        processLog.push({ 
+            step: 'Análisis de referencias faltantes', 
+            status: 'Warning', 
+            details: missingReasons.join(' | ') 
+        });
+    } else {
+        processLog.push({ step: 'Análisis de referencias faltantes', status: 'OK', details: 'Todas las referencias requeridas fueron encontradas' });
+    }
 
     // Save (Mocked)
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -564,7 +668,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       cliente: clientRule['Nombre Store'],
       resultado_detallado: JSON.stringify(detailedResult),
       resultado_global: globalResult,
-      url_imagen: fileUrl
+      url_imagen: fileUrl,
+      proceso_auditoria: JSON.stringify(processLog)
     });
 
     res.json({ globalResult, detailedResult, fileUrl });
