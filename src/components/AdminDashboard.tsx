@@ -16,6 +16,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [referenceList, setReferenceList] = useState<string[]>([]);
   const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
 
+  const [debugInfo, setDebugInfo] = useState<any>({});
+
   useEffect(() => {
     fetchHistory();
     fetchReferenceCount();
@@ -24,23 +26,35 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const fetchReferenceCount = () => {
     fetch('/api/references/count')
       .then(res => res.json())
-      .then(data => setReferenceCount(data.count))
+      .then(data => {
+          setReferenceCount(data.count);
+          setDebugInfo(prev => ({ ...prev, countSource: data.source }));
+      })
       .catch(err => console.error('Error fetching reference count:', err));
   };
 
   const fetchReferenceList = () => {
-    console.log('Fetching reference list...');
+    setDebugInfo(prev => ({ ...prev, loading: true, listStatus: 'fetching' }));
     fetch(`/api/references/list?t=${Date.now()}`)
-      .then(res => res.json())
-      .then(data => {
-        console.log('Reference list received:', data);
-        if (Array.isArray(data)) {
-          setReferenceList(data);
-        } else {
-            console.error('Reference list is not an array:', data);
+      .then(async res => {
+        const text = await res.text();
+        setDebugInfo(prev => ({ ...prev, rawResponse: text.substring(0, 500), status: res.status }));
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error('Invalid JSON');
         }
       })
-      .catch(err => console.error('Error fetching reference list:', err));
+      .then(data => {
+        if (Array.isArray(data)) {
+          setReferenceList(data);
+          setDebugInfo(prev => ({ ...prev, listSuccess: true, listLength: data.length }));
+        } else {
+            setDebugInfo(prev => ({ ...prev, listError: 'Not an array', dataType: typeof data }));
+        }
+      })
+      .catch(err => setDebugInfo(prev => ({ ...prev, listError: err.message })))
+      .finally(() => setDebugInfo(prev => ({ ...prev, loading: false })));
   };
 
   const handleOpenReferenceModal = () => {
@@ -379,7 +393,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 <p><strong>Debug Info:</strong></p>
                 <p>Count: {referenceCount}</p>
                 <p>List Length: {referenceList.length}</p>
-                <p>First 3 items: {JSON.stringify(referenceList.slice(0, 3))}</p>
+                <p>Raw Response: {JSON.stringify(debugInfo)}</p>
                 <button 
                   onClick={fetchReferenceList}
                   className="mt-2 px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
