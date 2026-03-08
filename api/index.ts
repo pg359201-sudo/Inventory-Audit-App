@@ -488,7 +488,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     
     // NEW: Load Master Reference Image
     try {
-        const masterRefName = 'referencias_visuales.jpg';
+        const masterRefName = 'referencias_visuales.jpeg';
         let masterRefData: string | null = null;
         
         // Try Blob
@@ -515,9 +515,9 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         }
 
         if (masterRefData) {
-            parts.push({ text: `IMPORTANT: Here is a MASTER REFERENCE IMAGE acting as the absolute source of truth. It contains 6 specific references marked with RED ARROWS and their names. Use this image to strictly validate the presence of these specific products if they are required.` });
+            parts.push({ text: `IMPORTANT: I am providing a MASTER REFERENCE IMAGE ('referencias_visuales.jpeg'). This image contains 6 specific products marked with RED ARROWS and their names to help you visually identify them correctly. These products are: "JW Blonde", "Vat 69 200 ml", "Smirnoff Ice", "Gin Tanqueray", "Gin Royale", and "Gin Sevilla". Use this visual guide as the ground truth for identifying these specific bottles.` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
-            processLog.push({ step: 'Carga de Referencias Visuales Maestras', status: 'OK', details: 'Archivo referencias_visuales.jpg cargado y enviado a la IA' });
+            processLog.push({ step: 'Carga de Referencias Visuales Maestras', status: 'OK', details: 'Archivo referencias_visuales.jpeg cargado y enviado a la IA' });
         }
     } catch (e) {
         console.warn("Failed to load master reference:", e);
