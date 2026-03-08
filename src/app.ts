@@ -295,7 +295,8 @@ app.post('/api/references/delete', express.json(), async (req, res) => {
       const urlsToDelete: string[] = [];
       
       for (const filename of filenames) {
-        const blob = blobs.find(b => path.basename(b.pathname) === filename);
+        // Match against pathname (full path) or basename (just filename) to be safe
+        const blob = blobs.find(b => b.pathname === filename || path.basename(b.pathname) === filename);
         if (blob) {
           urlsToDelete.push(blob.url);
         }
