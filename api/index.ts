@@ -31,7 +31,7 @@ import { sql } from '@vercel/postgres';
 
 // --- PRODUCT DESCRIPTIONS ---
 const PRODUCT_DESCRIPTIONS: Record<string, string> = {
-  "Gin Gordons": "Botella transparente con líquido transparente. Su etiqueta tiene letras color rojo, en su parte inferior una franja amarilla y más abajo una delgada franja violeta. Tapa superior predominantemente violeta con leve franja superior e inferior color amarillo.",
+  "Gin Gordons": "Botella de vidrio transparente con relieves texturados pronunciados en su mitad inferior. Contiene líquido incoloro/transparente. Altura equivalente a referencias de 1L (JW Black, JW Red, Vat 69). Etiqueta principal con fondo blanco, destacando la palabra 'GORDON'S' en letras mayúsculas rojas grandes; en su límite inferior presenta una franja gruesa amarilla seguida de una línea delgada violeta. Tapa superior a rosca de color violeta predominante, delimitada por dos anillos horizontales amarillos (uno en el borde superior y otro en el inferior).",
   "Gin Tanqueray": "Botella verde oscuro, altura algo inferior a: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L'. Etiqueta blanca con trazo verde inglés al centro. Sello rojo redondo entre la tapa y la etiqueta. Tapa plateada.",
   "Gin Sevilla": "Botella naranja oscuro o ámbar, altura algo inferior a: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L'. Etiqueta blanca, trazo verde inglés, marco con detalles verdes y amarillos. Sello rojo redondo entre la tapa y la etiqueta.Tapa roja.",
   "Gin Royale": "Botella violeta o uva, altura algo inferior a: 'JW Black 1L', 'JW Red 1L', 'Vat 69 1L'. Etiqueta blanca, trazo verde inglés, marco con detalles púrpura/uva, verdes y amarillos. Sello rojo redondo entre la tapa y la etiqueta. Tapa violeta.",
