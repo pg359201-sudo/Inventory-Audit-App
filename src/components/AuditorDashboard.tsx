@@ -140,10 +140,10 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                   const pB = (b.required && !b.present) ? 0 : (b.present ? 1 : 2);
                   return pA - pB;
                 }).map((item, idx) => (
-                  <div key={idx} className={`flex flex-col rounded p-1.5 text-xs border ${item.present ? 'bg-green-50 border-green-100' : item.required ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
-                    <div className="flex justify-between items-center gap-1">
-                      <span className="font-medium truncate text-[11px] flex-1 min-w-0 leading-tight" title={item.productName}>{item.productName}</span>
-                      <span className={`shrink-0 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider ${item.present ? 'bg-green-200 text-green-800' : item.required ? 'bg-red-200 text-red-800' : 'text-gray-400'}`}>
+                  <div key={idx} className={`flex flex-col rounded p-2 text-xs border ${item.present ? 'bg-green-50 border-green-100' : item.required ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+                    <div className="flex flex-col gap-1">
+                      <span className="font-semibold truncate text-xs leading-tight text-gray-800" title={item.productName}>{item.productName}</span>
+                      <span className={`self-start font-bold px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider ${item.present ? 'bg-green-200 text-green-800' : item.required ? 'bg-red-200 text-red-800' : 'text-gray-400'}`}>
                         {item.present ? 'Presente' : item.required ? 'Falta' : '-'}
                       </span>
                     </div>
