@@ -226,7 +226,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Panel de Administrador</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Panel Administrador</h1>
             {referenceCount !== null && (
               <p 
                 className="text-sm text-gray-500 mt-1 cursor-pointer hover:text-indigo-600 transition-colors"
@@ -242,19 +242,19 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <button
                 onClick={handleDelete}
                 className="flex items-center gap-1 md:gap-2 rounded-md bg-red-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-red-700"
+                title="Eliminar seleccionados"
               >
                 <Trash2 size={16} className="md:w-5 md:h-5" />
-                <span className="hidden sm:inline">Eliminar ({selectedIds.length})</span>
-                <span className="sm:hidden">({selectedIds.length})</span>
+                <span className="hidden md:inline">Eliminar ({selectedIds.length})</span>
               </button>
             )}
             <button
               onClick={handleExport}
               className="flex items-center gap-1 md:gap-2 rounded-md bg-green-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-green-700"
+              title="Descargar Historial"
             >
               <Download size={16} className="md:w-5 md:h-5" />
-              <span className="hidden sm:inline">Descargar Historial</span>
-              <span className="sm:hidden">Descargar</span>
+              <span className="hidden md:inline">Descargar Historial</span>
             </button>
             <button onClick={onLogout} className="text-xs md:text-sm text-gray-600 hover:text-gray-900 ml-1">Salir</button>
           </div>
@@ -298,11 +298,19 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                         />
                       </td>
-                      <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-900">
-                        {new Date(item.fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-[10px] md:text-sm text-gray-900">
+                        {(() => {
+                          const d = new Date(item.fecha);
+                          const day = d.getDate().toString().padStart(2, '0');
+                          const month = (d.getMonth() + 1).toString().padStart(2, '0');
+                          const year = d.getFullYear().toString().slice(-2);
+                          const hours = d.getHours().toString().padStart(2, '0');
+                          const minutes = d.getMinutes().toString().padStart(2, '0');
+                          return `${day}/${month}/${year} ${hours}:${minutes}hs`;
+                        })()}
                       </td>
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-900">
-                        Auditor {item.usuario}
+                        A{item.usuario}
                       </td>
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-900">
                         {item.cliente}
