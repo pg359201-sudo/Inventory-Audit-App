@@ -237,24 +237,26 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </p>
             )}
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4">
             {selectedIds.length > 0 && (
               <button
                 onClick={handleDelete}
-                className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                className="flex items-center gap-1 md:gap-2 rounded-md bg-red-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-red-700"
               >
-                <Trash2 size={20} />
-                Eliminar ({selectedIds.length})
+                <Trash2 size={16} className="md:w-5 md:h-5" />
+                <span className="hidden sm:inline">Eliminar ({selectedIds.length})</span>
+                <span className="sm:hidden">({selectedIds.length})</span>
               </button>
             )}
             <button
               onClick={handleExport}
-              className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+              className="flex items-center gap-1 md:gap-2 rounded-md bg-green-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-green-700"
             >
-              <Download size={20} />
-              Descargar Historial
+              <Download size={16} className="md:w-5 md:h-5" />
+              <span className="hidden sm:inline">Descargar Historial</span>
+              <span className="sm:hidden">Descargar</span>
             </button>
-            <button onClick={onLogout} className="text-gray-600 hover:text-gray-900">Salir</button>
+            <button onClick={onLogout} className="text-xs md:text-sm text-gray-600 hover:text-gray-900 ml-1">Salir</button>
           </div>
         </div>
 
@@ -274,7 +276,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <th className="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider text-gray-500">Fecha</th>
                   <th className="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider text-gray-500">Usuario</th>
                   <th className="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider text-gray-500">Cliente</th>
-                  <th className="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider text-gray-500">Fuente</th>
                   <th className="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider text-gray-500">Resultado</th>
                   <th className="px-2 py-2 md:px-6 md:py-3 text-left text-[10px] md:text-xs font-medium uppercase tracking-wider text-gray-500">Acciones</th>
                 </tr>
@@ -298,24 +299,13 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         />
                       </td>
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-900">
-                        {new Date(item.fecha).toLocaleString()}
+                        {new Date(item.fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-900">
                         Auditor {item.usuario}
                       </td>
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-900">
                         {item.cliente}
-                      </td>
-                      <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm">
-                        {item.source === 'db' ? (
-                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                            BBDD
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800" title="Se perderá al reiniciar el servidor">
-                            Memoria (Temp)
-                          </span>
-                        )}
                       </td>
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4">
                         {(() => {
