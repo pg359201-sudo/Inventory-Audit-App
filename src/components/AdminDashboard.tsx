@@ -508,9 +508,31 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             Estado: {step.status}
                           </p>
                           {step.details && (
-                            <p className="mt-1 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
-                              {step.details}
-                            </p>
+                            <div className="mt-1 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
+                              {(() => {
+                                if (step.details.includes('Reglas (JSON):') || step.details.includes('Guía Maestra:') || step.details.includes('Refs Individuales:')) {
+                                  const parts = step.details.split(' | ');
+                                  return (
+                                    <div className="space-y-1">
+                                      {parts.map((part, i) => {
+                                        const colonIndex = part.indexOf(':');
+                                        if (colonIndex !== -1) {
+                                          const title = part.substring(0, colonIndex + 1);
+                                          const rest = part.substring(colonIndex + 1);
+                                          return (
+                                            <div key={i}>
+                                              <span className="font-bold text-gray-800">{title}</span>{rest}
+                                            </div>
+                                          );
+                                        }
+                                        return <div key={i}>{part}</div>;
+                                      })}
+                                    </div>
+                                  );
+                                }
+                                return <>{step.details}</>;
+                              })()}
+                            </div>
                           )}
                         </div>
                       </div>
