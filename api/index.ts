@@ -603,20 +603,27 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
              if (refData) break; // Stop if found
              
              const filename = `${baseName}${ext}`;
+             const normalizedFilename = filename.toLowerCase().replace(/\s+/g, ' ').trim();
              
              if (process.env.BLOB_READ_WRITE_TOKEN) {
-               // Try to find in Blob list
-               const blob = referenceBlobs.find(b => b.pathname === `referencias/${filename}`);
+               // Try to find in Blob list (case-insensitive and space-insensitive match)
+               const blob = referenceBlobs.find(b => {
+                 const blobName = b.pathname.replace('referencias/', '');
+                 const normalizedBlobName = blobName.toLowerCase().replace(/\s+/g, ' ').trim();
+                 return normalizedBlobName === normalizedFilename;
+               });
+               
                if (blob) {
                  const response = await fetch(blob.url);
                  const arrayBuffer = await response.arrayBuffer();
                  refData = Buffer.from(arrayBuffer).toString('base64');
-                 if (ext === '.png') mimeType = 'image/png';
+                 if (blob.pathname.toLowerCase().endsWith('.png')) mimeType = 'image/png';
                }
              } 
              
              // Fallback to local if not found in blob or no token
              if (!refData) {
+               // For local files, we still try the exact filename first
                const refPath = getReferencePath(filename);
                if (fs.existsSync(refPath)) {
                  refData = fs.readFileSync(refPath).toString('base64');
