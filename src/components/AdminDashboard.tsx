@@ -510,7 +510,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           {step.details && (
                             <div className="mt-1 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
                               {(() => {
-                                if (step.details.includes('Reglas (JSON):') || step.details.includes('Guía Maestra:') || step.details.includes('Refs Individuales:')) {
+                                if (step.details.includes('Reglas (JSON):') || step.details.includes('Guía Maestra:') || step.details.includes('Refs Individuales:') || step.step === 'Análisis de referencias faltantes') {
                                   const parts = step.details.split(' | ');
                                   return (
                                     <div className="space-y-1">

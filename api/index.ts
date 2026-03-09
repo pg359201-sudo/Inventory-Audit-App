@@ -712,7 +712,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
           reason = resultData.reason || 'No reason text in object';
         } else if (typeof resultData === 'string') {
           isPresent = resultData === 'Present';
-          reason = 'AI returned legacy string format'; 
+          reason = isPresent ? 'Presente' : 'falta referencia en cliente'; 
         }
       } else {
          reason = 'AI did not return data for this product';
