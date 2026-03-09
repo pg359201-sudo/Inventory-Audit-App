@@ -224,7 +224,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex items-start justify-between">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900">Panel Administrador</h1>
             {referenceCount !== null && (
@@ -237,26 +237,28 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </p>
             )}
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4">
-            {selectedIds.length > 0 && (
+          <div className="flex flex-col items-end gap-3">
+            <button onClick={onLogout} className="text-sm font-medium text-gray-600 hover:text-gray-900">Salir</button>
+            <div className="flex items-center gap-2 md:gap-4">
+              {selectedIds.length > 0 && (
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-1 md:gap-2 rounded-md bg-red-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-red-700"
+                  title="Eliminar seleccionados"
+                >
+                  <Trash2 size={16} className="md:w-5 md:h-5" />
+                  <span className="hidden md:inline">Eliminar ({selectedIds.length})</span>
+                </button>
+              )}
               <button
-                onClick={handleDelete}
-                className="flex items-center gap-1 md:gap-2 rounded-md bg-red-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-red-700"
-                title="Eliminar seleccionados"
+                onClick={handleExport}
+                className="flex items-center gap-1 md:gap-2 rounded-md bg-green-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-green-700"
+                title="Descargar Historial"
               >
-                <Trash2 size={16} className="md:w-5 md:h-5" />
-                <span className="hidden md:inline">Eliminar ({selectedIds.length})</span>
+                <Download size={16} className="md:w-5 md:h-5" />
+                <span className="hidden md:inline">Descargar Historial</span>
               </button>
-            )}
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-1 md:gap-2 rounded-md bg-green-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-green-700"
-              title="Descargar Historial"
-            >
-              <Download size={16} className="md:w-5 md:h-5" />
-              <span className="hidden md:inline">Descargar Historial</span>
-            </button>
-            <button onClick={onLogout} className="text-xs md:text-sm text-gray-600 hover:text-gray-900 ml-1">Salir</button>
+            </div>
           </div>
         </div>
 
