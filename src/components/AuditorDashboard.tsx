@@ -120,41 +120,33 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
             <button onClick={onLogout} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
           </div>
 
-          <div className="w-full rounded-xl bg-white p-6 shadow-sm">
-            <div className="mb-4 text-center">
+          <div className="w-full rounded-xl bg-white p-4 shadow-sm flex flex-col h-[calc(100vh-6rem)]">
+            <div className="mb-3 text-center shrink-0">
               {result.globalResult === 'OK' ? (
-                <CheckCircle className="mx-auto h-10 w-10 text-green-500" />
+                <CheckCircle className="mx-auto h-8 w-8 text-green-500" />
               ) : (
-                <XCircle className="mx-auto h-10 w-10 text-red-500" />
+                <XCircle className="mx-auto h-8 w-8 text-red-500" />
               )}
-              <h2 className="mt-2 text-lg font-bold">
+              <h2 className="mt-1 text-base font-bold">
                 Resultado: {result.globalResult}
               </h2>
             </div>
 
-            <div className="mb-4 max-h-[60vh] overflow-y-auto">
-              <h3 className="mb-2 text-sm font-semibold text-gray-700">Detalle:</h3>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="flex-1 overflow-y-auto min-h-0 mb-3">
+              <div className="grid grid-cols-2 gap-1.5">
                 {[...result.detailedResult].sort((a, b) => {
                   // Priority: 0 = Falta (Required & !Present), 1 = Presente, 2 = Others
                   const pA = (a.required && !a.present) ? 0 : (a.present ? 1 : 2);
                   const pB = (b.required && !b.present) ? 0 : (b.present ? 1 : 2);
                   return pA - pB;
                 }).map((item, idx) => (
-                  <div key={idx} className={`flex flex-col rounded p-2 text-xs border ${item.present ? 'bg-green-50 border-green-100' : item.required ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-medium truncate text-sm" title={item.productName}>{item.productName}</span>
-                      <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider ${item.present ? 'bg-green-200 text-green-800' : item.required ? 'bg-red-200 text-red-800' : 'text-gray-400'}`}>
+                  <div key={idx} className={`flex flex-col rounded p-1.5 text-xs border ${item.present ? 'bg-green-50 border-green-100' : item.required ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+                    <div className="flex justify-between items-center gap-1">
+                      <span className="font-medium truncate text-[11px] flex-1 min-w-0 leading-tight" title={item.productName}>{item.productName}</span>
+                      <span className={`shrink-0 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider ${item.present ? 'bg-green-200 text-green-800' : item.required ? 'bg-red-200 text-red-800' : 'text-gray-400'}`}>
                         {item.present ? 'Presente' : item.required ? 'Falta' : '-'}
                       </span>
                     </div>
-                    {item.reason && item.reason !== 'AI returned legacy string format' && (
-                      <div className="mt-1 border-t border-black/5 pt-1">
-                        <p className="text-gray-600 italic leading-tight">
-                          {item.reason}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -162,7 +154,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
 
             <button
               onClick={resetForm}
-              className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
+              className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 shrink-0"
             >
               Nueva Auditoría
             </button>
