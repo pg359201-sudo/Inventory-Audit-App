@@ -39,7 +39,8 @@ const PRODUCT_DESCRIPTIONS: Record<string, string> = {
   "White Horse 200 ml": "Botella de vidrio con formato plano (tipo petaca). Altura casi la mitad de la versión 'White Horse 1L'. Mantiene la etiqueta amarilla característica, pero adaptada a un formato mucho más pequeño. Tapa color amarillo.",
   "Vat 69 1L": "Botella cilíndrica tradicional color verde oscuro. Es aproximadamente el doble de alta que la versión de 200 ml y de formato redondo. Etiqueta negra con letras blancas y delgada franjas superior e inferior roja. Tapa predominantemente negra con fina franja roja en la parte superior y detalles blancos en el centro.",
   "Vat 69 200 ml": "Botella color verde oscuro, con forma plana (tipo petaca). Altura casi a la mitad de: 'JW Black 1L', 'Vat 69 1L'. Etiqueta negra con franjas superior e inferior amarillas, letras blancas con leve ángulo. Tapa predominantemente negra con leve franja amarilla en la parte superior y detalles blancos en el centro.",
-  "Smirnoff Ice": "Botella transparente cilíndrica pequeña, líquido blanco turbio/nublado. Altura aprox. 60% de un 'Vodka Smirnoff 750mL' o un 'JW Red 1L'. Pico recubierto con etiqueta blanca, su logo es rojo con letras negras. Tapa fina roja."
+  "Smirnoff Ice": "Botella transparente cilíndrica pequeña, líquido blanco turbio/nublado. Altura aprox. 60% de un 'Vodka Smirnoff 750mL' o un 'JW Red 1L'. Pico recubierto con etiqueta blanca, su logo es rojo con letras negras. Tapa fina roja.",
+  "Sandy Mac 1L": "Botella con textura de cuerpo rectangular ancho, con bordes y hombros redondeados que tiene Altura aproximada del 50% de un 'Vat 69 1L' , un 'JW Red 1L' o 'JW Black 1L'. El color de la botella es marron oscuro. Tiene una etiqueta en forma de collar, con tonos amarillos oscuros ubicada donde termina el cuerpo y empieza el pico.Tapa de color beige (o crema) con una fina banda roja en el borde superior."
 };
 
 // --- DB LOGIC (Hybrid: Postgres with In-Memory Fallback) ---
