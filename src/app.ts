@@ -634,7 +634,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
   }
 });
 
-app.post('/api/audit/:id/adjust', express.json(), async (req, res) => {
+const adjustAuditHandler = async (req: express.Request, res: express.Response) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) {
@@ -673,7 +673,10 @@ app.post('/api/audit/:id/adjust', express.json(), async (req, res) => {
     console.error('Adjustment error:', error);
     res.status(500).json({ error: 'Failed to adjust audit' });
   }
-});
+};
+
+app.post('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
+app.patch('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
 
 app.get('/api/history', async (req, res) => {
   try {
