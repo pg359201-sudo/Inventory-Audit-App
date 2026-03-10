@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
+import { ProductStatus } from './types';
 // import { fileURLToPath } from 'url';
 
 // --- TYPES ---
