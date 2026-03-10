@@ -28,7 +28,8 @@ const PRODUCT_DESCRIPTIONS: Record<string, string> = {
   "Gin Gordons": "Botella transparente con líquido transparente. Su etiqueta tiene letras color rojo, en su parte inferior una franja amarilla y más abajo una delgada franja violeta. En su tapa superior predomina el color violeta.",
   "White Horse 1L": "Diferencial clave: Tapa negra. Botella cilíndrica con líquido ámbar. Ancla visual: etiqueta muy grande amarilla brillante con letras rojas diagonales.",
   "Vat 69 200 ml": "Diferencial clave: Tapa negra con una leve franja amarilla en la parte superior. Botella tipo petaca pequeña, verde oscuro y de forma plana. Su altura es casi la mitad de una botella de 1L (como 'JW Black'). Etiqueta negra con franjas amarillas muy marcadas arriba y abajo; las letras del logo son blancas con un leve ángulo de 20 grados aproximadamente.",
-  "Smirnoff Ice": "Diferencial clave: Tapa roja fina. Botella transparente pequeña. Ancla visual: líquido interior color blanco turbio. Etiqueta blanca con detalles rojos."
+  "Smirnoff Ice": "Diferencial clave: Tapa roja fina. Botella transparente pequeña. Ancla visual: líquido interior color blanco turbio. Etiqueta blanca con detalles rojos.",
+  "Sandy Mac 1L": "Botella de color marrón oscuro.Tiene un cuerpo regtangular y una altura aproximada del 75% en comparación a una botella de 'Vat 69 1L' o 'JW Red 1L'.Tiene una etiqueta amarilla en forma de banda, entre la tapa superior y la etiqueta que está en el cuerpo. La tapa es de color beige (o crema) con una fina franja roja sobre el borde superior"
 };
 
 // --- CONFIG ---

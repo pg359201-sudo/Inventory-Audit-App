@@ -40,7 +40,7 @@ const PRODUCT_DESCRIPTIONS: Record<string, string> = {
   "Vat 69 1L": "Botella de vidrio color verde oscuro con cuerpo cilíndrico tradicional. Altura aproximadamente el doble que la versión petaca de 200 ml. Etiqueta principal muy amplia con fondo negro, delimitada por dos finas franjas horizontales rojas (una en el borde superior y otra en el inferior). En el centro destacan los caracteres 'VAT 69' en letras blancas de gran tamaño. Justo por encima del texto, en la parte superior central de la etiqueta, presenta un sello o logo circular de color rojo. Tapa y cápsula del cuello predominantemente negras con una fina franja roja en el borde superior y texto blanco.",
   "Vat 69 200 ml": "Botella de vidrio color verde oscuro con formato plano (tipo petaca rectangular). Altura aproximada a la mitad de las referencias de 1L (JW Black, Vat 69 1L). Etiqueta principal con fondo negro, delimitada por dos franjas horizontales amarillas/doradas (una en el borde superior y otra gruesa en el inferior). En el centro destacan los caracteres 'VAT 69' en letras blancas de gran tamaño dispuestas de forma horizontal. Justo por encima del texto, presenta un pequeño sello o logo circular de color amarillo/dorado. Tapa y cápsula del cuello predominantemente negras con una fina franja amarilla en el borde superior y texto blanco.",
   "Smirnoff Ice": "Botella de vidrio  tipo cerveza, que contiene líquido color blanco turbio/nublado.Altura aproximada del 60% comparado con referencias como “JW Red 1L” o “Vat 69 1L”. Etiqueta principal en el cuerpo de fondo blanco y un detalle rojo sólido. El cuello está recubierto por una etiqueta blanca. La Tapa es fina y de color rojo.",
-  "Sandy Mac 1L": "Botella de color marrón oscuro. Tiene un cuerpo rectangular, con bordes y hombros redondeados. La altura exclusiva de este cuerpo equivale aproximadamente al 50% de la altura total de un 'Vat 69 1L' o de la línea 'JW Red 1L'.Tiene una etiqueta amarilla en forma de banda curva ubicada horizontalmente sobre los hombros de la botella, justo donde termina el cuerpo texturizado. Tapa de color beige (o crema) con una fina banda roja en el borde superior",
+  "Sandy Mac 1L": "Botella de color marrón oscuro.Tiene un cuerpo regtangular y una altura aproximada del 75% en comparación a una botella de 'Vat 69 1L' o 'JW Red 1L'.Tiene una etiqueta amarilla en forma de banda, entre la tapa superior y la etiqueta que está en el cuerpo. La tapa es de color beige (o crema) con una fina franja roja sobre el borde superior",
   "JW Blonde": "Botella color ámbar, de altura levemente inferior a una botella de “JW Red 1L” o “Vat 69 1L”. Etiqueta con fondo amarillo vibrante dispuesta diagonalmente en el cuerpo de la botella. Sobre la etiqueta se encuentra la figura del 'Caminante' (Striding Man) en color azul. Tapa superior de color azul."
 };
 
@@ -553,11 +553,11 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       3. IGNORE all bottles in Image 2 and subsequent reference images for the count.
       4. If you see a bottle in Image 2 but NOT in Image 1, it is "Missing".
 
-      List of products to find: ${productColumns.join(', ')}.
+      List of products to find: ${requiredProducts.join(', ')}.
 
       OUTPUT FORMAT:
-      Return a JSON object where keys are product names and values are "Present" or "Missing".
-      Example: { "Gin Gordons": "Missing", "JW Red 1L": "Present" }
+      Return a JSON object where keys are ONLY the products listed above and values are "Present" or "Missing".
+      Example: { "${requiredProducts[0] || 'Product'}": "Missing" }
       `;
     }
 
@@ -770,6 +770,12 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         } else {
            reason = 'AI did not return data for this product';
         }
+      }
+
+      // Force isPresent to false if the product is not required
+      if (!isRequired) {
+        isPresent = false;
+        reason = 'Not required for this client';
       }
 
       detailedResult.push({ productName: prod, required: isRequired, present: isPresent, reason });
