@@ -47,8 +47,30 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- DB LOGIC (In-Memory) ---
-const globalHistory: AuditResult[] = [];
+// --- DB LOGIC (File-Based) ---
+const DB_FILE = path.join(process.cwd(), 'history.json');
+
+function loadHistory(): AuditResult[] {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const data = fs.readFileSync(DB_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.error('Error loading history from file:', e);
+  }
+  return [];
+}
+
+function saveHistory(history: AuditResult[]) {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Error saving history to file:', e);
+  }
+}
+
+let globalHistory: AuditResult[] = loadHistory();
 
 async function getDb(): Promise<AuditResult[]> {
   return globalHistory;
@@ -64,6 +86,7 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
   
   const newRecord = { ...audit, id: Date.now() };
   globalHistory.unshift(newRecord);
+  saveHistory(globalHistory);
   return newRecord;
 }
 
@@ -639,6 +662,8 @@ app.patch('/api/audit/:id/adjust', express.json(), async (req, res) => {
     const allPresent = required.every(d => d.present);
     audit.resultado_global = allPresent ? 'OK' : 'Faltan Referencias';
     audit.resultado_detallado = JSON.stringify(details);
+    
+    saveHistory(globalHistory);
 
     res.json({ success: true, audit });
   } catch (error: any) {

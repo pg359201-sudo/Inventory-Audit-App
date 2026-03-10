@@ -158,12 +158,19 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           }
         }
       } else {
-        let errMessage = res.statusText;
+        let errMessage = res.statusText || `HTTP ${res.status}`;
         try {
-          const errData = await res.json();
-          errMessage = errData.error || errMessage;
+          const text = await res.text();
+          try {
+            const errData = JSON.parse(text);
+            errMessage = errData.error || errMessage;
+          } catch (e) {
+            // If it's HTML or plain text, show a snippet
+            const snippet = text.substring(0, 100).replace(/\n/g, ' ');
+            errMessage = `${errMessage} - ${snippet}`;
+          }
         } catch (e) {
-          // Ignore
+          // Ignore text reading errors
         }
         alert(`Error al ajustar el resultado: ${errMessage}`);
       }
