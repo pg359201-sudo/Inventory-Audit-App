@@ -181,20 +181,44 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
             <div className="flex-1 overflow-y-auto min-h-0 mb-3">
               <div className="grid grid-cols-2 gap-1.5">
                 {[...result.detailedResult].sort((a, b) => {
-                  // Priority: 0 = Falta (Required & !Present), 1 = Presente, 2 = Others
-                  const pA = (a.required && !a.present) ? 0 : (a.present ? 1 : 2);
-                  const pB = (b.required && !b.present) ? 0 : (b.present ? 1 : 2);
+                  // Priority: 0 = Falta (Required & !Present), 1 = Presente (Required), 2 = Others (Not Required)
+                  const pA = (a.required && !a.present) ? 0 : (a.required && a.present ? 1 : 2);
+                  const pB = (b.required && !b.present) ? 0 : (b.required && b.present ? 1 : 2);
                   return pA - pB;
-                }).map((item, idx) => (
-                  <div key={idx} className={`flex flex-col rounded p-2 text-xs border ${item.present ? 'bg-green-50 border-green-100' : item.required ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
-                    <div className="flex flex-col gap-1">
-                      <span className={`font-semibold truncate text-xs leading-tight ${item.required ? 'text-gray-800' : 'text-gray-400'}`} title={item.productName}>{item.productName}</span>
-                      <span className={`self-start font-bold px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider ${item.present ? 'bg-green-200 text-green-800' : item.required ? 'bg-red-200 text-red-800' : 'text-gray-400'}`}>
-                        {item.present ? 'Presente' : item.required ? 'Falta' : '-'}
-                      </span>
+                }).map((item, idx) => {
+                  const isRequired = item.required;
+                  const isPresent = item.present;
+                  
+                  let bgClass = 'bg-gray-50 border-gray-100';
+                  if (isRequired) {
+                    bgClass = isPresent ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100';
+                  }
+
+                  let badgeClass = 'text-gray-400';
+                  let badgeText = '-';
+                  if (isRequired) {
+                    badgeClass = isPresent ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800';
+                    badgeText = isPresent ? 'Presente' : 'Falta';
+                  }
+
+                  return (
+                    <div key={idx} className={`flex flex-col rounded p-2 text-xs border ${bgClass}`}>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1">
+                          <span className={`font-semibold truncate text-xs leading-tight ${isRequired ? 'text-gray-800' : 'text-gray-400'}`} title={item.productName}>
+                            {item.productName}
+                          </span>
+                          {!isRequired && isPresent && (
+                            <CheckCircle className="w-3 h-3 text-gray-400 shrink-0" />
+                          )}
+                        </div>
+                        <span className={`self-start font-bold px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider ${badgeClass}`}>
+                          {badgeText}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -203,7 +227,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                 <button
                   onClick={handleRescan}
                   disabled={loading}
-                  className="w-64 flex items-center justify-center gap-2 rounded-md bg-amber-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50"
+                  className="w-64 flex items-center justify-center gap-2 rounded-md bg-[#D4AF37] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#B5952F] disabled:opacity-50"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                   {loading ? 'Re-escaneando...' : 'Re-Auditar Faltantes'}
