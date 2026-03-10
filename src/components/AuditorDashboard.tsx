@@ -293,7 +293,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                 {selectedClient && (
                   <button
                     onClick={() => setIsReferenceModalOpen(true)}
-                    className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium"
+                    className="text-xs flex items-center gap-1 text-green-600 hover:text-green-800 font-medium"
                   >
                     <List className="h-3.5 w-3.5" />
                     Ver Requeridos
@@ -366,28 +366,31 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
       </div>
 
       {/* Modal Requeridos */}
-      {isReferenceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl flex flex-col max-h-[80vh]">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Productos Requeridos</h3>
-              <button onClick={() => setIsReferenceModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                <XCircle className="h-6 w-6" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto mb-4 border rounded-md p-2 bg-gray-50">
-              {(() => {
-                const requiredProducts = selectedClient 
-                  ? Object.entries(clients.find(c => c['Codigo FEMSA'] === selectedClient) || {})
-                      .filter(([key, value]) => key !== 'Codigo FEMSA' && key !== 'Nombre Store' && value === 'Si')
-                      .map(([key]) => key)
-                  : [];
-                
-                if (requiredProducts.length === 0) {
-                  return <p className="text-sm text-gray-500 text-center py-4">No hay productos requeridos.</p>;
-                }
+      {isReferenceModalOpen && (() => {
+        const requiredProducts = selectedClient 
+          ? Object.entries(clients.find(c => c['Codigo FEMSA'] === selectedClient) || {})
+              .filter(([key, value]) => key !== 'Codigo FEMSA' && key !== 'Nombre Store' && value === 'Si')
+              .map(([key]) => key)
+          : [];
 
-                return (
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl flex flex-col max-h-[80vh]">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  Productos Requeridos
+                  <span className="bg-green-100 text-green-800 text-sm font-semibold px-2 py-0.5 rounded-full">
+                    {requiredProducts.length}
+                  </span>
+                </h3>
+                <button onClick={() => setIsReferenceModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <XCircle className="h-6 w-6" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto mb-4 border rounded-md p-2 bg-gray-50">
+                {requiredProducts.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">No hay productos requeridos.</p>
+                ) : (
                   <ul className="space-y-2">
                     {requiredProducts.map((prod, idx) => (
                       <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
@@ -396,12 +399,12 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                       </li>
                     ))}
                   </ul>
-                );
-              })()}
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
