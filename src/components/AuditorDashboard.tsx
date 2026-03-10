@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Camera, Upload, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Camera, Upload, CheckCircle, XCircle, Loader2, RefreshCw } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { ClientRule, AuditResult, ProductStatus } from '../types';
 
@@ -198,21 +198,21 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 shrink-0">
+            <div className="flex flex-col gap-3 shrink-0 items-center">
               {hasMissing && (
                 <button
                   onClick={handleRescan}
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 rounded-md bg-amber-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50"
+                  className="w-64 flex items-center justify-center gap-2 rounded-md bg-amber-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                  {loading ? 'Re-escaneando...' : 'Revisar Faltantes'}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  {loading ? 'Re-escaneando...' : 'Re-Auditar Faltantes'}
                 </button>
               )}
               <button
                 onClick={resetForm}
                 disabled={loading}
-                className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="w-64 rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
               >
                 Nueva Auditoría
               </button>
