@@ -111,7 +111,53 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     setSelectedClient('');
   };
 
+  const handleRescan = async () => {
+    if (!file || !selectedClient || !result) return;
+
+    const missingProducts = result.detailedResult
+      .filter(p => p.required && !p.present)
+      .map(p => p.productName);
+
+    if (missingProducts.length === 0) {
+      alert("No hay productos faltantes para re-escanear.");
+      return;
+    }
+
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('photo', file);
+    formData.append('usuario', auditorId);
+    formData.append('clienteId', selectedClient);
+    formData.append('isRescan', 'true');
+    formData.append('missingProducts', missingProducts.join(','));
+    formData.append('previousDetailedResult', JSON.stringify(result.detailedResult));
+    
+    const client = clients.find(c => c['Codigo FEMSA'] === selectedClient);
+    formData.append('clienteNombre', client ? client['Nombre Store'] : '');
+
+    try {
+      const res = await fetch('/api/audit', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || errorData.details || 'Error en la auditoría');
+      }
+      
+      const data = await res.json();
+      setResult(data);
+    } catch (error: any) {
+      console.error(error);
+      alert(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (result) {
+    const hasMissing = result.detailedResult.some(p => p.required && !p.present);
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="mx-auto max-w-md space-y-6">
@@ -152,12 +198,25 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
               </div>
             </div>
 
-            <button
-              onClick={resetForm}
-              className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 shrink-0"
-            >
-              Nueva Auditoría
-            </button>
+            <div className="flex flex-col gap-2 shrink-0">
+              {hasMissing && (
+                <button
+                  onClick={handleRescan}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 rounded-md bg-amber-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                  {loading ? 'Re-escaneando...' : 'Revisar Faltantes'}
+                </button>
+              )}
+              <button
+                onClick={resetForm}
+                disabled={loading}
+                className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              >
+                Nueva Auditoría
+              </button>
+            </div>
           </div>
         </div>
       </div>

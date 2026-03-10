@@ -468,7 +468,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
   const processLog: { step: string; status: 'OK' | 'Error' | 'Warning'; details?: string }[] = [];
   
   try {
-    const { usuario, clienteId } = req.body;
+    const { usuario, clienteId, isRescan, missingProducts, previousDetailedResult } = req.body;
     const file = req.file;
 
     if (!file) return res.status(400).json({ error: 'No photo uploaded' });
@@ -494,6 +494,17 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     ];
 
     const requiredProducts = productColumns.filter(prod => clientRule[prod] === 'Si');
+    
+    const isRescanMode = isRescan === 'true';
+    const missingProductsList = missingProducts ? missingProducts.split(',') : [];
+    let prevDetailedResult: any[] = [];
+    if (isRescanMode && previousDetailedResult) {
+      try {
+        prevDetailedResult = JSON.parse(previousDetailedResult);
+      } catch (e) {
+        console.error("Failed to parse previousDetailedResult", e);
+      }
+    }
 
     // Check API Key
     if (!process.env.GEMINI_API_KEY) {
@@ -503,7 +514,31 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     // Call Gemini
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const prompt = `
+    
+    let prompt = '';
+    if (isRescanMode && missingProductsList.length > 0) {
+      prompt = `
+      TASK: Revisa nuevamente la imagen con mucha atención, buscando EXCLUSIVAMENTE estos productos que parecen faltar. Búscalos de frente y completos.
+      
+      INPUT STRUCTURE:
+      - IMAGE 1: THE ACTUAL PHOTO UPLOADED BY THE AUDITOR (The ONLY image to be audited).
+      - IMAGE 2 (Optional): "Master Reference Guide" (Visual Dictionary ONLY).
+      - SUBSEQUENT IMAGES: Individual product references (Visual Dictionary ONLY).
+
+      CRITICAL ANTI-HALLUCINATION RULES:
+      1. IMAGE 1 is the REALITY (The photo taken by the auditor). Only count bottles found in IMAGE 1.
+      2. IMAGE 2 is a DICTIONARY. It contains 6 specific bottles marked with arrows. THESE ARE NOT ON THE SHELF. They are just examples.
+      3. IGNORE all bottles in Image 2 and subsequent reference images for the count.
+      4. If you see a bottle in Image 2 but NOT in Image 1, it is "Missing".
+
+      List of products to find EXCLUSIVELY: ${missingProductsList.join(', ')}.
+
+      OUTPUT FORMAT:
+      Return a JSON object where keys are ONLY the products listed above and values are "Present" or "Missing".
+      Example: { "${missingProductsList[0] || 'Product'}": "Missing" }
+      `;
+    } else {
+      prompt = `
       TASK: Perform a strict shelf audit on the FIRST image provided.
       
       INPUT STRUCTURE:
@@ -522,7 +557,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       OUTPUT FORMAT:
       Return a JSON object where keys are product names and values are "Present" or "Missing".
       Example: { "Gin Gordons": "Missing", "JW Red 1L": "Present" }
-    `;
+      `;
+    }
 
     const parts: any[] = [
       { text: prompt },
@@ -582,7 +618,9 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     let loadedRefsCount = 0;
     let loadedRefNames: string[] = [];
     
-    for (const prod of requiredProducts) {
+    const productsToAnalyze = isRescanMode ? requiredProducts.filter(p => missingProductsList.includes(p)) : requiredProducts;
+
+    for (const prod of productsToAnalyze) {
       // 1. Add Visual Description if available
       if (PRODUCT_DESCRIPTIONS[prod]) {
         parts.push({ text: `Visual description for ${prod}: ${PRODUCT_DESCRIPTIONS[prod]}` });
@@ -701,22 +739,33 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     productColumns.forEach(prod => {
       const isRequired = clientRule[prod] === 'Si';
       
-      // Handle new object structure or fallback to old string
-      const resultData = analysisResult[prod];
-      
       let isPresent = false;
       let reason = 'No reason provided';
 
-      if (resultData) {
-        if (typeof resultData === 'object') {
-          isPresent = resultData.status === 'Present';
-          reason = resultData.reason || 'No reason text in object';
-        } else if (typeof resultData === 'string') {
-          isPresent = resultData === 'Present';
-          reason = isPresent ? 'Presente' : 'falta referencia en cliente'; 
+      if (isRescanMode && !missingProductsList.includes(prod)) {
+        // Use previous result for products we didn't rescan
+        const prev = prevDetailedResult.find(p => p.productName === prod);
+        if (prev) {
+          isPresent = prev.present;
+          reason = prev.reason;
+        } else {
+          reason = 'Not found in previous result';
         }
       } else {
-         reason = 'AI did not return data for this product';
+        // Handle new object structure or fallback to old string
+        const resultData = analysisResult[prod];
+        
+        if (resultData) {
+          if (typeof resultData === 'object') {
+            isPresent = resultData.status === 'Present';
+            reason = resultData.reason || 'No reason text in object';
+          } else if (typeof resultData === 'string') {
+            isPresent = resultData === 'Present';
+            reason = isPresent ? 'Presente' : 'falta referencia en cliente'; 
+          }
+        } else {
+           reason = 'AI did not return data for this product';
+        }
       }
 
       detailedResult.push({ productName: prod, required: isRequired, present: isPresent, reason });
