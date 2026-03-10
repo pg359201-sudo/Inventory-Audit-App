@@ -158,11 +158,18 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           }
         }
       } else {
-        alert('Error al ajustar el resultado');
+        let errMessage = res.statusText;
+        try {
+          const errData = await res.json();
+          errMessage = errData.error || errMessage;
+        } catch (e) {
+          // Ignore
+        }
+        alert(`Error al ajustar el resultado: ${errMessage}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adjusting audit:', error);
-      alert('Error al ajustar el resultado');
+      alert(`Error al ajustar el resultado: ${error.message || 'Error de conexión'}`);
     }
   };
 

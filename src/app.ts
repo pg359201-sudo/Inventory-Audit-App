@@ -621,7 +621,9 @@ app.patch('/api/audit/:id/adjust', express.json(), async (req, res) => {
       return res.status(404).json({ error: 'Audit not found' });
     }
 
-    const details: ProductStatus[] = JSON.parse(audit.resultado_detallado);
+    const details: ProductStatus[] = typeof audit.resultado_detallado === 'string' 
+      ? JSON.parse(audit.resultado_detallado) 
+      : audit.resultado_detallado;
     const product = details.find(d => d.productName === productName);
 
     if (!product) {
@@ -635,7 +637,7 @@ app.patch('/api/audit/:id/adjust', express.json(), async (req, res) => {
     // Recalculate global result
     const required = details.filter(d => d.required);
     const allPresent = required.every(d => d.present);
-    audit.resultado_global = allPresent ? 'Aprobado' : 'Rechazado';
+    audit.resultado_global = allPresent ? 'OK' : 'Faltan Referencias';
     audit.resultado_detallado = JSON.stringify(details);
 
     res.json({ success: true, audit });
