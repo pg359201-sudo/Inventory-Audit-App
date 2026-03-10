@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Camera, Upload, CheckCircle, XCircle, Loader2, RefreshCw } from 'lucide-react';
+import { Camera, Upload, CheckCircle, XCircle, Loader2, RefreshCw, List } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { ClientRule, AuditResult, ProductStatus } from '../types';
 
@@ -22,6 +22,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
   } | null>(null);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isReferenceModalOpen, setIsReferenceModalOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/clients')
@@ -287,11 +288,22 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Cliente</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">Cliente</label>
+                {selectedClient && (
+                  <button
+                    onClick={() => setIsReferenceModalOpen(true)}
+                    className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium"
+                  >
+                    <List className="h-3.5 w-3.5" />
+                    Ver Requeridos
+                  </button>
+                )}
+              </div>
               <select
                 value={selectedClient}
                 onChange={(e) => setSelectedClient(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
                 <option value="">Seleccione un cliente</option>
                 {clients.map(client => (
@@ -304,14 +316,14 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
 
             <div className="pt-4">
               <label className="mb-2 block text-sm font-medium text-gray-700">Captura de Foto</label>
-              <div className="flex justify-center rounded-lg border-2 border-dashed border-gray-300 px-6 py-10">
+              <div className="flex justify-center rounded-lg border-2 border-dashed border-gray-300 px-4 py-6 sm:px-6 sm:py-10">
                 <div className="text-center">
                   {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="mx-auto max-h-64 rounded-lg object-contain" />
+                    <img src={previewUrl} alt="Preview" className="mx-auto max-h-48 sm:max-h-64 rounded-lg object-contain" />
                   ) : (
-                    <Camera className="mx-auto h-12 w-12 text-gray-400" />
+                    <Camera className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
                   )}
-                  <div className="mt-4 flex justify-center text-sm leading-6 text-gray-600">
+                  <div className="mt-2 sm:mt-4 flex flex-col sm:flex-row justify-center text-sm leading-6 text-gray-600">
                     <label
                       htmlFor="file-upload"
                       className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
@@ -326,30 +338,70 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                         onChange={handleFileChange}
                       />
                     </label>
-                    <p className="pl-1">o arrastrar y soltar</p>
+                    <p className="pl-1 hidden sm:block">o arrastrar y soltar</p>
                   </div>
-                  <p className="text-xs leading-5 text-gray-600">PNG, JPG hasta 10MB</p>
+                  <p className="text-xs leading-5 text-gray-600 mt-1 sm:mt-0">PNG, JPG hasta 10MB</p>
                 </div>
               </div>
             </div>
 
-            <button
-              onClick={handleSubmit}
-              disabled={!file || !selectedClient || loading}
-              className="flex w-full items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:bg-gray-400"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Procesando...
-                </>
-              ) : (
-                'Enviar Auditoría'
-              )}
-            </button>
+            <div className="flex justify-center">
+              <button
+                onClick={handleSubmit}
+                disabled={!file || !selectedClient || loading}
+                className="flex items-center justify-center rounded-md bg-indigo-600 px-6 py-2 text-white hover:bg-indigo-700 disabled:bg-gray-400"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  'Enviar Auditoría'
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Modal Requeridos */}
+      {isReferenceModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Productos Requeridos</h3>
+              <button onClick={() => setIsReferenceModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto mb-4 border rounded-md p-2 bg-gray-50">
+              {(() => {
+                const requiredProducts = selectedClient 
+                  ? Object.entries(clients.find(c => c['Codigo FEMSA'] === selectedClient) || {})
+                      .filter(([key, value]) => key !== 'Codigo FEMSA' && key !== 'Nombre Store' && value === 'Si')
+                      .map(([key]) => key)
+                  : [];
+                
+                if (requiredProducts.length === 0) {
+                  return <p className="text-sm text-gray-500 text-center py-4">No hay productos requeridos.</p>;
+                }
+
+                return (
+                  <ul className="space-y-2">
+                    {requiredProducts.map((prod, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                        <CheckCircle className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                        <span className="leading-tight">{prod}</span>
+                      </li>
+                    ))}
+                  </ul>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
