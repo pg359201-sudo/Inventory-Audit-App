@@ -387,13 +387,11 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       "Sandy Mac 1L", "Vat 69 1L", "Vat 69 200 ml", "White Horse 1L"
     ];
 
-    const requiredProducts = productColumns.filter(prod => clientRule[prod] === 'Si');
-
     // Call Gemini
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const prompt = `
       Analyze this image of a liquor shelf.
-      Check ONLY for the following REQUIRED products: ${requiredProducts.join(', ')}.
+      Check for the presence of the following products: ${productColumns.join(', ')}.
       
       You MUST return a JSON object where the keys are the exact product names.
       The value for each key MUST be an object with two fields:
@@ -444,7 +442,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         }
 
         if (masterRefData) {
-            parts.push({ text: `IMPORTANT: Here is a MASTER REFERENCE IMAGE acting as the absolute source of truth. It contains 6 specific references marked with RED ARROWS and their names. Use this image to strictly validate the presence of these specific products if they are required.` });
+            parts.push({ text: `IMPORTANT: Here is a MASTER REFERENCE IMAGE acting as the absolute source of truth. It contains 6 specific references marked with RED ARROWS and their names. Use this image to strictly validate the presence of these specific products.` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
             processLog.push({ step: 'Carga de Referencias Visuales Maestras', status: 'OK', details: 'Archivo referencias_visuales.jpg cargado y enviado a la IA' });
         } else {
@@ -466,7 +464,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     }
 
     let loadedRefsCount = 0;
-    for (const prod of requiredProducts) {
+    for (const prod of productColumns) {
       // 1. Add Visual Description if available
       if (PRODUCT_DESCRIPTIONS[prod]) {
         parts.push({ text: `Visual description for ${prod}: ${PRODUCT_DESCRIPTIONS[prod]}` });

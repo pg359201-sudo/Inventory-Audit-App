@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AuditResult, AuditProcessStep } from '../types';
-import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity, CheckCircle } from 'lucide-react';
+import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity } from 'lucide-react';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -601,45 +601,27 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <tbody className="divide-y divide-gray-200 bg-white">
                         {parseDetails(selectedAudit.resultado_detallado)
                           .sort((a: any, b: any) => {
-                            // Priority: 0 = Falta (Required & !Present), 1 = Presente (Required), 2 = Others (Not Required)
-                            const pA = (a.required && !a.present) ? 0 : (a.required && a.present ? 1 : 2);
-                            const pB = (b.required && !b.present) ? 0 : (b.required && b.present ? 1 : 2);
+                            // Priority: 0 = Falta (Required & !Present), 1 = Presente, 2 = Others
+                            const pA = (a.required && !a.present) ? 0 : (a.present ? 1 : 2);
+                            const pB = (b.required && !b.present) ? 0 : (b.present ? 1 : 2);
                             return pA - pB;
                           })
-                          .map((item: any, idx: number) => {
-                            const isRequired = item.required;
-                            const isPresent = item.present;
-                            
-                            let rowClass = '';
-                            if (isRequired) {
-                              rowClass = isPresent ? 'bg-green-50/50' : 'bg-red-50/50';
-                            }
-
-                            let badgeClass = 'bg-gray-100 text-gray-600';
-                            let badgeText = 'No Requerido';
-                            if (isRequired) {
-                              badgeClass = isPresent ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
-                              badgeText = isPresent ? 'Presente' : 'Falta';
-                            }
-
-                            return (
-                              <tr key={idx} className={rowClass}>
-                                <td className="px-4 py-2 text-sm text-gray-900">
-                                  <div className="flex items-center gap-1">
-                                    <span className={!isRequired ? 'text-gray-500' : ''}>{item.productName}</span>
-                                    {!isRequired && isPresent && (
-                                      <CheckCircle className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-2 text-sm">
-                                  <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${badgeClass}`}>
-                                    {badgeText}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
+                          .map((item: any, idx: number) => (
+                          <tr key={idx} className={item.present ? 'bg-green-50/50' : item.required ? 'bg-red-50/50' : ''}>
+                            <td className="px-4 py-2 text-sm text-gray-900">{item.productName}</td>
+                            <td className="px-4 py-2 text-sm">
+                              <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                                item.present 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : item.required 
+                                    ? 'bg-red-100 text-red-700' 
+                                    : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {item.present ? 'Presente' : item.required ? 'Falta' : 'No Requerido'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
