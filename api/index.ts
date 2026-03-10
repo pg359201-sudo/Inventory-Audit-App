@@ -617,6 +617,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     let loadedRefsCount = 0;
     let loadedRefNames: string[] = [];
+    let loadedDescriptionsCount = 0;
     
     const productsToAnalyze = isRescanMode ? requiredProducts.filter(p => missingProductsList.includes(p)) : requiredProducts;
 
@@ -624,6 +625,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       // 1. Add Visual Description if available
       if (PRODUCT_DESCRIPTIONS[prod]) {
         parts.push({ text: `Visual description for ${prod}: ${PRODUCT_DESCRIPTIONS[prod]}` });
+        loadedDescriptionsCount++;
       }
 
       // 2. Add Reference Image
@@ -691,7 +693,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     const contextDetails = [
         `Reglas (JSON): Buscar ${requiredProducts.length} productos (${requiredProducts.join(', ')})`,
         `Guía Maestra: ${parts.some(p => p.text?.includes('Master Reference Guide')) ? 'ACTIVA (Solo Diccionario)' : 'NO'}`,
-        `Refs Individuales: ${loadedRefsCount} cargadas (${loadedRefNames.join(', ')})`
+        `Refs Individuales (Imágenes): ${loadedRefsCount} cargadas (${loadedRefNames.join(', ')})`,
+        `Descripciones Visuales (Texto): ${loadedDescriptionsCount} inyectadas`
     ].join(' | ');
 
     processLog.push({ 
