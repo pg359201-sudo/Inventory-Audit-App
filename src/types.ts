@@ -41,4 +41,5 @@ export interface ProductStatus {
   required: boolean;
   present: boolean;
   reason?: string;
+  manuallyAdjusted?: boolean;
 }

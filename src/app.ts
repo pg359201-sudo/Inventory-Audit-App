@@ -610,6 +610,40 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
   }
 });
 
+app.patch('/api/audit/:id/adjust', express.json(), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { productName } = req.body;
+
+    const audit = globalHistory.find(a => a.id === id);
+    if (!audit) {
+      return res.status(404).json({ error: 'Audit not found' });
+    }
+
+    const details: ProductStatus[] = JSON.parse(audit.resultado_detallado);
+    const product = details.find(d => d.productName === productName);
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found in audit' });
+    }
+
+    // Toggle status and manual adjustment flag
+    product.present = !product.present;
+    product.manuallyAdjusted = !product.manuallyAdjusted;
+
+    // Recalculate global result
+    const required = details.filter(d => d.required);
+    const allPresent = required.every(d => d.present);
+    audit.resultado_global = allPresent ? 'Aprobado' : 'Rechazado';
+    audit.resultado_detallado = JSON.stringify(details);
+
+    res.json({ success: true, audit });
+  } catch (error: any) {
+    console.error('Adjustment error:', error);
+    res.status(500).json({ error: 'Failed to adjust audit' });
+  }
+});
+
 app.get('/api/history', async (req, res) => {
   try {
     const rows = await getDb();

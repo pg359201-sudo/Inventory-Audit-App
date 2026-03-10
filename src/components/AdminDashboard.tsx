@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AuditResult, AuditProcessStep } from '../types';
-import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity } from 'lucide-react';
+import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity, CircleDot, Circle, FileEdit } from 'lucide-react';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -137,6 +137,33 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         }
       })
       .catch(err => console.error('Error fetching history:', err));
+  };
+
+  const handleAdjust = async (auditId: number, productName: string) => {
+    try {
+      const res = await fetch(`/api/audit/${auditId}/adjust`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productName })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.audit) {
+          // Update the specific audit in history
+          setHistory(prev => prev.map(a => a.id === auditId ? data.audit : a));
+          // Update selectedAudit if it's the one currently open
+          if (selectedAudit && selectedAudit.id === auditId) {
+            setSelectedAudit(data.audit);
+          }
+        }
+      } else {
+        alert('Error al ajustar el resultado');
+      }
+    } catch (error) {
+      console.error('Error adjusting audit:', error);
+      alert('Error al ajustar el resultado');
+    }
   };
 
   const handleExport = () => {
@@ -354,6 +381,18 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           >
                             <Activity size={20} />
                           </button>
+                          {(() => {
+                            const details = parseDetails(item.resultado_detallado);
+                            const hasAdjustments = details.some((d: any) => d.manuallyAdjusted);
+                            if (hasAdjustments) {
+                              return (
+                                <div className="flex items-center justify-center rounded-md p-1.5 text-amber-600" title="Auditoría ajustada manualmente">
+                                  <FileEdit size={20} />
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       </td>
                     </tr>
@@ -596,6 +635,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <tr>
                           <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Producto</th>
                           <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Estado</th>
+                          <th className="px-4 py-2 text-center text-xs font-medium uppercase text-gray-500">Ajuste</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 bg-white">
@@ -619,6 +659,21 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                               }`}>
                                 {item.present ? 'Presente' : item.required ? 'Falta' : 'No Requerido'}
                               </span>
+                            </td>
+                            <td className="px-4 py-2 text-sm text-center">
+                              {item.required && (
+                                <button
+                                  onClick={() => handleAdjust(selectedAudit.id, item.productName)}
+                                  className={`inline-flex items-center justify-center p-1 rounded-full transition-colors ${
+                                    item.manuallyAdjusted 
+                                      ? 'text-amber-600 hover:bg-amber-100' 
+                                      : 'text-gray-400 hover:bg-gray-200'
+                                  }`}
+                                  title={item.manuallyAdjusted ? "Revertir ajuste" : "Ajustar manualmente"}
+                                >
+                                  {item.manuallyAdjusted ? <CircleDot size={20} /> : <Circle size={20} />}
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
