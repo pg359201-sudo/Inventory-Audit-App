@@ -634,9 +634,12 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
   }
 });
 
-app.patch('/api/audit/:id/adjust', express.json(), async (req, res) => {
+app.post('/api/audit/:id/adjust', express.json(), async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid audit ID' });
+    }
     const { productName } = req.body;
 
     const audit = globalHistory.find(a => a.id === id);

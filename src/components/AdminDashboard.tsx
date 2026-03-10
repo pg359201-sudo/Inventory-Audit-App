@@ -142,7 +142,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const handleAdjust = async (auditId: number, productName: string) => {
     try {
       const res = await fetch(`/api/audit/${auditId}/adjust`, {
-        method: 'PATCH',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productName })
       });
