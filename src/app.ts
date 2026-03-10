@@ -688,15 +688,35 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
+app.post('/api/history/delete', express.json(), async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) {
+      return res.status(400).json({ error: 'Invalid ids array' });
+    }
+    
+    globalHistory = globalHistory.filter(record => !ids.includes(record.id));
+    saveHistory(globalHistory);
+    
+    res.json({ success: true, deletedCount: ids.length });
+  } catch (error) {
+    console.error('History delete error:', error);
+    res.status(500).json({ error: 'Failed to delete history records' });
+  }
+});
+
 // Vite Middleware (local only)
 if (!isVercel && process.env.NODE_ENV !== 'production') {
-  import('vite').then(async (viteModule) => {
+  try {
+    const viteModule = await import('vite');
     const vite = await viteModule.createServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  }).catch(err => console.error('Failed to load vite', err));
+  } catch (err) {
+    console.error('Failed to load vite', err);
+  }
 }
 
 // Global Error Handler
