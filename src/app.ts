@@ -22,6 +22,7 @@ interface AuditResult {
   resultado_global: string;
   url_imagen: string;
   proceso_auditoria?: string;
+  manual_adjustments?: string[];
 }
 
 // --- PRODUCT DESCRIPTIONS ---
@@ -647,25 +648,21 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
       return res.status(404).json({ error: 'Audit not found' });
     }
 
-    const details: ProductStatus[] = typeof audit.resultado_detallado === 'string' 
-      ? JSON.parse(audit.resultado_detallado) 
-      : audit.resultado_detallado;
-    const product = details.find(d => d.productName === productName);
-
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found in audit' });
+    // Initialize array if it doesn't exist
+    if (!audit.manual_adjustments) {
+      audit.manual_adjustments = [];
     }
 
-    // Toggle status and manual adjustment flag
-    product.present = !product.present;
-    product.manuallyAdjusted = !product.manuallyAdjusted;
+    // Toggle the product in the manual_adjustments array
+    const index = audit.manual_adjustments.indexOf(productName);
+    if (index > -1) {
+      // If it's already there, remove it (revert adjustment)
+      audit.manual_adjustments.splice(index, 1);
+    } else {
+      // If it's not there, add it (apply adjustment)
+      audit.manual_adjustments.push(productName);
+    }
 
-    // Recalculate global result
-    const required = details.filter(d => d.required);
-    const allPresent = required.every(d => d.present);
-    audit.resultado_global = allPresent ? 'OK' : 'Faltan Referencias';
-    audit.resultado_detallado = JSON.stringify(details);
-    
     saveHistory(globalHistory);
 
     res.json({ success: true, audit });

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AuditResult, AuditProcessStep } from '../types';
-import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity, CircleDot, Circle, FileEdit } from 'lucide-react';
+import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity, CircleDot, Circle, FileEdit, Wrench } from 'lucide-react';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -181,15 +181,30 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const handleExport = () => {
-    const headers = ['ID', 'Usuario', 'Fecha', 'Cliente', 'Resultado Global', 'URL Imagen'];
-    const rows = history.map(h => [
-      h.id,
-      h.usuario,
-      h.fecha,
-      h.cliente,
-      h.resultado_global,
-      window.location.origin + h.url_imagen // Ensure full URL if relative
-    ]);
+    const headers = ['ID', 'Usuario', 'Fecha', 'Cliente', 'Resultado Global', 'URL Imagen', 'Ajustes Manuales'];
+    const rows = history.map(h => {
+      const details = parseDetails(h.resultado_detallado);
+      const required = details.filter((d: any) => d.required);
+      let missingCount = required.filter((d: any) => !d.present).length;
+      
+      if (h.manual_adjustments && h.manual_adjustments.length > 0) {
+        missingCount = Math.max(0, missingCount - h.manual_adjustments.length);
+      }
+      
+      const isOk = missingCount === 0;
+      const finalResult = isOk ? 'OK' : `Faltan: ${missingCount}`;
+      const adjustments = h.manual_adjustments ? h.manual_adjustments.join(' | ') : '';
+
+      return [
+        h.id,
+        h.usuario,
+        h.fecha,
+        `"${h.cliente}"`,
+        `"${finalResult}"`,
+        window.location.origin + h.url_imagen,
+        `"${adjustments}"`
+      ];
+    });
 
     const csvContent = [
       headers.join(','),
@@ -362,7 +377,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         {(() => {
                           const details = parseDetails(item.resultado_detallado);
                           const required = details.filter((d: any) => d.required);
-                          const missingCount = required.filter((d: any) => !d.present).length;
+                          let missingCount = required.filter((d: any) => !d.present).length;
+                          
+                          // Subtract manually adjusted items from missing count
+                          if (item.manual_adjustments && item.manual_adjustments.length > 0) {
+                            missingCount = Math.max(0, missingCount - item.manual_adjustments.length);
+                          }
                           
                           if (missingCount === 0) {
                             return (
@@ -380,7 +400,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         })()}
                       </td>
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm font-medium">
-                        <div className="flex gap-3">
+                        <div className="flex gap-3 items-center">
                           <button
                             onClick={() => { setSelectedAudit(item); setShowProcessLog(false); }}
                             className="flex items-center justify-center rounded-md p-1.5 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-900"
@@ -388,6 +408,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           >
                             <Eye size={20} />
                           </button>
+                          {item.manual_adjustments && item.manual_adjustments.length > 0 && (
+                            <span title="Modificado manualmente" className="text-amber-500">
+                              <Wrench size={18} />
+                            </span>
+                          )}
                           <button
                             onClick={() => { setSelectedAudit(item); setShowProcessLog(true); }}
                             className="flex items-center justify-center rounded-md p-1.5 text-teal-600 hover:bg-teal-50 hover:text-teal-900"
@@ -613,11 +638,25 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       </div>
                       <div>
                         <p className="text-gray-500">Resultado</p>
-                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                          selectedAudit.resultado_global === 'OK' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {selectedAudit.resultado_global}
-                        </span>
+                        {(() => {
+                          const details = parseDetails(selectedAudit.resultado_detallado);
+                          const required = details.filter((d: any) => d.required);
+                          let missingCount = required.filter((d: any) => !d.present).length;
+                          
+                          if (selectedAudit.manual_adjustments && selectedAudit.manual_adjustments.length > 0) {
+                            missingCount = Math.max(0, missingCount - selectedAudit.manual_adjustments.length);
+                          }
+                          
+                          const isOk = missingCount === 0;
+                          
+                          return (
+                            <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                              isOk ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {isOk ? 'OK' : `Faltan: ${missingCount}`}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -660,37 +699,45 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             const pB = (b.required && !b.present) ? 0 : (b.present ? 1 : 2);
                             return pA - pB;
                           })
-                          .map((item: any, idx: number) => (
-                          <tr key={idx} className={item.present ? 'bg-green-50/50' : item.required ? 'bg-red-50/50' : ''}>
-                            <td className="px-4 py-2 text-sm text-gray-900">{item.productName}</td>
-                            <td className="px-4 py-2 text-sm">
-                              <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
-                                item.present 
-                                  ? 'bg-green-100 text-green-700' 
-                                  : item.required 
-                                    ? 'bg-red-100 text-red-700' 
-                                    : 'bg-gray-100 text-gray-600'
-                              }`}>
-                                {item.present ? 'Presente' : item.required ? 'Falta' : 'No Requerido'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2 text-sm text-center">
-                              {item.required && (
-                                <button
-                                  onClick={() => handleAdjust(selectedAudit.id, item.productName)}
-                                  className={`inline-flex items-center justify-center p-1 rounded-full transition-colors ${
-                                    item.manuallyAdjusted 
-                                      ? 'text-amber-600 hover:bg-amber-100' 
-                                      : 'text-gray-400 hover:bg-gray-200'
-                                  }`}
-                                  title={item.manuallyAdjusted ? "Revertir ajuste" : "Ajustar manualmente"}
-                                >
-                                  {item.manuallyAdjusted ? <CircleDot size={20} /> : <Circle size={20} />}
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                          .map((item: any, idx: number) => {
+                            const isAdjusted = selectedAudit.manual_adjustments?.includes(item.productName);
+                            const isEffectivelyPresent = item.present || isAdjusted;
+                            
+                            return (
+                              <tr key={idx} className={isEffectivelyPresent ? 'bg-green-50/50' : item.required ? 'bg-red-50/50' : ''}>
+                                <td className="px-4 py-2 text-sm text-gray-900">
+                                  {item.productName}
+                                  {isAdjusted && <span className="ml-2 text-xs text-amber-600 font-medium">(Ajustado)</span>}
+                                </td>
+                                <td className="px-4 py-2 text-sm">
+                                  <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                                    isEffectivelyPresent 
+                                      ? 'bg-green-100 text-green-700' 
+                                      : item.required 
+                                        ? 'bg-red-100 text-red-700' 
+                                        : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {isEffectivelyPresent ? 'Presente' : item.required ? 'Falta' : 'No Requerido'}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2 text-sm text-center">
+                                  {item.required && !item.present && (
+                                    <button
+                                      onClick={() => handleAdjust(selectedAudit.id, item.productName)}
+                                      className={`inline-flex items-center justify-center p-1 rounded-full transition-colors ${
+                                        isAdjusted 
+                                          ? 'text-amber-600 hover:bg-amber-100' 
+                                          : 'text-gray-400 hover:bg-gray-200'
+                                      }`}
+                                      title={isAdjusted ? "Revertir ajuste" : "Ajustar manualmente"}
+                                    >
+                                      {isAdjusted ? <CircleDot size={20} /> : <Circle size={20} />}
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
                       </tbody>
                     </table>
                   </div>
