@@ -139,7 +139,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       .catch(err => console.error('Error fetching history:', err));
   };
 
-  const handleAdjust = (auditId: number, productName: string) => {
+  const handleAdjust = async (auditId: number, productName: string) => {
+    // Optimistic UI update
     setHistory(prev => prev.map(a => {
       if (a.id === auditId) {
         const manual_adjustments = a.manual_adjustments ? [...a.manual_adjustments] : [];
@@ -160,6 +161,22 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       }
       return a;
     }));
+
+    // Save to backend
+    try {
+      const res = await fetch(`/api/audit/${auditId}/adjust`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productName })
+      });
+      
+      if (!res.ok) {
+        console.error('Failed to save adjustment to backend');
+        // Optionally revert state here if needed, but for now we just log
+      }
+    } catch (error) {
+      console.error('Error saving adjustment:', error);
+    }
   };
 
   const handleExport = () => {
