@@ -139,45 +139,27 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       .catch(err => console.error('Error fetching history:', err));
   };
 
-  const handleAdjust = async (auditId: number, productName: string) => {
-    try {
-      const res = await fetch(`/api/audit/${auditId}/adjust`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productName })
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.audit) {
-          // Update the specific audit in history
-          setHistory(prev => prev.map(a => a.id === auditId ? data.audit : a));
-          // Update selectedAudit if it's the one currently open
-          if (selectedAudit && selectedAudit.id === auditId) {
-            setSelectedAudit(data.audit);
-          }
+  const handleAdjust = (auditId: number, productName: string) => {
+    setHistory(prev => prev.map(a => {
+      if (a.id === auditId) {
+        const manual_adjustments = a.manual_adjustments ? [...a.manual_adjustments] : [];
+        const index = manual_adjustments.indexOf(productName);
+        if (index > -1) {
+          manual_adjustments.splice(index, 1);
+        } else {
+          manual_adjustments.push(productName);
         }
-      } else {
-        let errMessage = res.statusText || `HTTP ${res.status}`;
-        try {
-          const text = await res.text();
-          try {
-            const errData = JSON.parse(text);
-            errMessage = errData.error || errMessage;
-          } catch (e) {
-            // If it's HTML or plain text, show a snippet
-            const snippet = text.substring(0, 100).replace(/\n/g, ' ');
-            errMessage = `${errMessage} - ${snippet}`;
-          }
-        } catch (e) {
-          // Ignore text reading errors
+        const updatedAudit = { ...a, manual_adjustments };
+        
+        // Update selectedAudit if it's the one currently open
+        if (selectedAudit && selectedAudit.id === auditId) {
+          setSelectedAudit(updatedAudit);
         }
-        alert(`Error al ajustar el resultado: ${errMessage}`);
+        
+        return updatedAudit;
       }
-    } catch (error: any) {
-      console.error('Error adjusting audit:', error);
-      alert(`Error al ajustar el resultado: ${error.message || 'Error de conexión'}`);
-    }
+      return a;
+    }));
   };
 
   const handleExport = () => {
