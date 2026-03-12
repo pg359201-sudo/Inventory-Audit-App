@@ -20,38 +20,28 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [base64Image, setBase64Image] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (selectedAudit?.url_imagen) {
-      setBase64Image(null);
-      const fetchImage = async () => {
-        try {
-          const url = selectedAudit.url_imagen;
-          // Usar un proxy CORS para poder leer los datos de la imagen y convertirla a base64
-          const proxyUrl = url.startsWith('http') ? `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` : url;
-          const response = await fetch(proxyUrl);
-          const blob = await response.blob();
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setBase64Image(reader.result as string);
-          };
-          reader.readAsDataURL(blob);
-        } catch (error) {
-          console.error('Error converting image to base64:', error);
-          setBase64Image(selectedAudit.url_imagen); // Fallback
-        }
-      };
-      fetchImage();
-    }
-  }, [selectedAudit]);
-
   const handleDownloadJPG = async () => {
     if (!modalContentRef.current || !selectedAudit) return;
     
     try {
       setIsDownloading(true);
       
-      // Pequeña pausa para asegurar que el DOM esté listo
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Convertir la imagen a base64 solo cuando el usuario hace clic en descargar
+      const url = selectedAudit.url_imagen;
+      const proxyUrl = url.startsWith('http') ? `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` : url;
+      const response = await fetch(proxyUrl);
+      const blob = await response.blob();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      
+      setBase64Image(base64);
+      
+      // Pequeña pausa para asegurar que React actualice el DOM con la nueva imagen base64
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       const dataUrl = await htmlToImage.toJpeg(modalContentRef.current, {
         quality: 0.9,
@@ -74,6 +64,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       alert('Hubo un error al generar la imagen. Por favor, intenta de nuevo.');
     } finally {
       setIsDownloading(false);
+      setBase64Image(null); // Limpiar para que la próxima vez cargue rápido
     }
   };
 
@@ -737,11 +728,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       Evidencia Fotográfica
                     </h3>
                     <div className="overflow-hidden rounded-lg border bg-gray-100 min-h-[200px] flex items-center justify-center relative">
-                      {!base64Image && selectedAudit.url_imagen && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80 z-10">
-                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
-                        </div>
-                      )}
                       <img 
                         src={base64Image || selectedAudit.url_imagen} 
                         alt="Evidencia" 
