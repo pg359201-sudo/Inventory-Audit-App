@@ -626,43 +626,47 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 md:gap-6 md:p-6">
                 {/* Left Column: Info & Image */}
                 <div className="space-y-3 md:space-y-6">
-                  <div className="rounded-lg bg-gray-50 p-1.5 md:p-4">
-                    <div className="grid grid-cols-[1fr_auto_auto] gap-x-2 gap-y-1.5 md:gap-4 items-start">
-                      <div className="col-span-1 overflow-hidden">
-                        <p className="text-gray-400 text-[8px] md:text-xs">Cliente</p>
-                        <p className="font-semibold text-gray-900 text-[11px] md:text-sm leading-tight truncate">{selectedAudit.cliente}</p>
+                  <div className="rounded-lg bg-gray-50 p-1.5 md:p-3">
+                    <div className="flex flex-col gap-1 md:gap-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 overflow-hidden">
+                          <p className="text-gray-400 text-[8px] md:text-xs leading-none mb-0.5">Cliente</p>
+                          <p className="font-semibold text-gray-900 text-[11px] md:text-sm leading-tight truncate">{selectedAudit.cliente}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-gray-400 text-[8px] md:text-xs leading-none mb-0.5">Auditor</p>
+                          <p className="font-normal text-gray-600 text-[9px] md:text-sm leading-tight">{selectedAudit.usuario}</p>
+                        </div>
                       </div>
-                      <div className="col-span-1">
-                        <p className="text-gray-400 text-[8px] md:text-xs">Auditor</p>
-                        <p className="font-normal text-gray-600 text-[9px] md:text-sm leading-tight">{selectedAudit.usuario}</p>
-                      </div>
-                      <div className="col-span-1 text-right">
-                        <p className="text-gray-400 text-[8px] md:text-xs mb-0.5 md:mb-0">Resultado</p>
-                        {(() => {
-                          const details = parseDetails(selectedAudit.resultado_detallado);
-                          const required = details.filter((d: any) => d.required);
-                          let missingCount = required.filter((d: any) => !d.present).length;
-                          
-                          if (selectedAudit.manual_adjustments && selectedAudit.manual_adjustments.length > 0) {
-                            missingCount = Math.max(0, missingCount - selectedAudit.manual_adjustments.length);
-                          }
-                          
-                          const isOk = missingCount === 0;
-                          
-                          return (
-                            <span className={`inline-flex rounded-full px-1.5 md:px-2 py-0.5 text-[9px] md:text-xs font-semibold leading-tight ${
-                              isOk ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              {isOk ? 'OK' : `Faltan: ${missingCount}`}
-                            </span>
-                          );
-                        })()}
-                      </div>
-                      <div className="col-span-3">
-                        <p className="text-gray-400 text-[8px] md:text-xs">Fecha</p>
-                        <p className="font-normal text-gray-600 text-[9px] md:text-sm leading-tight">
-                          {new Date(selectedAudit.fecha).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                        </p>
+                      <div className="flex items-center justify-between gap-2 mt-0.5">
+                        <div>
+                          <p className="text-gray-400 text-[8px] md:text-xs leading-none mb-0.5">Fecha</p>
+                          <p className="font-normal text-gray-600 text-[9px] md:text-sm leading-tight">
+                            {new Date(selectedAudit.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-right">
+                          <p className="text-gray-400 text-[8px] md:text-xs leading-none">Resultado:</p>
+                          {(() => {
+                            const details = parseDetails(selectedAudit.resultado_detallado);
+                            const required = details.filter((d: any) => d.required);
+                            let missingCount = required.filter((d: any) => !d.present).length;
+                            
+                            if (selectedAudit.manual_adjustments && selectedAudit.manual_adjustments.length > 0) {
+                              missingCount = Math.max(0, missingCount - selectedAudit.manual_adjustments.length);
+                            }
+                            
+                            const isOk = missingCount === 0;
+                            
+                            return (
+                              <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] md:text-xs font-bold leading-none ${
+                                isOk ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {isOk ? 'OK' : `Faltan: ${missingCount}`}
+                              </span>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
                   </div>
