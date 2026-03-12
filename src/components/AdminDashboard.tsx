@@ -31,9 +31,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       const canvas = await html2canvas(modalContentRef.current, {
         scale: 2,
         useCORS: true,
-        allowTaint: true,
         backgroundColor: '#ffffff',
-        logging: false,
+        logging: true, // Enable logging temporarily to see what fails in console
         windowWidth: modalContentRef.current.scrollWidth,
         windowHeight: modalContentRef.current.scrollHeight
       });
@@ -714,7 +713,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     </h3>
                     <div className="overflow-hidden rounded-lg border bg-gray-100">
                       <img 
-                        src={selectedAudit.url_imagen} 
+                        src={selectedAudit.url_imagen.startsWith('http') ? `${selectedAudit.url_imagen}${selectedAudit.url_imagen.includes('?') ? '&' : '?'}cb=${new Date().getTime()}` : selectedAudit.url_imagen} 
                         alt="Evidencia" 
                         crossOrigin="anonymous"
                         className="h-auto w-full object-contain"
