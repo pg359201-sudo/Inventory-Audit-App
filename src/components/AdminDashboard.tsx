@@ -543,18 +543,21 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setSelectedAudit(null)}>
           <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
             
-            <div className="flex items-center justify-between border-b p-3 md:p-6">
+            <div className="flex items-center justify-between border-b p-4 md:p-6">
               <h2 className="text-base md:text-xl font-bold text-gray-900">
                 {showProcessLog ? 'Registro del Proceso de Auditoría' : 'Detalle de Auditoría'}
               </h2>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setShowProcessLog(!showProcessLog)}
-                  className="rounded-md bg-gray-100 px-2 py-1 md:px-3 md:py-1 text-[10px] md:text-sm font-medium text-gray-700 hover:bg-gray-200"
+                  className="flex h-7 md:h-9 items-center justify-center rounded-md bg-gray-100 px-2 md:px-3 text-[10px] md:text-sm font-medium text-gray-700 hover:bg-gray-200"
                 >
                   {showProcessLog ? 'Ver Resultados' : 'Ver Proceso'}
                 </button>
-                <button onClick={() => setSelectedAudit(null)} className="text-gray-400 hover:text-gray-600">
+                <button 
+                  onClick={() => setSelectedAudit(null)} 
+                  className="flex h-7 w-7 md:h-9 md:w-9 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                >
                   <X size={16} className="md:w-6 md:h-6" />
                 </button>
               </div>
@@ -623,22 +626,22 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 md:gap-6 md:p-6">
                 {/* Left Column: Info & Image */}
                 <div className="space-y-6">
-                  <div className="rounded-lg bg-gray-50 p-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="rounded-lg bg-gray-50 p-2 md:p-4">
+                    <div className="grid grid-cols-2 gap-2 md:gap-4 text-xs md:text-sm">
                       <div>
-                        <p className="text-gray-500">Cliente</p>
-                        <p className="font-medium text-gray-900">{selectedAudit.cliente}</p>
+                        <p className="text-gray-500 text-[10px] md:text-sm">Cliente</p>
+                        <p className="font-medium text-gray-900 text-[11px] md:text-sm leading-tight">{selectedAudit.cliente}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Auditor</p>
-                        <p className="font-medium text-gray-900">{selectedAudit.usuario}</p>
+                        <p className="text-gray-500 text-[10px] md:text-sm">Auditor</p>
+                        <p className="font-medium text-gray-900 text-[11px] md:text-sm leading-tight">{selectedAudit.usuario}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Fecha</p>
-                        <p className="font-medium text-gray-900">{new Date(selectedAudit.fecha).toLocaleString()}</p>
+                        <p className="text-gray-500 text-[10px] md:text-sm">Fecha</p>
+                        <p className="font-medium text-gray-900 text-[11px] md:text-sm leading-tight">{new Date(selectedAudit.fecha).toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Resultado</p>
+                        <p className="text-gray-500 text-[10px] md:text-sm mb-0.5 md:mb-0">Resultado</p>
                         {(() => {
                           const details = parseDetails(selectedAudit.resultado_detallado);
                           const required = details.filter((d: any) => d.required);
@@ -687,9 +690,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Producto</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Estado</th>
-                          <th className="px-4 py-2 text-center text-xs font-medium uppercase text-gray-500">Ajuste</th>
+                          <th className="px-2 md:px-4 py-2 text-left text-[10px] md:text-xs font-medium uppercase text-gray-500">Producto</th>
+                          <th className="px-1 md:px-4 py-2 text-left text-[10px] md:text-xs font-medium uppercase text-gray-500 w-16 md:w-auto">Estado</th>
+                          <th className="px-1 md:px-4 py-2 text-center text-[10px] md:text-xs font-medium uppercase text-gray-500 w-12 md:w-auto">Ajuste</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 bg-white">
@@ -706,12 +709,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             
                             return (
                               <tr key={idx} className={isEffectivelyPresent ? 'bg-green-50/50' : item.required ? 'bg-red-50/50' : ''}>
-                                <td className="px-4 py-2 text-sm text-gray-900">
+                                <td className="px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm text-gray-900">
                                   {item.productName}
                                   {isAdjusted && <span className="ml-1 text-[10px] md:text-xs text-amber-600 font-medium">(Ajust.)</span>}
                                 </td>
-                                <td className="px-4 py-2 text-sm">
-                                  <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                                <td className="px-1 md:px-4 py-1.5 md:py-2 text-xs md:text-sm">
+                                  <span className={`inline-flex items-center rounded-md px-1.5 md:px-2 py-0.5 md:py-1 text-[10px] md:text-xs font-medium ${
                                     isEffectivelyPresent 
                                       ? 'bg-green-100 text-green-700' 
                                       : item.required 
@@ -721,7 +724,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                     {isEffectivelyPresent ? 'Presente' : item.required ? 'Falta' : 'No Requerido'}
                                   </span>
                                 </td>
-                                <td className="px-4 py-2 text-sm text-center">
+                                <td className="px-1 md:px-4 py-1.5 md:py-2 text-xs md:text-sm text-center">
                                   {item.required && !item.present && (
                                     <button
                                       onClick={() => handleAdjust(selectedAudit.id, item.productName)}
