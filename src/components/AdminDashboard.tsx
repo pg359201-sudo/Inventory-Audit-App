@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { AuditResult, AuditProcessStep } from '../types';
 import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity, CircleDot, Circle, FileEdit, Wrench } from 'lucide-react';
+import html2canvas from 'html2canvas';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -15,6 +16,25 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [showReferenceModal, setShowReferenceModal] = useState(false);
   const [referenceList, setReferenceList] = useState<string[]>([]);
   const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
+  const modalContentRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadJPG = async () => {
+    if (!modalContentRef.current || !selectedAudit) return;
+    try {
+      const canvas = await html2canvas(modalContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+      const image = canvas.toDataURL('image/jpeg', 0.9);
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `auditoria_${selectedAudit.cliente.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().getTime()}.jpg`;
+      link.click();
+    } catch (error) {
+      console.error('Error generating JPG:', error);
+    }
+  };
 
   const [debugInfo, setDebugInfo] = useState<any>({});
 
@@ -541,9 +561,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       {/* Detail Modal */}
       {selectedAudit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setSelectedAudit(null)}>
-          <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
-            
-            <div className="flex items-center justify-between border-b p-4 md:p-6">
+          <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+            <div ref={modalContentRef} className="bg-white rounded-t-xl">
+              <div className="flex items-center justify-between border-b p-4 md:p-6">
               <h2 className="text-base md:text-xl font-bold text-gray-900">
                 {showProcessLog ? 'Registro del Proceso de Auditoría' : 'Detalle de Auditoría'}
               </h2>
@@ -753,11 +773,23 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </div>
               </div>
             )}
+            </div>
 
-            <div className="border-t bg-gray-50 p-3 md:p-4 text-right">
+            <div className="border-t bg-gray-50 p-3 md:p-4 flex items-center justify-between rounded-b-xl">
+              <div className="w-16 md:w-20"></div>
+              
+              <button
+                onClick={handleDownloadJPG}
+                className="flex items-center gap-1 md:gap-2 rounded-md bg-green-600 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-green-700 shadow-sm"
+                title="Descargar como JPG"
+              >
+                <Download size={16} className="md:w-5 md:h-5" />
+                <span>Descargar JPG</span>
+              </button>
+
               <button
                 onClick={() => setSelectedAudit(null)}
-                className="rounded-md bg-white px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 border border-gray-300"
+                className="w-16 md:w-20 rounded-md bg-white px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 border border-gray-300 text-center"
               >
                 Cerrar
               </button>
