@@ -30,38 +30,72 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       let base64 = selectedAudit.url_imagen;
       try {
         const url = selectedAudit.url_imagen;
-        const proxyUrl = url.startsWith('http') ? `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` : url;
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error('Proxy failed');
-        const blob = await response.blob();
-        base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
+        if (url.startsWith('http')) {
+          try {
+            // Intento 1: allorigins
+            const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+            if (!response.ok) throw new Error('Proxy 1 failed');
+            const blob = await response.blob();
+            base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          } catch (e1) {
+            console.warn('Proxy 1 failed, trying Proxy 2...', e1);
+            // Intento 2: corsproxy.io (útil si Safari bloquea el primero por anti-tracking)
+            const response2 = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+            if (!response2.ok) throw new Error('Proxy 2 failed');
+            const blob2 = await response2.blob();
+            base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob2);
+            });
+          }
+        }
       } catch (proxyError) {
-        console.warn('Proxy fetch failed, using original URL', proxyError);
-        // Fallback a la URL original si el proxy falla (redes móviles estrictas)
+        console.warn('All proxies failed, using original URL', proxyError);
+        // Fallback a la URL original si los proxies fallan
       }
       
       setBase64Image(base64);
       
-      // Pausa un poco más larga para móviles para asegurar que el DOM se actualice con la imagen pesada
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Asegurar que la imagen base64 esté completamente decodificada por el navegador antes de capturar
+      await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = resolve;
+        img.onerror = resolve; // Continuar incluso si falla
+        img.src = base64;
+      });
+      
+      // Pausa adicional pequeña para que React actualice el DOM
+      await new Promise(resolve => setTimeout(resolve, 150));
       
       // Detectar si es móvil para ajustar la calidad y evitar problemas de memoria (común en iOS/Safari)
       const isMobile = window.innerWidth < 768;
       
-      const dataUrl = await htmlToImage.toJpeg(modalContentRef.current, {
+      const options = {
         quality: isMobile ? 0.8 : 0.9,
         backgroundColor: '#ffffff',
         pixelRatio: isMobile ? 1 : 2, // Reducir resolución en móviles para evitar crash de memoria
+        cacheBust: true, // Ayuda a Safari a no usar versiones cacheadas corruptas
         style: {
           transform: 'scale(1)',
           transformOrigin: 'top left'
         }
-      });
+      };
+      
+      // TRUCO PARA IOS/SAFARI: Hacer un render "falso" primero para forzar la carga de la imagen en el canvas
+      try {
+        await htmlToImage.toPng(modalContentRef.current, options);
+      } catch (e) {
+        // Ignorar errores del primer render
+      }
+      
+      const dataUrl = await htmlToImage.toJpeg(modalContentRef.current, options);
       
       // En móviles, los dataUrl muy largos pueden fallar al descargar directamente en el href. 
       // Es mucho más seguro convertirlo a un Blob y usar URL.createObjectURL
@@ -751,7 +785,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <img 
                         src={base64Image || selectedAudit.url_imagen} 
                         alt="Evidencia" 
-                        crossOrigin="anonymous"
                         className="h-auto w-full object-contain"
                       />
                     </div>
