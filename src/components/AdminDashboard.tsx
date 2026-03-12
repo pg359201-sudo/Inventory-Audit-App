@@ -17,22 +17,39 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [referenceList, setReferenceList] = useState<string[]>([]);
   const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
   const modalContentRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownloadJPG = async () => {
     if (!modalContentRef.current || !selectedAudit) return;
+    
     try {
+      setIsDownloading(true);
+      
+      // Pequeña pausa para asegurar que el DOM esté listo y evitar bloqueos
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const canvas = await html2canvas(modalContentRef.current, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: modalContentRef.current.scrollWidth,
+        windowHeight: modalContentRef.current.scrollHeight
       });
+      
       const image = canvas.toDataURL('image/jpeg', 0.9);
       const link = document.createElement('a');
       link.href = image;
       link.download = `auditoria_${selectedAudit.cliente.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().getTime()}.jpg`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (error) {
       console.error('Error generating JPG:', error);
+      alert('Hubo un error al generar la imagen. Por favor, intenta de nuevo.');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -699,6 +716,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <img 
                         src={selectedAudit.url_imagen} 
                         alt="Evidencia" 
+                        crossOrigin="anonymous"
                         className="h-auto w-full object-contain"
                       />
                     </div>
@@ -780,11 +798,18 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               
               <button
                 onClick={handleDownloadJPG}
-                className="flex items-center gap-1 md:gap-2 rounded-md bg-green-600 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-green-700 shadow-sm"
+                disabled={isDownloading}
+                className={`flex items-center gap-1 md:gap-2 rounded-md px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white shadow-sm transition-colors ${
+                  isDownloading ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                }`}
                 title="Descargar como JPG"
               >
-                <Download size={16} className="md:w-5 md:h-5" />
-                <span>Descargar JPG</span>
+                {isDownloading ? (
+                  <div className="h-4 w-4 md:h-5 md:w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <Download size={16} className="md:w-5 md:h-5" />
+                )}
+                <span>{isDownloading ? 'Generando...' : 'Descargar JPG'}</span>
               </button>
 
               <button
