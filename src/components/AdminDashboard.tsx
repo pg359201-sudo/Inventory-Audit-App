@@ -293,18 +293,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             )}
           </div>
           <div className="flex flex-col items-end gap-3">
-            <button onClick={onLogout} className="text-sm font-medium text-gray-600 hover:text-gray-900">Salir</button>
-            <div className="flex items-center gap-2 md:gap-4">
-              {selectedIds.length > 0 && (
-                <button
-                  onClick={handleDelete}
-                  className="flex items-center gap-1 md:gap-2 rounded-md bg-red-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-red-700"
-                  title="Eliminar seleccionados"
-                >
-                  <Trash2 size={16} className="md:w-5 md:h-5" />
-                  <span className="hidden md:inline">Eliminar ({selectedIds.length})</span>
-                </button>
-              )}
+            <div className="flex items-center gap-3 md:gap-4">
               <button
                 onClick={handleExport}
                 className="flex items-center gap-1 md:gap-2 rounded-md bg-green-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-green-700"
@@ -313,7 +302,20 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 <Download size={16} className="md:w-5 md:h-5" />
                 <span className="hidden md:inline">Descargar Historial</span>
               </button>
+              <button onClick={onLogout} className="text-sm font-medium text-gray-600 hover:text-gray-900">Salir</button>
             </div>
+            {selectedIds.length > 0 && (
+              <div className="flex items-center gap-2 md:gap-4">
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-1 md:gap-2 rounded-md bg-red-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-red-700"
+                  title="Eliminar seleccionados"
+                >
+                  <Trash2 size={16} className="md:w-5 md:h-5" />
+                  <span className="hidden md:inline">Eliminar ({selectedIds.length})</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -541,19 +543,19 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setSelectedAudit(null)}>
           <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
             
-            <div className="flex items-center justify-between border-b p-4 md:p-6">
-              <h2 className="text-lg md:text-xl font-bold text-gray-900">
+            <div className="flex items-center justify-between border-b p-3 md:p-6">
+              <h2 className="text-base md:text-xl font-bold text-gray-900">
                 {showProcessLog ? 'Registro del Proceso de Auditoría' : 'Detalle de Auditoría'}
               </h2>
               <div className="flex gap-2">
                 <button 
                   onClick={() => setShowProcessLog(!showProcessLog)}
-                  className="rounded-md bg-gray-100 px-2 py-1 md:px-3 md:py-1 text-xs md:text-sm font-medium text-gray-700 hover:bg-gray-200"
+                  className="rounded-md bg-gray-100 px-2 py-1 md:px-3 md:py-1 text-[10px] md:text-sm font-medium text-gray-700 hover:bg-gray-200"
                 >
                   {showProcessLog ? 'Ver Resultados' : 'Ver Proceso'}
                 </button>
                 <button onClick={() => setSelectedAudit(null)} className="text-gray-400 hover:text-gray-600">
-                  <X size={20} className="md:w-6 md:h-6" />
+                  <X size={16} className="md:w-6 md:h-6" />
                 </button>
               </div>
             </div>
@@ -706,7 +708,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                               <tr key={idx} className={isEffectivelyPresent ? 'bg-green-50/50' : item.required ? 'bg-red-50/50' : ''}>
                                 <td className="px-4 py-2 text-sm text-gray-900">
                                   {item.productName}
-                                  {isAdjusted && <span className="ml-2 text-xs text-amber-600 font-medium">(Ajustado)</span>}
+                                  {isAdjusted && <span className="ml-1 text-[10px] md:text-xs text-amber-600 font-medium">(Ajust.)</span>}
                                 </td>
                                 <td className="px-4 py-2 text-sm">
                                   <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
