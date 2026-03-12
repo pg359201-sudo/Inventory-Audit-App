@@ -394,7 +394,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 onClick={handleOpenReferenceModal}
                 title="Click para gestionar referencias"
               >
-                Imágenes de referencia cargadas: <span className="font-medium text-indigo-600 underline decoration-dotted">{referenceCount}</span>
+                Referencia cargadas: <span className="font-medium text-indigo-600 underline decoration-dotted">{referenceCount}</span>
               </p>
             )}
           </div>
@@ -877,7 +877,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 ) : (
                   <Download size={16} className="md:w-5 md:h-5" />
                 )}
-                <span>{isDownloading ? 'Generando...' : 'Descargar JPG'}</span>
+                <span>{isDownloading ? 'Generando...' : 'Descargar Reporte'}</span>
               </button>
 
               <button
