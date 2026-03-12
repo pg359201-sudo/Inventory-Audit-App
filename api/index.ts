@@ -68,6 +68,11 @@ async function createTableIfNotExists() {
     } catch (e) {
       console.log('Column check/add failed (might already exist):', e);
     }
+    try {
+      await sql`ALTER TABLE audits ADD COLUMN IF NOT EXISTS manual_adjustments TEXT;`;
+    } catch (e) {
+      console.log('Column check/add failed (might already exist):', e);
+    }
     console.log("Table 'audits' ensured.");
   } catch (error) {
     console.error("Error creating table:", error);
@@ -95,6 +100,7 @@ async function getDb(): Promise<AuditResult[]> {
         resultado_global: row.resultado_global,
         url_imagen: row.url_imagen,
         proceso_auditoria: row.proceso_auditoria,
+        manual_adjustments: row.manual_adjustments ? JSON.parse(row.manual_adjustments) : [],
         source: 'db'
       }));
     } catch (error) {
@@ -129,8 +135,8 @@ async function saveToDb(audit: any) {
       console.log('Attempting to save to Postgres:', audit.cliente, audit.resultado_global);
       
       await sql`
-        INSERT INTO audits (usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen, proceso_auditoria)
-        VALUES (${audit.usuario}, ${audit.fecha}, ${audit.cliente}, ${audit.resultado_detallado}, ${audit.resultado_global}, ${audit.url_imagen}, ${audit.proceso_auditoria})
+        INSERT INTO audits (usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments)
+        VALUES (${audit.usuario}, ${audit.fecha}, ${audit.cliente}, ${audit.resultado_detallado}, ${audit.resultado_global}, ${audit.url_imagen}, ${audit.proceso_auditoria}, ${audit.manual_adjustments ? JSON.stringify(audit.manual_adjustments) : '[]'})
       `;
       console.log('Successfully saved to Postgres');
       return; 
@@ -852,6 +858,68 @@ app.get('/api/history', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch history' });
   }
 });
+
+const adjustAuditHandler = async (req: express.Request, res: express.Response) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid audit ID' });
+    }
+    const { productName } = req.body;
+
+    let audit = null;
+
+    // Try Postgres
+    if (process.env.POSTGRES_URL) {
+      try {
+        const { rows } = await sql`SELECT * FROM audits WHERE id = ${id}`;
+        if (rows.length > 0) {
+          audit = rows[0];
+          let manual_adjustments = audit.manual_adjustments ? JSON.parse(audit.manual_adjustments) : [];
+          
+          const index = manual_adjustments.indexOf(productName);
+          if (index > -1) {
+            manual_adjustments.splice(index, 1);
+          } else {
+            manual_adjustments.push(productName);
+          }
+
+          await sql`UPDATE audits SET manual_adjustments = ${JSON.stringify(manual_adjustments)} WHERE id = ${id}`;
+          
+          audit.manual_adjustments = manual_adjustments;
+          return res.json({ success: true, audit });
+        }
+      } catch (error) {
+        console.error("Postgres adjust failed:", error);
+      }
+    }
+
+    // Fallback to memory
+    audit = globalHistory.find(a => a.id === id);
+    if (!audit) {
+      return res.status(404).json({ error: 'Audit not found' });
+    }
+
+    if (!audit.manual_adjustments) {
+      audit.manual_adjustments = [];
+    }
+
+    const index = audit.manual_adjustments.indexOf(productName);
+    if (index > -1) {
+      audit.manual_adjustments.splice(index, 1);
+    } else {
+      audit.manual_adjustments.push(productName);
+    }
+
+    res.json({ success: true, audit });
+  } catch (error: any) {
+    console.error('Adjustment error:', error);
+    res.status(500).json({ error: 'Failed to adjust audit' });
+  }
+};
+
+app.post('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
+app.patch('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
 
 app.post('/api/history/delete', express.json(), async (req, res) => {
   try {

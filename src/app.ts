@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
+import { put, list, del } from '@vercel/blob';
 import { ProductStatus } from './types';
 // import { fileURLToPath } from 'url';
 
@@ -48,30 +49,57 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- DB LOGIC (File-Based) ---
+// --- DB LOGIC (File-Based / Blob-Based) ---
 const DB_FILE = path.join(process.cwd(), 'history.json');
 
-function loadHistory(): AuditResult[] {
+async function loadHistory(): Promise<AuditResult[]> {
   try {
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        const { blobs } = await list({ prefix: 'history.json' });
+        const blob = blobs.find(b => b.pathname === 'history.json');
+        if (blob) {
+          const response = await fetch(blob.url);
+          const data = await response.text();
+          return JSON.parse(data);
+        }
+      } catch (e) {
+        console.error('Error loading history from Blob:', e);
+      }
+    }
+    // Fallback to local file
     if (fs.existsSync(DB_FILE)) {
       const data = fs.readFileSync(DB_FILE, 'utf-8');
       return JSON.parse(data);
     }
   } catch (e) {
-    console.error('Error loading history from file:', e);
+    console.error('Error loading history:', e);
   }
   return [];
 }
 
-function saveHistory(history: AuditResult[]) {
+async function saveHistory(history: AuditResult[]) {
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(history, null, 2), 'utf-8');
+    const data = JSON.stringify(history, null, 2);
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        await put('history.json', data, {
+          access: 'public',
+          contentType: 'application/json',
+          addRandomSuffix: false
+        });
+      } catch (e) {
+        console.error('Error saving history to Blob:', e);
+      }
+    }
+    // Always save locally as fallback
+    fs.writeFileSync(DB_FILE, data, 'utf-8');
   } catch (e) {
-    console.error('Error saving history to file:', e);
+    console.error('Error saving history:', e);
   }
 }
 
-let globalHistory: AuditResult[] = loadHistory();
+let globalHistory: AuditResult[] = await loadHistory();
 
 async function getDb(): Promise<AuditResult[]> {
   return globalHistory;
@@ -87,11 +115,9 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
   
   const newRecord = { ...audit, id: Date.now() };
   globalHistory.unshift(newRecord);
-  saveHistory(globalHistory);
+  await saveHistory(globalHistory);
   return newRecord;
 }
-
-import { put, list, del } from '@vercel/blob';
 
 // --- STORAGE LOGIC (Hybrid: Vercel Blob with Fallback) ---
 async function saveFile(file: Express.Multer.File, filename: string): Promise<string> {
@@ -663,7 +689,7 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
       audit.manual_adjustments.push(productName);
     }
 
-    saveHistory(globalHistory);
+    await saveHistory(globalHistory);
 
     res.json({ success: true, audit });
   } catch (error: any) {
@@ -693,7 +719,7 @@ app.post('/api/history/delete', express.json(), async (req, res) => {
     }
     
     globalHistory = globalHistory.filter(record => !ids.includes(record.id));
-    saveHistory(globalHistory);
+    await saveHistory(globalHistory);
     
     res.json({ success: true, deletedCount: ids.length });
   } catch (error) {
