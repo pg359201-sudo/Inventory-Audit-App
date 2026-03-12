@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { AuditResult, AuditProcessStep } from '../types';
 import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity, CircleDot, Circle, FileEdit, Wrench } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import * as htmlToImage from 'html-to-image';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -25,21 +25,21 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     try {
       setIsDownloading(true);
       
-      // Pequeña pausa para asegurar que el DOM esté listo y evitar bloqueos
+      // Pequeña pausa para asegurar que el DOM esté listo
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      const canvas = await html2canvas(modalContentRef.current, {
-        scale: 2,
-        useCORS: true,
+      const dataUrl = await htmlToImage.toJpeg(modalContentRef.current, {
+        quality: 0.9,
         backgroundColor: '#ffffff',
-        logging: true, // Enable logging temporarily to see what fails in console
-        windowWidth: modalContentRef.current.scrollWidth,
-        windowHeight: modalContentRef.current.scrollHeight
+        pixelRatio: 2,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left'
+        }
       });
       
-      const image = canvas.toDataURL('image/jpeg', 0.9);
       const link = document.createElement('a');
-      link.href = image;
+      link.href = dataUrl;
       link.download = `auditoria_${selectedAudit.cliente.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().getTime()}.jpg`;
       document.body.appendChild(link);
       link.click();
@@ -715,7 +715,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <img 
                         src={selectedAudit.url_imagen.startsWith('http') ? `${selectedAudit.url_imagen}${selectedAudit.url_imagen.includes('?') ? '&' : '?'}cb=${new Date().getTime()}` : selectedAudit.url_imagen} 
                         alt="Evidencia" 
-                        crossOrigin="anonymous"
                         className="h-auto w-full object-contain"
                       />
                     </div>
