@@ -27,41 +27,61 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setIsDownloading(true);
       
       // Convertir la imagen a base64 solo cuando el usuario hace clic en descargar
-      const url = selectedAudit.url_imagen;
-      const proxyUrl = url.startsWith('http') ? `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` : url;
-      const response = await fetch(proxyUrl);
-      const blob = await response.blob();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+      let base64 = selectedAudit.url_imagen;
+      try {
+        const url = selectedAudit.url_imagen;
+        const proxyUrl = url.startsWith('http') ? `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` : url;
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error('Proxy failed');
+        const blob = await response.blob();
+        base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (proxyError) {
+        console.warn('Proxy fetch failed, using original URL', proxyError);
+        // Fallback a la URL original si el proxy falla (redes móviles estrictas)
+      }
       
       setBase64Image(base64);
       
-      // Pequeña pausa para asegurar que React actualice el DOM con la nueva imagen base64
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Pausa un poco más larga para móviles para asegurar que el DOM se actualice con la imagen pesada
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Detectar si es móvil para ajustar la calidad y evitar problemas de memoria (común en iOS/Safari)
+      const isMobile = window.innerWidth < 768;
       
       const dataUrl = await htmlToImage.toJpeg(modalContentRef.current, {
-        quality: 0.9,
+        quality: isMobile ? 0.8 : 0.9,
         backgroundColor: '#ffffff',
-        pixelRatio: 2,
+        pixelRatio: isMobile ? 1 : 2, // Reducir resolución en móviles para evitar crash de memoria
         style: {
           transform: 'scale(1)',
           transformOrigin: 'top left'
         }
       });
       
+      // En móviles, los dataUrl muy largos pueden fallar al descargar directamente en el href. 
+      // Es mucho más seguro convertirlo a un Blob y usar URL.createObjectURL
+      const res = await fetch(dataUrl);
+      const blobData = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blobData);
+      
       const link = document.createElement('a');
-      link.href = dataUrl;
+      link.href = blobUrl;
       link.download = `auditoria_${selectedAudit.cliente.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().getTime()}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (error) {
+      
+      // Limpiar memoria del navegador
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+      
+    } catch (error: any) {
       console.error('Error generating JPG:', error);
-      alert('Hubo un error al generar la imagen. Por favor, intenta de nuevo.');
+      alert(`Hubo un error al generar la imagen (${error.message || 'Desconocido'}). Por favor, intenta de nuevo.`);
     } finally {
       setIsDownloading(false);
       setBase64Image(null); // Limpiar para que la próxima vez cargue rápido
