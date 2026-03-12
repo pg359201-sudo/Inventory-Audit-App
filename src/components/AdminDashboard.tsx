@@ -82,12 +82,24 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         backgroundColor: '#ffffff',
         pixelRatio: isMobile ? 1 : 2, // Reducir resolución en móviles para evitar crash de memoria
         cacheBust: true, // Ayuda a Safari a no usar versiones cacheadas corruptas
+        width: modalContentRef.current.scrollWidth,
+        height: modalContentRef.current.scrollHeight,
         style: {
           transform: 'scale(1)',
           transformOrigin: 'top left'
         }
       };
       
+      // TRUCO PARA EVITAR CORTE POR SCROLL: Quitar restricciones de altura del contenedor padre temporalmente
+      const parentElement = modalContentRef.current.parentElement;
+      const originalMaxHeight = parentElement?.style.maxHeight || '';
+      const originalOverflow = parentElement?.style.overflow || '';
+      
+      if (parentElement) {
+        parentElement.style.maxHeight = 'none';
+        parentElement.style.overflow = 'visible';
+      }
+
       // TRUCO PARA IOS/SAFARI: Hacer un render "falso" primero para forzar la carga de la imagen en el canvas
       try {
         await htmlToImage.toPng(modalContentRef.current, options);
@@ -96,6 +108,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       }
       
       const dataUrl = await htmlToImage.toJpeg(modalContentRef.current, options);
+      
+      // Restaurar restricciones de scroll
+      if (parentElement) {
+        parentElement.style.maxHeight = originalMaxHeight;
+        parentElement.style.overflow = originalOverflow;
+      }
       
       // En móviles, los dataUrl muy largos pueden fallar al descargar directamente en el href. 
       // Es mucho más seguro convertirlo a un Blob y usar URL.createObjectURL
@@ -399,29 +417,29 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             )}
           </div>
           <div className="flex flex-col items-end gap-3">
-            <div className="flex items-center gap-3 md:gap-4">
-              <button
-                onClick={handleExport}
-                className="flex items-center gap-1 md:gap-2 rounded-md bg-green-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-green-700"
-                title="Descargar Historial"
-              >
-                <Download size={16} className="md:w-5 md:h-5" />
-                <span className="hidden md:inline">Descargar Historial</span>
-              </button>
-              <button onClick={onLogout} className="text-sm font-medium text-gray-600 hover:text-gray-900">Salir</button>
-            </div>
-            {selectedIds.length > 0 && (
-              <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-6 md:gap-8">
+              <div className="flex items-center gap-2">
+                {selectedIds.length > 0 && (
+                  <button
+                    onClick={handleDelete}
+                    className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-xs text-white hover:bg-red-700"
+                    title="Eliminar seleccionados"
+                  >
+                    <Trash2 size={14} />
+                    <span className="hidden md:inline">Eliminar ({selectedIds.length})</span>
+                  </button>
+                )}
                 <button
-                  onClick={handleDelete}
-                  className="flex items-center gap-1 md:gap-2 rounded-md bg-red-600 px-2.5 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white hover:bg-red-700"
-                  title="Eliminar seleccionados"
+                  onClick={handleExport}
+                  className="flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700"
+                  title="Descargar Historial"
                 >
-                  <Trash2 size={16} className="md:w-5 md:h-5" />
-                  <span className="hidden md:inline">Eliminar ({selectedIds.length})</span>
+                  <Download size={14} />
+                  <span className="hidden md:inline">Descargar Historial</span>
                 </button>
               </div>
-            )}
+              <button onClick={onLogout} className="text-sm font-medium text-gray-600 hover:text-gray-900">Salir</button>
+            </div>
           </div>
         </div>
 
