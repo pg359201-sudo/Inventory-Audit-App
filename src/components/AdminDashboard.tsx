@@ -626,7 +626,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 md:gap-6 md:p-6">
                 {/* Left Column: Info & Image */}
                 <div className="space-y-3 md:space-y-6">
-                  <div className="rounded-lg bg-gray-50 p-1.5 md:p-3">
+                  <div className="rounded-lg bg-gray-50 py-1.5 px-3 md:p-4">
                     <div className="flex flex-col gap-1 md:gap-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 overflow-hidden">
@@ -646,7 +646,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 text-right">
-                          <p className="text-gray-400 text-[8px] md:text-xs leading-none">Resultado:</p>
                           {(() => {
                             const details = parseDetails(selectedAudit.resultado_detallado);
                             const required = details.filter((d: any) => d.required);
