@@ -18,6 +18,31 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
   const modalContentRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [base64Image, setBase64Image] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedAudit?.url_imagen) {
+      setBase64Image(null);
+      const fetchImage = async () => {
+        try {
+          const url = selectedAudit.url_imagen;
+          // Usar un proxy CORS para poder leer los datos de la imagen y convertirla a base64
+          const proxyUrl = url.startsWith('http') ? `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` : url;
+          const response = await fetch(proxyUrl);
+          const blob = await response.blob();
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setBase64Image(reader.result as string);
+          };
+          reader.readAsDataURL(blob);
+        } catch (error) {
+          console.error('Error converting image to base64:', error);
+          setBase64Image(selectedAudit.url_imagen); // Fallback
+        }
+      };
+      fetchImage();
+    }
+  }, [selectedAudit]);
 
   const handleDownloadJPG = async () => {
     if (!modalContentRef.current || !selectedAudit) return;
@@ -711,10 +736,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <ImageIcon size={18} />
                       Evidencia Fotográfica
                     </h3>
-                    <div className="overflow-hidden rounded-lg border bg-gray-100">
+                    <div className="overflow-hidden rounded-lg border bg-gray-100 min-h-[200px] flex items-center justify-center relative">
+                      {!base64Image && selectedAudit.url_imagen && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80 z-10">
+                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+                        </div>
+                      )}
                       <img 
-                        src={selectedAudit.url_imagen.startsWith('http') ? `${selectedAudit.url_imagen}${selectedAudit.url_imagen.includes('?') ? '&' : '?'}cb=${new Date().getTime()}` : selectedAudit.url_imagen} 
+                        src={base64Image || selectedAudit.url_imagen} 
                         alt="Evidencia" 
+                        crossOrigin="anonymous"
                         className="h-auto w-full object-contain"
                       />
                     </div>
