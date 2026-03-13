@@ -452,89 +452,15 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       Analyze this image of a liquor shelf.
       Check for the presence of the following products: ${requiredProducts.join(', ')}.
       
-      ═══════════════════════════════
-      REGLAS DE IDENTIFICACIÓN
-      ═══════════════════════════════
-      Basa la identificación PRINCIPALMENTE en características visuales:
-      - Forma y silueta de la botella
-      - Color del vidrio (transparente, verde oscuro, marrón oscuro, ámbar)
-      - Colores dominantes de la etiqueta
-      - Elementos distintivos: sellos, franjas, logos
-      - Altura relativa comparada con otras botellas
-      NO dependas únicamente de la lectura del texto de la etiqueta.
+      You MUST return a JSON object where the keys are the exact product names.
+      The value for each key MUST be an object with two fields:
+      1. "status": either "Present" or "Missing".
+      2. "reason": a short explanation (string) of why you determined this status.
 
-      ═══════════════════════════════
-      MÉTODO DE ANÁLISIS OBLIGATORIO
-      ═══════════════════════════════
-
-      PASO 1 — Divide la góndola en zonas horizontales
-      Divide visualmente la imagen en zonas horizontales por estante (de arriba hacia abajo).
-      Examina cada estante de forma independiente. Recorre la imagen de manera sistemática de arriba hacia abajo.
-      NO analices toda la imagen de forma global al mismo tiempo.
-
-      PASO 2 — Clasificá las botellas por color dominante PRIMERO
-      Antes de identificar marcas, agrupá las botellas visibles por color de vidrio/líquido:
-      □ Botellas de vidrio transparente
-      □ Botellas de vidrio verde oscuro
-      □ Botellas de vidrio marrón oscuro
-      □ Botellas ámbar/naranja
-      Esta pre-clasificación reduce el espacio de búsqueda para cada producto.
-
-      PASO 3 — Detectá candidatos por estante
-      En cada estante, identificá botellas que podrían coincidir visualmente 
-      con los productos buscados.
-      Para cada posible coincidencia, observá:
-      - Forma general de la botella
-      - Color dominante del vidrio
-      - Colores de la etiqueta
-      - Color de la tapa
-      - Elementos distintivos (franjas, sellos, logos)
-      - Altura relativa comparada con botellas de referencia de 1L
-
-      PASO 4 — Validá las coincidencias (REGLA OBLIGATORIA)
-      Solo confirmá un producto si AL MENOS DOS características visuales 
-      coinciden con la descripción del producto.
-      Ejemplos de coincidencias válidas:
-      ✓ forma de botella + color de etiqueta
-      ✓ color del vidrio + color de tapa
-      ✓ forma + elemento distintivo (sello, franja)
-      Una sola característica coincidente NO es suficiente para confirmar presencia.
-
-      ═══════════════════════════════
-      REFERENCIAS DE ESCALA
-      ═══════════════════════════════
-      Usá el tamaño relativo entre botellas para estimar el volumen:
-      - Botellas 1L → las más altas (~30–32 cm de referencia)
-      - Botellas 750ml → levemente más bajas que las de 1L
-      - Botellas 200ml → aproximadamente el 50% de la altura de una botella de 1L
-      - Botellas 275ml (Smirnoff Ice) → aproximadamente el 65–70% de una botella de 1L
-
-      Esto es clave para diferenciar:
-      - Vat 69 1L vs Vat 69 200ml (misma etiqueta, tamaño muy diferente)
-      - White Horse 1L vs White Horse 200ml
-      - Smirnoff Ice (275ml, botella tipo cerveza) vs botellas de tamaño completo
-
-      ═══════════════════════════════
-      FORMATO DE SALIDA
-      ═══════════════════════════════
-      Devolvé un objeto JSON donde las claves sean los nombres exactos de los productos buscados.
-      Cada valor DEBE ser un objeto con:
-      1. "status": "Present" (Presente) o "Missing" (Faltante)
-      2. "reason": explicación breve citando las DOS características visuales 
-         que confirmaron la presencia, o por qué no fue encontrado.
-
-      DEVUELVE ÚNICA Y EXCLUSIVAMENTE EL OBJETO JSON. NO incluyas texto antes ni después, ni bloques de código markdown.
-
-      Ejemplo:
+      Example Output:
       {
-        "${requiredProducts[0] || 'Gin Gordons'}": {
-          "status": "Present",
-          "reason": "Botella transparente con franja amarilla + tapa violeta visible en estante del medio"
-        },
-        "${requiredProducts[1] || 'Vat 69 200ml'}": {
-          "status": "Missing",
-          "reason": "Solo se detectaron botellas Vat 69 1L de tamaño completo; no se encontró el formato de media altura"
-        }
+        "${requiredProducts[0] || 'Gin Gordons'}": { "status": "Present", "reason": "Red label bottle visible on top shelf" },
+        "${requiredProducts[1] || 'Gin Royale'}": { "status": "Missing", "reason": "No purple bottle found" }
       }
     `;
 
