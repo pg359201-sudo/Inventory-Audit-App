@@ -444,11 +444,13 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       "Sandy Mac 1L", "Vat 69 1L", "Vat 69 200 ml", "White Horse 1L"
     ];
 
+    const requiredProducts = productColumns.filter(prod => clientRule[prod] === 'Si');
+
     // Call Gemini
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const prompt = `
       Analyze this image of a liquor shelf.
-      Check for the presence of the following products: ${productColumns.join(', ')}.
+      Check for the presence of the following products: ${requiredProducts.join(', ')}.
       
       You MUST return a JSON object where the keys are the exact product names.
       The value for each key MUST be an object with two fields:
@@ -457,8 +459,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
       Example Output:
       {
-        "Gin Gordons": { "status": "Present", "reason": "Red label bottle visible on top shelf" },
-        "Gin Royale": { "status": "Missing", "reason": "No purple bottle found" }
+        "${requiredProducts[0] || 'Gin Gordons'}": { "status": "Present", "reason": "Red label bottle visible on top shelf" },
+        "${requiredProducts[1] || 'Gin Royale'}": { "status": "Missing", "reason": "No purple bottle found" }
       }
     `;
 
@@ -499,7 +501,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         }
 
         if (masterRefData) {
-            parts.push({ text: `Se incluye una IMAGEN DE REFERENCIA de una góndola. Seis flechas rojas señalan productos específicos con su nombre y funcionan como anclas visuales de referencia. Los productos indicados por las flechas son las referencias relevantes; las demás botellas solo forman parte del contexto de la góndola. Usa la imagen solo como guía visual complementaria.` });
+            parts.push({ text: `Se incluye una IMAGEN DE REFERENCIA de una góndola. 14 flechas rojas señalan productos específicos con su nombre y funcionan como anclas visuales de referencia. Los productos indicados por las flechas son las referencias relevantes; las demás botellas solo forman parte del contexto de la góndola. Usa la imagen solo como guía visual complementaria.` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
             processLog.push({ step: 'Carga de Referencias Visuales Maestras', status: 'OK', details: 'Archivo referencias_visuales.jpg cargado y enviado a la IA' });
         } else {
@@ -521,7 +523,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     }
 
     let loadedRefsCount = 0;
-    for (const prod of productColumns) {
+    for (const prod of requiredProducts) {
       // 1. Add Visual Description if available
       if (PRODUCT_DESCRIPTIONS[prod]) {
         parts.push({ text: `Visual description for ${prod}: ${PRODUCT_DESCRIPTIONS[prod]}` });
@@ -609,7 +611,9 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       let isPresent = false;
       let reason = 'No reason provided';
 
-      if (resultData) {
+      if (!isRequired) {
+          reason = 'No auditado (No requerido por el cliente)';
+      } else if (resultData) {
         if (typeof resultData === 'object') {
           isPresent = resultData.status === 'Present';
           reason = resultData.reason || 'No reason text in object';
