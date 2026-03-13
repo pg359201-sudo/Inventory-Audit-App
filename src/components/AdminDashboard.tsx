@@ -533,13 +533,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           >
                             <Eye size={20} />
                           </button>
-                          <button
-                            onClick={() => { setSelectedAudit(item); setShowProcessLog(true); }}
-                            className="flex items-center justify-center rounded-md p-1.5 text-teal-600 hover:bg-teal-50 hover:text-teal-900"
-                            title="Ver Proceso"
-                          >
-                            <Activity size={20} />
-                          </button>
                           {item.manual_adjustments && item.manual_adjustments.length > 0 && (
                             <span title="Modificado manualmente" className="text-amber-500">
                               <Wrench size={18} />
