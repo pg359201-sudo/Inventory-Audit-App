@@ -698,7 +698,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     }
     
     const contextDetails = [
-        `Reglas (JSON): Buscar ${requiredProducts.length} productos (${requiredProducts.join(', ')})`,
+        `Reglas (JSON): Buscar ${productsToAnalyze.length} productos (${productsToAnalyze.join(', ')})`,
         `Guía Maestra: ${parts.some(p => p.text?.includes('Master Reference Guide')) ? 'ACTIVA (Solo Diccionario)' : 'NO'}`,
         `Refs Individuales (Imágenes): ${loadedRefsCount} cargadas (${loadedRefNames.join(', ')})`,
         `Descripciones Visuales (Texto): ${loadedDescriptionsCount} inyectadas`
