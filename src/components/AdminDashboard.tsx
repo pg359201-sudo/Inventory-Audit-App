@@ -815,7 +815,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <List size={18} />
                     Productos Evaluados
                   </h3>
-                  <div className="max-h-[60vh] overflow-y-auto rounded-lg border">
+                  <div className="rounded-lg border">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
