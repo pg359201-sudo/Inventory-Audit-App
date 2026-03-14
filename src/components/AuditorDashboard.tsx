@@ -277,7 +277,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                                 }));
                               }}
                             />
-                            <span>¿En otra sección?</span>
+                            <span>{['Vat 69 200 ml', 'Smirnoff Ice'].includes(item.productName) ? '¿Están/otra sección?' : '¿Están?'}</span>
                           </label>
                         )}
                       </div>
@@ -292,7 +292,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                 <button
                   onClick={handleRescan}
                   disabled={loading}
-                  className="w-64 flex items-center justify-center gap-2 rounded-md bg-[#D4AF37] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#B5952F] disabled:opacity-50"
+                  className="w-64 flex items-center justify-center gap-2 rounded-full border-2 border-[#D4AF37] bg-white px-4 py-2.5 text-sm font-bold text-[#B5952F] hover:bg-[#fdf8e7] transition-colors shadow-sm disabled:opacity-50"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                   {loading ? 'Re-escaneando...' : 'Re-Auditar Faltantes'}
@@ -428,7 +428,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                     Procesando...
                   </>
                 ) : (
-                  'Enviar Auditoría'
+                  'Auditar'
                 )}
               </button>
             </div>
