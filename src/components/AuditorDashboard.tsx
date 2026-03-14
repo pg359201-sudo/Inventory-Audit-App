@@ -213,7 +213,17 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
             <button onClick={onLogout} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
           </div>
 
-          <div className="w-full rounded-xl bg-white p-4 shadow-sm flex flex-col">
+          <div className="w-full rounded-xl bg-white p-4 shadow-sm flex flex-col relative">
+            {hasMissing && (
+              <button
+                onClick={handleRescan}
+                disabled={loading}
+                title="Re-Auditar Faltantes"
+                className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#D4AF37] bg-white text-[#B5952F] hover:bg-[#fdf8e7] transition-colors shadow-sm disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
+              </button>
+            )}
             <div className="mb-3 text-center shrink-0">
               {currentGlobalResult === 'OK' ? (
                 <CheckCircle className="mx-auto h-8 w-8 text-green-500" />
@@ -287,30 +297,20 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 shrink-0 items-center mt-2">
-              {hasMissing && (
-                <button
-                  onClick={handleRescan}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-1.5 rounded-full border-2 border-[#D4AF37] bg-white px-3 py-2 text-xs font-bold text-[#B5952F] hover:bg-[#fdf8e7] transition-colors shadow-sm disabled:opacity-50"
-                >
-                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                  {loading ? 'Re-escaneando...' : 'Re-Auditar Faltantes'}
-                </button>
-              )}
-              <button
-                onClick={handleSaveAndExit}
-                disabled={loading}
-                className="w-full rounded-md bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-              >
-                {loading ? 'Guardando...' : 'Guardar y Salir'}
-              </button>
+            <div className="flex flex-row gap-3 shrink-0 justify-center mt-2">
               <button
                 onClick={resetForm}
                 disabled={loading}
-                className="w-full rounded-md bg-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50"
+                className="rounded-md bg-gray-200 px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50"
               >
-                Descartar y Nueva Auditoría
+                Descartar
+              </button>
+              <button
+                onClick={handleSaveAndExit}
+                disabled={loading}
+                className="rounded-md bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {loading ? 'Guardando...' : 'Guardar y Salir'}
               </button>
             </div>
           </div>
