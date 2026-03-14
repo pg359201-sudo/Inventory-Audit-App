@@ -527,6 +527,12 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       prompt = `
       TASK: Revisa nuevamente la imagen con mucha atención, buscando EXCLUSIVAMENTE estos productos que parecen faltar. Búscalos de frente y completos.
       
+      ESTRATEGIA DE BÚSQUEDA OBLIGATORIA:
+      1. Analizar la góndola por zonas horizontales.
+      2. Divide visualmente la imagen en diferentes zonas horizontales de la góndola (de arriba hacia abajo).
+      3. Analiza cada zona por separado para identificar posibles botellas que coincidan con los productos buscados.
+      4. No analices toda la imagen al mismo tiempo, haz un barrido estante por estante.
+      
       INPUT STRUCTURE:
       - IMAGE 1: THE ACTUAL PHOTO UPLOADED BY THE AUDITOR (The ONLY image to be audited).
       - IMAGE 2 (Optional): "Master Reference Guide" (Visual Dictionary ONLY).
