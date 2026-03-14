@@ -22,6 +22,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     processLog?: any;
   } | null>(null);
   const [manualAdjustments, setManualAdjustments] = useState<Record<string, boolean>>({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isReferenceModalOpen, setIsReferenceModalOpen] = useState(false);
@@ -145,8 +146,11 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
 
       if (!res.ok) throw new Error('Error al guardar la auditoría');
       
-      alert('Auditoría guardada exitosamente');
-      resetForm();
+      setShowSuccessModal(true);
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        resetForm();
+      }, 2000);
     } catch (error: any) {
       console.error(error);
       alert(`Error: ${error.message}`);
@@ -208,8 +212,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="mx-auto max-w-md space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-gray-900">Resultado Auditoría</h1>
+          <div className="flex items-center justify-end">
             <button onClick={onLogout} className="text-base font-medium text-gray-500 hover:text-gray-800 transition-colors">Salir</button>
           </div>
 
@@ -308,6 +311,19 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
             </div>
           </div>
         </div>
+        
+        {showSuccessModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-2xl p-6 shadow-xl flex flex-col items-center max-w-xs w-full"
+            >
+              <CheckCircle className="h-12 w-12 text-green-500 mb-3" />
+              <h3 className="text-lg font-bold text-gray-900 text-center">¡Gracias por la gestión!</h3>
+            </motion.div>
+          </div>
+        )}
       </div>
     );
   }
