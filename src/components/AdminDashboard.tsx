@@ -511,13 +511,13 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           
                           if (missingCount === 0) {
                             return (
-                              <span className="inline-flex rounded-full bg-green-100 px-2 text-[10px] font-semibold leading-5 text-green-800 md:text-xs">
+                              <span className="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold leading-5 text-green-800 md:text-sm">
                                 OK
                               </span>
                             );
                           } else {
                             return (
-                              <span className="inline-flex rounded-full bg-red-100 px-2 text-[10px] font-semibold leading-5 text-red-800 md:text-xs">
+                              <span className="inline-flex rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold leading-5 text-red-800 md:text-sm">
                                 Faltan: {missingCount}
                               </span>
                             );
@@ -534,8 +534,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             <Eye size={20} />
                           </button>
                           {item.manual_adjustments && item.manual_adjustments.length > 0 && (
-                            <span title="Modificado manualmente" className="text-amber-500">
-                              <Wrench size={18} />
+                            <span title="Modificado manualmente" className="text-amber-500/80 ml-1">
+                              <Wrench size={14} />
                             </span>
                           )}
                           {(() => {
@@ -775,7 +775,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             const isOk = missingCount === 0;
                             
                             return (
-                              <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] md:text-xs font-bold leading-none ${
+                              <span className={`inline-flex rounded-full px-3 py-1 text-sm md:text-base font-bold leading-none ${
                                 isOk ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                               }`}>
                                 {isOk ? 'OK' : `Faltan: ${missingCount}`}

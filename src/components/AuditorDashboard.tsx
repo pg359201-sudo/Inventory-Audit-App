@@ -9,7 +9,7 @@ interface AuditorDashboardProps {
 }
 
 export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
-  const [auditorId, setAuditorId] = useState('1');
+  const [auditorId, setAuditorId] = useState('V');
   const [clients, setClients] = useState<ClientRule[]>([]);
   const [selectedClient, setSelectedClient] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -323,7 +323,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="mx-auto max-w-md space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Sesión A{auditorId}</h1>
+          <h1 className="text-xl font-bold text-gray-900">Sesión {auditorId}</h1>
           <button onClick={onLogout} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
         </div>
 
@@ -352,8 +352,8 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                 onChange={(e) => setAuditorId(e.target.value)}
                 className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-                  <option key={num} value={num}>A{num}</option>
+                {['V', 'D', 'M', 'P'].map(id => (
+                  <option key={id} value={id}>Auditor {id}</option>
                 ))}
               </select>
             </div>
