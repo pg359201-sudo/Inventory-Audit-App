@@ -723,19 +723,9 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     const newFilename = `${safeClientName}_${timestamp}_${globalResult.replace(' ', '_')}.jpg`;
     const fileUrl = await saveFile(file, newFilename);
 
-    console.log('Saving audit with process log length:', processLog.length); // DEBUG
+    console.log('Returning audit with process log length:', processLog.length); // DEBUG
 
-    await saveToDb({
-      usuario,
-      fecha: new Date().toISOString(),
-      cliente: clientRule['Nombre Store'],
-      resultado_detallado: JSON.stringify(detailedResult),
-      resultado_global: globalResult,
-      url_imagen: fileUrl,
-      proceso_auditoria: JSON.stringify(processLog)
-    });
-
-    res.json({ globalResult, detailedResult, fileUrl });
+    res.json({ globalResult, detailedResult, fileUrl, processLog });
 
   } catch (error: any) {
     console.error('Audit processing error:', error);
@@ -782,6 +772,28 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
 
 app.post('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
 app.patch('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
+
+app.post('/api/save-audit', express.json(), async (req, res) => {
+  try {
+    const { usuario, cliente, fecha, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments } = req.body;
+    
+    await saveToDb({
+      usuario,
+      fecha: fecha || new Date().toISOString(),
+      cliente,
+      resultado_detallado: typeof resultado_detallado === 'string' ? resultado_detallado : JSON.stringify(resultado_detallado),
+      resultado_global,
+      url_imagen,
+      proceso_auditoria: typeof proceso_auditoria === 'string' ? proceso_auditoria : JSON.stringify(proceso_auditoria),
+      manual_adjustments
+    });
+    
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Save audit error:', error);
+    res.status(500).json({ error: 'Failed to save audit', details: error.message });
+  }
+});
 
 app.get('/api/history', async (req, res) => {
   try {

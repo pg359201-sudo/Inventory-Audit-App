@@ -91,18 +91,26 @@ async function getDb(): Promise<AuditResult[]> {
   if (process.env.POSTGRES_URL) {
     try {
       const { rows } = await sql`SELECT * FROM audits ORDER BY id DESC LIMIT 100`;
-      dbRows = rows.map((row: any) => ({
-        id: row.id,
-        usuario: row.usuario,
-        fecha: row.fecha,
-        cliente: row.cliente,
-        resultado_detallado: row.resultado_detallado,
-        resultado_global: row.resultado_global,
-        url_imagen: row.url_imagen,
-        proceso_auditoria: row.proceso_auditoria,
-        manual_adjustments: row.manual_adjustments ? JSON.parse(row.manual_adjustments) : [],
-        source: 'db'
-      }));
+      dbRows = rows.map((row: any) => {
+        let parsedAdjustments = [];
+        try {
+          parsedAdjustments = row.manual_adjustments ? JSON.parse(row.manual_adjustments) : [];
+        } catch (e) {
+          console.warn("Failed to parse manual_adjustments:", row.manual_adjustments);
+        }
+        return {
+          id: row.id,
+          usuario: row.usuario,
+          fecha: row.fecha,
+          cliente: row.cliente,
+          resultado_detallado: row.resultado_detallado,
+          resultado_global: row.resultado_global,
+          url_imagen: row.url_imagen,
+          proceso_auditoria: row.proceso_auditoria,
+          manual_adjustments: parsedAdjustments,
+          source: 'db'
+        };
+      });
     } catch (error) {
       console.warn("Postgres fetch failed:", error);
     }
@@ -814,17 +822,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     const newFilename = `${safeClientName}_${timestamp}_${globalResult.replace(' ', '_')}.jpg`;
     const fileUrl = await saveFile(file, newFilename);
 
-    await saveToDb({
-      usuario,
-      fecha: new Date().toISOString(),
-      cliente: clientRule['Nombre Store'],
-      resultado_detallado: JSON.stringify(detailedResult),
-      resultado_global: globalResult,
-      url_imagen: fileUrl,
-      proceso_auditoria: JSON.stringify(processLog)
-    });
-
-    res.json({ globalResult, detailedResult, fileUrl });
+    res.json({ globalResult, detailedResult, fileUrl, processLog });
 
   } catch (error: any) {
     console.error('Audit processing error:', error);
@@ -852,6 +850,28 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     }
 
     res.status(500).json({ error: errorMessage });
+  }
+});
+
+app.post('/api/save-audit', express.json(), async (req, res) => {
+  try {
+    const { usuario, cliente, fecha, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments } = req.body;
+    
+    await saveToDb({
+      usuario,
+      fecha: fecha || new Date().toISOString(),
+      cliente,
+      resultado_detallado: typeof resultado_detallado === 'string' ? resultado_detallado : JSON.stringify(resultado_detallado),
+      resultado_global,
+      url_imagen,
+      proceso_auditoria: typeof proceso_auditoria === 'string' ? proceso_auditoria : JSON.stringify(proceso_auditoria),
+      manual_adjustments
+    });
+    
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Save audit error:', error);
+    res.status(500).json({ error: 'Failed to save audit', details: error.message });
   }
 });
 

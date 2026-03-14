@@ -19,7 +19,9 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     globalResult: string;
     detailedResult: ProductStatus[];
     fileUrl: string;
+    processLog?: any;
   } | null>(null);
+  const [manualAdjustments, setManualAdjustments] = useState<Record<string, boolean>>({});
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isReferenceModalOpen, setIsReferenceModalOpen] = useState(false);
@@ -110,13 +112,55 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     setPreviewUrl(null);
     setResult(null);
     setSelectedClient('');
+    setManualAdjustments({});
+  };
+
+  const handleSaveAndExit = async () => {
+    if (!result || !selectedClient) return;
+    
+    setLoading(true);
+    try {
+      const client = clients.find(c => c['Codigo FEMSA'] === selectedClient);
+      
+      // Recalculate global result based on manual adjustments
+      const hasMissing = result.detailedResult.some(p => p.required && !p.present && !manualAdjustments[p.productName]);
+      const finalGlobalResult = hasMissing ? 'Falta Referencia' : 'OK';
+
+      const payload = {
+        usuario: auditorId,
+        cliente: client ? client['Nombre Store'] : '',
+        fecha: new Date().toISOString(),
+        resultado_detallado: result.detailedResult,
+        resultado_global: finalGlobalResult,
+        url_imagen: result.fileUrl,
+        proceso_auditoria: result.processLog || [],
+        manual_adjustments: Object.keys(manualAdjustments).filter(k => manualAdjustments[k])
+      };
+
+      const res = await fetch('/api/save-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Error al guardar la auditoría');
+      
+      alert('Auditoría guardada exitosamente');
+      resetForm();
+    } catch (error: any) {
+      console.error(error);
+      alert(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRescan = async () => {
     if (!file || !selectedClient || !result) return;
 
+    // Filter out products that are manually adjusted
     const missingProducts = result.detailedResult
-      .filter(p => p.required && !p.present)
+      .filter(p => p.required && !p.present && !manualAdjustments[p.productName])
       .map(p => p.productName);
 
     if (missingProducts.length === 0) {
@@ -158,7 +202,9 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
   };
 
   if (result) {
-    const hasMissing = result.detailedResult.some(p => p.required && !p.present);
+    const hasMissing = result.detailedResult.some(p => p.required && !p.present && !manualAdjustments[p.productName]);
+    const currentGlobalResult = hasMissing ? 'Falta Referencia' : 'OK';
+
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="mx-auto max-w-md space-y-6">
@@ -169,13 +215,13 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
 
           <div className="w-full rounded-xl bg-white p-4 shadow-sm flex flex-col h-[calc(100vh-6rem)]">
             <div className="mb-3 text-center shrink-0">
-              {result.globalResult === 'OK' ? (
+              {currentGlobalResult === 'OK' ? (
                 <CheckCircle className="mx-auto h-8 w-8 text-green-500" />
               ) : (
                 <XCircle className="mx-auto h-8 w-8 text-red-500" />
               )}
               <h2 className="mt-1 text-base font-bold">
-                Resultado: {result.globalResult}
+                Resultado: {currentGlobalResult}
               </h2>
             </div>
 
@@ -188,7 +234,9 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                   return pA - pB;
                 }).map((item, idx) => {
                   const isRequired = item.required;
-                  const isPresent = item.present;
+                  const isActuallyPresent = item.present;
+                  const isManuallyPresent = manualAdjustments[item.productName];
+                  const isPresent = isActuallyPresent || isManuallyPresent;
                   
                   let bgClass = 'bg-gray-50 border-gray-100';
                   if (isRequired) {
@@ -199,7 +247,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                   let badgeText = '-';
                   if (isRequired) {
                     badgeClass = isPresent ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800';
-                    badgeText = isPresent ? 'Presente' : 'Falta';
+                    badgeText = isActuallyPresent ? 'Presente' : (isManuallyPresent ? 'Presente (Manual)' : 'Falta');
                   }
 
                   return (
@@ -216,6 +264,22 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                         <span className={`self-start font-bold px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider ${badgeClass}`}>
                           {badgeText}
                         </span>
+                        {isRequired && !isActuallyPresent && (
+                          <label className="mt-1 flex items-center gap-1 text-[10px] text-gray-600 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3 w-3"
+                              checked={isManuallyPresent || false}
+                              onChange={(e) => {
+                                setManualAdjustments(prev => ({
+                                  ...prev,
+                                  [item.productName]: e.target.checked
+                                }));
+                              }}
+                            />
+                            <span>¿En otra sección?</span>
+                          </label>
+                        )}
                       </div>
                     </div>
                   );
@@ -235,11 +299,18 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                 </button>
               )}
               <button
-                onClick={resetForm}
+                onClick={handleSaveAndExit}
                 disabled={loading}
                 className="w-64 rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
               >
-                Nueva Auditoría
+                {loading ? 'Guardando...' : 'Guardar y Salir'}
+              </button>
+              <button
+                onClick={resetForm}
+                disabled={loading}
+                className="w-64 rounded-md bg-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50"
+              >
+                Descartar y Nueva Auditoría
               </button>
             </div>
           </div>
