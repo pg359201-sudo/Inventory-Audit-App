@@ -213,7 +213,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
             <button onClick={onLogout} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
           </div>
 
-          <div className="w-full rounded-xl bg-white p-4 shadow-sm flex flex-col h-[calc(100vh-6rem)]">
+          <div className="w-full rounded-xl bg-white p-4 shadow-sm flex flex-col">
             <div className="mb-3 text-center shrink-0">
               {currentGlobalResult === 'OK' ? (
                 <CheckCircle className="mx-auto h-8 w-8 text-green-500" />
@@ -225,7 +225,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
               </h2>
             </div>
 
-            <div className="flex-1 overflow-y-auto min-h-0 mb-3">
+            <div className="mb-3">
               <div className="grid grid-cols-2 gap-1.5">
                 {[...result.detailedResult].sort((a, b) => {
                   // Priority: 0 = Falta (Required & !Present), 1 = Presente (Required), 2 = Others (Not Required)
@@ -277,7 +277,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                                 }));
                               }}
                             />
-                            <span>{['Vat 69 200 ml', 'Smirnoff Ice'].includes(item.productName) ? '¿Están/otra sección?' : '¿Están?'}</span>
+                            <span>{['Vat 69 200 ml', 'Smirnoff Ice'].includes(item.productName) ? '¿Está/otra sección?' : '¿Está?'}</span>
                           </label>
                         )}
                       </div>
@@ -287,28 +287,28 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 shrink-0 items-center">
+            <div className="flex flex-col gap-2 shrink-0 items-center mt-2">
               {hasMissing && (
                 <button
                   onClick={handleRescan}
                   disabled={loading}
-                  className="w-64 flex items-center justify-center gap-2 rounded-full border-2 border-[#D4AF37] bg-white px-4 py-2.5 text-sm font-bold text-[#B5952F] hover:bg-[#fdf8e7] transition-colors shadow-sm disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-1.5 rounded-full border-2 border-[#D4AF37] bg-white px-3 py-2 text-xs font-bold text-[#B5952F] hover:bg-[#fdf8e7] transition-colors shadow-sm disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
                   {loading ? 'Re-escaneando...' : 'Re-Auditar Faltantes'}
                 </button>
               )}
               <button
                 onClick={handleSaveAndExit}
                 disabled={loading}
-                className="w-64 rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="w-full rounded-md bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
               >
                 {loading ? 'Guardando...' : 'Guardar y Salir'}
               </button>
               <button
                 onClick={resetForm}
                 disabled={loading}
-                className="w-64 rounded-md bg-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50"
+                className="w-full rounded-md bg-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50"
               >
                 Descartar y Nueva Auditoría
               </button>
