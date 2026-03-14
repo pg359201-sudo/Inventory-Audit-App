@@ -511,13 +511,13 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           
                           if (missingCount === 0) {
                             return (
-                              <span className="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold leading-5 text-green-800 md:text-sm">
+                              <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold leading-5 text-green-800 md:text-xs">
                                 OK
                               </span>
                             );
                           } else {
                             return (
-                              <span className="inline-flex rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold leading-5 text-red-800 md:text-sm">
+                              <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold leading-5 text-red-800 md:text-xs">
                                 Faltan: {missingCount}
                               </span>
                             );
@@ -775,7 +775,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             const isOk = missingCount === 0;
                             
                             return (
-                              <span className={`inline-flex rounded-full px-3 py-1 text-sm md:text-base font-bold leading-none ${
+                              <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs md:text-sm font-bold leading-none ${
                                 isOk ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                               }`}>
                                 {isOk ? 'OK' : `Faltan: ${missingCount}`}
