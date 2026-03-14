@@ -210,7 +210,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
         <div className="mx-auto max-w-md space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-gray-900">Resultado Auditoría</h1>
-            <button onClick={onLogout} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
+            <button onClick={onLogout} className="text-base font-medium text-gray-500 hover:text-gray-800 transition-colors">Salir</button>
           </div>
 
           <div className="w-full rounded-xl bg-white p-4 shadow-sm flex flex-col relative">
@@ -299,16 +299,9 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
 
             <div className="flex flex-row gap-3 shrink-0 justify-center mt-2">
               <button
-                onClick={resetForm}
-                disabled={loading}
-                className="rounded-md bg-gray-200 px-4 py-2 text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50"
-              >
-                Descartar
-              </button>
-              <button
                 onClick={handleSaveAndExit}
                 disabled={loading}
-                className="rounded-md bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="rounded-md bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
               >
                 {loading ? 'Guardando...' : 'Guardar y Salir'}
               </button>
@@ -324,7 +317,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
       <div className="mx-auto max-w-md space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">Sesión {auditorId}</h1>
-          <button onClick={onLogout} className="text-sm text-gray-500 hover:text-gray-700">Salir</button>
+          <button onClick={onLogout} className="text-base font-medium text-gray-500 hover:text-gray-800 transition-colors">Salir</button>
         </div>
 
         {errorMsg && (
