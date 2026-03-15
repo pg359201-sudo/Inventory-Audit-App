@@ -688,7 +688,22 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <p>No hay registro de proceso disponible para esta auditoría.</p>
                     </div>
                   ) : (
-                    parseProcessLog(selectedAudit.proceso_auditoria).map((step, idx) => (
+                    parseProcessLog(selectedAudit.proceso_auditoria).map((step, idx) => {
+                      const isSeparator = step.step.startsWith('--- INTENTO');
+                      
+                      if (isSeparator) {
+                        return (
+                          <div key={idx} className="my-6 flex items-center">
+                            <div className="flex-grow border-t border-gray-300"></div>
+                            <span className="mx-4 flex-shrink-0 text-sm font-bold text-gray-500 uppercase tracking-wider">
+                              {step.step.replace(/---/g, '').trim()}
+                            </span>
+                            <div className="flex-grow border-t border-gray-300"></div>
+                          </div>
+                        );
+                      }
+
+                      return (
                       <div key={idx} className="flex items-start gap-4 rounded-lg border p-4 shadow-sm">
                         <div className={`mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
                           step.status === 'OK' ? 'bg-green-100 text-green-600' : 
@@ -735,7 +750,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           )}
                         </div>
                       </div>
-                    ))
+                    )})
                   )}
                 </div>
               </div>

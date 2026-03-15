@@ -209,6 +209,20 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
       }
       
       const data = await res.json();
+      
+      if (result.processLog && data.processLog) {
+        let previousLogs = [...result.processLog];
+        if (!previousLogs.some((log: any) => log.step && log.step.includes('INTENTO 1'))) {
+          previousLogs.unshift({ step: '--- INTENTO 1 (AUDITORÍA INICIAL) ---', status: 'OK' });
+        }
+        const attemptNumber = previousLogs.filter((log: any) => log.step && log.step.includes('INTENTO')).length + 1;
+        data.processLog = [
+          ...previousLogs,
+          { step: `--- INTENTO ${attemptNumber} (RE-AUDITORÍA DE FALTANTES) ---`, status: 'OK' },
+          ...data.processLog
+        ];
+      }
+      
       setResult(data);
     } catch (error: any) {
       console.error(error);
