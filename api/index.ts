@@ -535,11 +535,11 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       prompt = `
       TASK: Revisa nuevamente la imagen con mucha atención, buscando EXCLUSIVAMENTE estos productos que parecen faltar. Búscalos de frente y completos.
       
-      ESTRATEGIA DE BÚSQUEDA OBLIGATORIA:
-      1. Analizar la góndola por zonas horizontales.
-      2. Divide visualmente la imagen en diferentes zonas horizontales de la góndola (de arriba hacia abajo).
-      3. Analiza cada zona por separado para identificar posibles botellas que coincidan con los productos buscados.
-      4. No analices toda la imagen al mismo tiempo, haz un barrido estante por estante.
+      ESTRATEGIA DE BÚSQUEDA OBLIGATORIA (FRANCOTIRADOR):
+      1. Ignora el orden y la estructura de los estantes.
+      2. Ignora los productos que ya encontramos.
+      3. Tu única misión es buscar exhaustivamente en CADA RINCÓN de la imagen (incluso en el piso o fuera de lugar). SOLO cuenta productos que estén claramente visibles a la vista, NO ocultos detrás de otras botellas.
+      4. Concéntrate EXCLUSIVAMENTE en encontrar los productos listados a continuación.
       
       INPUT STRUCTURE:
       - IMAGE 1: THE ACTUAL PHOTO UPLOADED BY THE AUDITOR (The ONLY image to be audited).
