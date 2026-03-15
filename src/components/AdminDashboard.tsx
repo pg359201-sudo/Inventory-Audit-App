@@ -78,9 +78,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       const isMobile = window.innerWidth < 768;
       
       const options = {
-        quality: isMobile ? 0.8 : 0.9,
+        quality: isMobile ? 0.92 : 0.95,
         backgroundColor: '#ffffff',
-        pixelRatio: isMobile ? 1 : 2, // Reducir resolución en móviles para evitar crash de memoria
+        pixelRatio: isMobile ? 1.5 : 2, // Resolución mejorada en móviles (1.5x) para mayor nitidez sin saturar memoria
         cacheBust: true, // Ayuda a Safari a no usar versiones cacheadas corruptas
         width: modalContentRef.current.scrollWidth,
         height: modalContentRef.current.scrollHeight,

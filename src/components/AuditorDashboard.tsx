@@ -347,7 +347,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
               className="bg-white rounded-2xl p-6 shadow-xl flex flex-col items-center max-w-xs w-full"
             >
               <CheckCircle className="h-12 w-12 text-green-500 mb-3" />
-              <h3 className="text-lg font-bold text-gray-900 text-center">¡Gracias por la gestión!</h3>
+              <h3 className="text-lg font-bold text-gray-900 text-center">Gracias Crack!</h3>
             </motion.div>
           </div>
         )}
