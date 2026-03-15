@@ -412,7 +412,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 onClick={handleOpenReferenceModal}
                 title="Click para gestionar referencias"
               >
-                Referencia cargadas: <span className="font-medium text-indigo-600 underline decoration-dotted">{referenceCount}</span>
+                Referencia: <span className="font-medium text-indigo-600 underline decoration-dotted">{referenceCount}</span>
               </p>
             )}
           </div>

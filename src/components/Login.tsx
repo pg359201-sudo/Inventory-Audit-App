@@ -16,7 +16,7 @@ export default function Login({ onLogin }: LoginProps) {
     } else if (password === '6995') {
       onLogin('admin');
     } else {
-      setError('Contraseña incorrecta');
+      setError('Código incorrecto');
     }
   };
 
@@ -30,7 +30,6 @@ export default function Login({ onLogin }: LoginProps) {
         <h1 className="mb-6 text-center text-2xl font-bold text-gray-800">Auditoría de Inventario</h1>
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Contraseña</label>
             <input
               type="password"
               value={password}

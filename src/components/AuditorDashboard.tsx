@@ -55,23 +55,36 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const originalFile = e.target.files[0];
-      
-      // Compress image
-      const options = {
-        maxSizeMB: 0.5,
-        maxWidthOrHeight: 1920,
-        useWebWorker: true
-      };
+      await processFile(e.target.files[0]);
+    }
+  };
 
-      try {
-        const compressedFile = await imageCompression(originalFile, options);
-        setFile(compressedFile);
-        setPreviewUrl(URL.createObjectURL(compressedFile));
-      } catch (error) {
-        console.error('Compression error:', error);
-        alert('Error al procesar la imagen');
-      }
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      await processFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const processFile = async (originalFile: File) => {
+    // Compress image
+    const options = {
+      maxSizeMB: 0.5,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true
+    };
+
+    try {
+      const compressedFile = await imageCompression(originalFile, options);
+      setFile(compressedFile);
+      setPreviewUrl(URL.createObjectURL(compressedFile));
+    } catch (error) {
+      console.error('Compression error:', error);
+      alert('Error al procesar la imagen');
     }
   };
 
@@ -396,7 +409,11 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
 
             <div className="pt-4">
               <label className="mb-2 block text-sm font-medium text-gray-700">Captura de Foto</label>
-              <div className="flex justify-center rounded-lg border-2 border-dashed border-gray-300 px-4 py-6 sm:px-6 sm:py-10">
+              <div 
+                className="flex justify-center rounded-lg border-2 border-dashed border-gray-300 px-4 py-6 sm:px-6 sm:py-10"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
                 <div className="text-center">
                   {previewUrl ? (
                     <img src={previewUrl} alt="Preview" className="mx-auto max-h-48 sm:max-h-64 rounded-lg object-contain" />
