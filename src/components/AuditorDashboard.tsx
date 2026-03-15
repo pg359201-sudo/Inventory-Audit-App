@@ -460,7 +460,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
               <button
                 onClick={handleSubmit}
                 disabled={!file || !selectedClient || loading}
-                className="flex items-center justify-center rounded-md bg-indigo-600 px-6 py-2 text-white hover:bg-indigo-700 disabled:bg-gray-400"
+                className="flex items-center justify-center rounded-md bg-gray-900 px-6 py-2 text-white hover:bg-gray-800 disabled:bg-gray-400"
               >
                 {loading ? (
                   <>
@@ -487,14 +487,21 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl flex flex-col max-h-[80vh]">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  Productos Requeridos
-                  <span className="bg-green-100 text-green-800 text-sm font-semibold px-2 py-0.5 rounded-full">
-                    {requiredProducts.length}
-                  </span>
-                </h3>
-                <button onClick={() => setIsReferenceModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    Productos Requeridos
+                    <span className="bg-green-100 text-green-800 text-sm font-semibold px-2 py-0.5 rounded-full">
+                      {requiredProducts.length}
+                    </span>
+                  </h3>
+                  {selectedClient && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {clients.find(c => c['Codigo FEMSA'] === selectedClient)?.['Nombre Store']}
+                    </p>
+                  )}
+                </div>
+                <button onClick={() => setIsReferenceModalOpen(false)} className="text-gray-400 hover:text-gray-600 mt-1">
                   <XCircle className="h-6 w-6" />
                 </button>
               </div>
