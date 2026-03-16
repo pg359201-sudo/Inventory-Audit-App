@@ -62,7 +62,7 @@ export default function Login({ onLogin }: LoginProps) {
                 <path d="M8 16l8-3" strokeWidth="0.75" />
               </svg>
             </motion.div>
-            <h1 className="text-2xl font-black tracking-tighter text-gray-900 uppercase">HawkEye</h1>
+            <h1 className="text-2xl font-orbitron font-black tracking-tighter text-gray-900 uppercase">HawkEye</h1>
             <p className="mt-1 text-[10px] font-medium uppercase tracking-widest text-gray-400">Auditoría Inteligente</p>
           </div>
           
