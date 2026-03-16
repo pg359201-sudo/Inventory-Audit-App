@@ -89,7 +89,14 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
   };
 
   const handleSubmit = async () => {
-    if (!file || !selectedClient) return;
+    if (!selectedClient) {
+      alert('Por favor, seleccione un cliente antes de auditar.');
+      return;
+    }
+    if (!file) {
+      alert('Por favor, suba o tome una foto antes de auditar.');
+      return;
+    }
 
     setLoading(true);
     const formData = new FormData();
@@ -459,7 +466,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
             <div className="flex justify-center">
               <button
                 onClick={handleSubmit}
-                disabled={!file || !selectedClient || loading}
+                disabled={loading}
                 className="flex items-center justify-center rounded-md bg-gray-900 px-6 py-2 text-white hover:bg-gray-800 disabled:bg-gray-400"
               >
                 {loading ? (

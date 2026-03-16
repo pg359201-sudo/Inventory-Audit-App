@@ -58,12 +58,12 @@ export default function Login({ onLogin }: LoginProps) {
                 {/* Bottle Outline */}
                 <path d="M11 5h2v3h1a2 2 0 0 1 2 2v8H8v-8a2 2 0 0 1 2-2h1V5z" />
                 {/* Diagonal Label */}
-                <path d="M8 13l8-3" />
-                <path d="M8 16l8-3" />
+                <path d="M8 13l8-3" strokeWidth="0.75" />
+                <path d="M8 16l8-3" strokeWidth="0.75" />
               </svg>
             </motion.div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">HawkEye</h1>
-            <p className="mt-1 text-xs font-medium uppercase tracking-widest text-gray-400">Auditoría Inteligente</p>
+            <h1 className="text-2xl font-black tracking-tighter text-gray-900 uppercase">HawkEye</h1>
+            <p className="mt-1 text-[10px] font-medium uppercase tracking-widest text-gray-400">Auditoría Inteligente</p>
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-3 max-w-[260px] mx-auto" autoComplete="off">
