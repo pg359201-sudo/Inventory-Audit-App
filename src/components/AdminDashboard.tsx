@@ -405,10 +405,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Panel Administrador</h1>
+            <span className="text-sm font-orbitron font-black tracking-tighter text-gray-900 uppercase">HawkEye</span>
             {referenceCount !== null && (
               <p 
-                className="text-sm text-gray-500 mt-1 cursor-pointer hover:text-indigo-600 transition-colors"
+                className="text-xs text-gray-500 mt-0.5 cursor-pointer hover:text-indigo-600 transition-colors"
                 onClick={handleOpenReferenceModal}
                 title="Click para gestionar referencias"
               >
