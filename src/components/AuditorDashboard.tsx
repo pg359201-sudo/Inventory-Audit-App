@@ -375,7 +375,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
       <div className="mx-auto max-w-md space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
-            <span className="text-xs font-orbitron font-black tracking-tighter text-gray-900 uppercase">HawkEye</span>
+            <span className="text-sm font-orbitron font-black tracking-tighter text-gray-900 uppercase">HawkEye</span>
           </div>
           <button onClick={onLogout} className="text-base font-medium text-gray-500 hover:text-gray-800 transition-colors">Salir</button>
         </div>
