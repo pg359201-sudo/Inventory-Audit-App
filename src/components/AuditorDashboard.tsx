@@ -338,7 +338,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
               <button
                 onClick={handleSaveAndExit}
                 disabled={loading}
-                className="rounded-md bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="rounded-md bg-gray-900 px-6 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:bg-gray-400"
               >
                 {loading ? 'Guardando...' : 'Guardar y Salir'}
               </button>

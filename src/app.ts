@@ -575,7 +575,13 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         }
 
         if (masterRefData) {
-            parts.push({ text: `Se incluye una IMAGEN DE REFERENCIA de una góndola. 14 flechas rojas señalan productos específicos con su nombre y funcionan como anclas visuales de referencia. Los productos indicados por las flechas son las referencias relevantes; las demás botellas solo forman parte del contexto de la góndola. Usa la imagen solo como guía visual complementaria.` });
+            parts.push({ text: `Se incluye una IMAGEN DE REFERENCIA de una góndola.
+En esta imagen:
+Las flechas rojas indican los productos objetivo.
+El recuadro rojo delimita exactamente la botella que corresponde a cada producto.
+Solo las botellas que están dentro de los recuadros rojos deben utilizarse como referencia visual.
+Todas las demás botellas visibles en la imagen forman parte del contexto de la góndola y no deben considerarse como productos objetivo.
+La imagen debe usarse únicamente como guía visual complementaria.` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
             processLog.push({ step: 'Carga de Referencias Visuales Maestras', status: 'OK', details: 'Archivo referencias_visuales.jpg cargado y enviado a la IA' });
         } else {
