@@ -122,7 +122,11 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
       setResult(data);
     } catch (error: any) {
       console.error(error);
-      alert(`Error: ${error.message}`);
+      let errorMessage = error.message;
+      if (typeof errorMessage === 'string' && errorMessage.includes('503') && errorMessage.includes('high demand')) {
+        errorMessage = 'El sistema está experimentando una alta demanda en este momento. Por favor, intenta de nuevo en unos minutos.';
+      }
+      alert(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -233,7 +237,11 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
       setResult(data);
     } catch (error: any) {
       console.error(error);
-      alert(`Error: ${error.message}`);
+      let errorMessage = error.message;
+      if (typeof errorMessage === 'string' && errorMessage.includes('503') && errorMessage.includes('high demand')) {
+        errorMessage = 'El sistema está experimentando una alta demanda en este momento. Por favor, intenta de nuevo en unos minutos.';
+      }
+      alert(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
