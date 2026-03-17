@@ -408,11 +408,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <span className="text-sm font-orbitron font-black tracking-tighter text-gray-900 uppercase">HawkEye</span>
             {referenceCount !== null && (
               <p 
-                className="text-xs text-gray-500 mt-0.5 cursor-pointer hover:text-indigo-600 transition-colors"
+                className="text-xs text-gray-500 mt-0.5 cursor-pointer hover:text-gray-900 transition-colors"
                 onClick={handleOpenReferenceModal}
                 title="Click para gestionar referencias"
               >
-                Referencia: <span className="font-medium text-indigo-600 underline decoration-dotted">{referenceCount}</span>
+                Referencia: <span className="font-medium text-gray-900 underline decoration-dotted">{referenceCount}</span>
               </p>
             )}
           </div>
@@ -431,7 +431,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 )}
                 <button
                   onClick={handleExport}
-                  className="flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700"
+                  className="flex items-center gap-1.5 rounded-md bg-gray-900 px-3 py-1.5 text-xs text-white hover:bg-gray-800"
                   title="Descargar Historial"
                 >
                   <Download size={14} />
@@ -893,7 +893,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 onClick={handleDownloadJPG}
                 disabled={isDownloading}
                 className={`flex items-center gap-1 md:gap-2 rounded-md px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm text-white shadow-sm transition-colors ${
-                  isDownloading ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                  isDownloading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-900 hover:bg-gray-800'
                 }`}
                 title="Descargar como JPG"
               >
