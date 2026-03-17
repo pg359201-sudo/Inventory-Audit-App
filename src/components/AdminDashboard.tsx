@@ -528,13 +528,13 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <div className="flex gap-3 items-center">
                           <button
                             onClick={() => { setSelectedAudit(item); setShowProcessLog(false); }}
-                            className="flex items-center justify-center rounded-md p-1.5 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-900"
+                            className="flex items-center justify-center rounded-md p-1.5 text-gray-900 hover:bg-gray-100 hover:text-black"
                             title="Ver Detalle"
                           >
                             <Eye size={20} />
                           </button>
                           {item.manual_adjustments && item.manual_adjustments.length > 0 && (
-                            <span title="Modificado manualmente" className="text-amber-400/60 ml-1">
+                            <span title="Modificado manualmente" className="text-gray-400 ml-1">
                               <Wrench size={14} />
                             </span>
                           )}
@@ -543,7 +543,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             const hasAdjustments = details.some((d: any) => d.manuallyAdjusted);
                             if (hasAdjustments) {
                               return (
-                                <div className="flex items-center justify-center rounded-md p-1.5 text-amber-600" title="Auditoría ajustada manualmente">
+                                <div className="flex items-center justify-center rounded-md p-1.5 text-gray-500" title="Auditoría ajustada manualmente">
                                   <FileEdit size={20} />
                                 </div>
                               );
