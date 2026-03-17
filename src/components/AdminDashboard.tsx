@@ -405,7 +405,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <span className="text-sm font-orbitron font-black tracking-tighter text-gray-900 uppercase">HawkEye</span>
+            <span className="text-sm md:text-lg font-orbitron font-black tracking-tighter text-gray-900 uppercase">HawkEye</span>
             {referenceCount !== null && (
               <p 
                 className="text-xs text-gray-500 mt-0.5 cursor-pointer hover:text-gray-900 transition-colors"
