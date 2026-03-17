@@ -399,7 +399,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Auditor</label>
+              <label className="block text-sm font-medium text-gray-700">Usuario</label>
               <select
                 value={auditorId}
                 onChange={(e) => setAuditorId(e.target.value)}
@@ -468,7 +468,6 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                     </label>
                     <p className="pl-1 hidden sm:block">o arrastrar y soltar</p>
                   </div>
-                  <p className="text-xs leading-5 text-gray-600 mt-1 sm:mt-0">PNG, JPG hasta 10MB</p>
                 </div>
               </div>
             </div>

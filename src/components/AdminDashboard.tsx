@@ -766,7 +766,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           <p className="font-semibold text-gray-900 text-[11px] md:text-sm leading-tight truncate">{selectedAudit.cliente}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-gray-400 text-[8px] md:text-xs leading-none mb-0.5">Auditor</p>
+                          <p className="text-gray-400 text-[8px] md:text-xs leading-none mb-0.5">Usuario</p>
                           <p className="font-normal text-gray-600 text-[9px] md:text-sm leading-tight">{selectedAudit.usuario}</p>
                         </div>
                       </div>
