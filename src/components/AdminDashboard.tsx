@@ -493,7 +493,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         })()}
                       </td>
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-900">
-                        A{item.usuario}
+                        {item.usuario}
                       </td>
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-xs md:text-sm text-gray-900">
                         {item.cliente}
