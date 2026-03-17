@@ -22,6 +22,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     processLog?: any;
   } | null>(null);
   const [manualAdjustments, setManualAdjustments] = useState<Record<string, boolean>>({});
+  const [manualRejections, setManualRejections] = useState<Record<string, boolean>>({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -138,6 +139,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     setResult(null);
     setSelectedClient('');
     setManualAdjustments({});
+    setManualRejections({});
   };
 
   const handleSaveAndExit = async () => {
@@ -147,15 +149,22 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     try {
       const client = clients.find(c => c['Codigo FEMSA'] === selectedClient);
       
-      // Recalculate global result based on manual adjustments
-      const hasMissing = result.detailedResult.some(p => p.required && !p.present && !manualAdjustments[p.productName]);
+      const modifiedDetailedResult = result.detailedResult.map(p => {
+        if (manualRejections[p.productName]) {
+          return { ...p, present: false, manuallyRejected: true };
+        }
+        return p;
+      });
+
+      // Recalculate global result based on manual adjustments and rejections
+      const hasMissing = modifiedDetailedResult.some(p => p.required && !p.present && !manualAdjustments[p.productName]);
       const finalGlobalResult = hasMissing ? 'Falta Referencia' : 'OK';
 
       const payload = {
         usuario: auditorId,
         cliente: client ? client['Nombre Store'] : '',
         fecha: new Date().toISOString(),
-        resultado_detallado: result.detailedResult,
+        resultado_detallado: modifiedDetailedResult,
         resultado_global: finalGlobalResult,
         url_imagen: result.fileUrl,
         proceso_auditoria: result.processLog || [],
@@ -291,22 +300,43 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                   const isRequired = item.required;
                   const isActuallyPresent = item.present;
                   const isManuallyPresent = manualAdjustments[item.productName];
-                  const isPresent = isActuallyPresent || isManuallyPresent;
+                  const isManuallyRejected = manualRejections[item.productName];
+                  const isPresent = (isActuallyPresent && !isManuallyRejected) || isManuallyPresent;
                   
                   let bgClass = 'bg-gray-50 border-gray-100';
                   if (isRequired) {
                     bgClass = isPresent ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100';
+                    if (isActuallyPresent) {
+                      bgClass += ' cursor-pointer hover:bg-opacity-80 transition-colors';
+                    }
                   }
 
                   let badgeClass = 'text-gray-400';
                   let badgeText = '-';
                   if (isRequired) {
                     badgeClass = isPresent ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800';
-                    badgeText = isActuallyPresent ? 'Presente' : (isManuallyPresent ? 'Presente (Manual)' : 'Falta');
+                    if (isManuallyRejected) {
+                      badgeText = 'Falta (Manual)';
+                    } else if (isManuallyPresent) {
+                      badgeText = 'Presente (Manual)';
+                    } else {
+                      badgeText = isActuallyPresent ? 'Presente' : 'Falta';
+                    }
                   }
 
                   return (
-                    <div key={idx} className={`flex flex-col rounded p-2 text-xs border ${bgClass}`}>
+                    <div 
+                      key={idx} 
+                      className={`flex flex-col rounded p-2 text-xs border ${bgClass}`}
+                      onClick={() => {
+                        if (isRequired && isActuallyPresent) {
+                          setManualRejections(prev => ({
+                            ...prev,
+                            [item.productName]: !prev[item.productName]
+                          }));
+                        }
+                      }}
+                    >
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1">
                           <span className={`font-semibold truncate text-xs leading-tight ${isRequired ? 'text-gray-800' : 'text-gray-400'}`} title={item.productName}>
@@ -320,7 +350,10 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                           {badgeText}
                         </span>
                         {isRequired && !isActuallyPresent && (
-                          <label className="mt-1 flex items-center gap-1 text-[10px] text-gray-600 cursor-pointer">
+                          <label 
+                            className="mt-1 flex items-center gap-1 text-[10px] text-gray-600 cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <input
                               type="checkbox"
                               className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3 w-3"
