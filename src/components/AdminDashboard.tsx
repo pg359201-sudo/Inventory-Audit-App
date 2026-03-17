@@ -533,19 +533,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           >
                             <Eye size={20} />
                           </button>
-                          {item.manual_adjustments && item.manual_adjustments.length > 0 && (
-                            <span title="Modificado manualmente" className="text-gray-400 ml-1">
-                              <Wrench size={14} />
-                            </span>
-                          )}
                           {(() => {
                             const details = parseDetails(item.resultado_detallado);
                             const hasAdjustments = details.some((d: any) => d.manuallyAdjusted || d.manuallyRejected);
-                            if (hasAdjustments) {
+                            const hasManualAdjustments = (item.manual_adjustments && item.manual_adjustments.length > 0) || hasAdjustments;
+                            
+                            if (hasManualAdjustments) {
                               return (
-                                <div className="flex items-center justify-center rounded-md p-1.5 text-gray-500" title="Auditoría ajustada manualmente">
-                                  <FileEdit size={20} />
-                                </div>
+                                <span title="Modificado manualmente" className="text-gray-400 ml-1">
+                                  <Wrench size={14} />
+                                </span>
                               );
                             }
                             return null;
@@ -857,7 +854,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                         ? 'bg-red-100 text-red-700' 
                                         : 'bg-gray-100 text-gray-600'
                                   }`}>
-                                    {isEffectivelyPresent ? 'Presente' : item.manuallyRejected ? 'Falta (Manual)' : item.required ? 'Falta' : 'No Requerido'}
+                                    {isEffectivelyPresent ? 'Presente' : item.required ? 'Falta' : 'No Requerido'}
                                   </span>
                                 </td>
                                 <td className="px-1 md:px-4 py-1.5 md:py-2 text-xs md:text-sm text-center">
