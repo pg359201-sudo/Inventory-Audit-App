@@ -20,6 +20,19 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [base64Image, setBase64Image] = useState<string | null>(null);
 
+  const calculateMissingCount = (details: any[], manual_adjustments: string[] | undefined) => {
+    const required = details.filter((d: any) => d.required);
+    let missingCount = 0;
+    required.forEach((d: any) => {
+      const isAdjusted = manual_adjustments?.includes(d.productName);
+      const isEffectivelyPresent = d.present ? !isAdjusted : isAdjusted;
+      if (!isEffectivelyPresent) {
+        missingCount++;
+      }
+    });
+    return missingCount;
+  };
+
   const handleDownloadJPG = async () => {
     if (!modalContentRef.current || !selectedAudit) return;
     
@@ -307,12 +320,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const headers = ['ID', 'Usuario', 'Fecha', 'Cliente', 'Resultado Global', 'URL Imagen', 'Ajustes Manuales'];
     const rows = history.map(h => {
       const details = parseDetails(h.resultado_detallado);
-      const required = details.filter((d: any) => d.required);
-      let missingCount = required.filter((d: any) => !d.present).length;
-      
-      if (h.manual_adjustments && h.manual_adjustments.length > 0) {
-        missingCount = Math.max(0, missingCount - h.manual_adjustments.length);
-      }
+      const missingCount = calculateMissingCount(details, h.manual_adjustments);
       
       const isOk = missingCount === 0;
       const finalResult = isOk ? 'OK' : `Faltan: ${missingCount}`;
@@ -501,13 +509,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4">
                         {(() => {
                           const details = parseDetails(item.resultado_detallado);
-                          const required = details.filter((d: any) => d.required);
-                          let missingCount = required.filter((d: any) => !d.present).length;
-                          
-                          // Subtract manually adjusted items from missing count
-                          if (item.manual_adjustments && item.manual_adjustments.length > 0) {
-                            missingCount = Math.max(0, missingCount - item.manual_adjustments.length);
-                          }
+                          const missingCount = calculateMissingCount(details, item.manual_adjustments);
                           
                           if (missingCount === 0) {
                             return (
@@ -777,12 +779,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <div className="flex items-center gap-1.5 text-right">
                           {(() => {
                             const details = parseDetails(selectedAudit.resultado_detallado);
-                            const required = details.filter((d: any) => d.required);
-                            let missingCount = required.filter((d: any) => !d.present).length;
-                            
-                            if (selectedAudit.manual_adjustments && selectedAudit.manual_adjustments.length > 0) {
-                              missingCount = Math.max(0, missingCount - selectedAudit.manual_adjustments.length);
-                            }
+                            const missingCount = calculateMissingCount(details, selectedAudit.manual_adjustments);
                             
                             const isOk = missingCount === 0;
                             
@@ -839,7 +836,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           })
                           .map((item: any, idx: number) => {
                             const isAdjusted = selectedAudit.manual_adjustments?.includes(item.productName);
-                            const isEffectivelyPresent = item.present || isAdjusted;
+                            const isEffectivelyPresent = item.present ? !isAdjusted : isAdjusted;
                             
                             return (
                               <tr key={idx} className={isEffectivelyPresent ? 'bg-green-50/50' : item.required ? 'bg-red-50/50' : ''}>
@@ -858,7 +855,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                   </span>
                                 </td>
                                 <td className="px-1 md:px-4 py-1.5 md:py-2 text-xs md:text-sm text-center">
-                                  {item.required && !item.present && (
+                                  {item.required && (
                                     <button
                                       onClick={() => handleAdjust(selectedAudit.id, item.productName)}
                                       className={`inline-flex items-center justify-center p-0.5 md:p-1 rounded-full transition-colors ${
