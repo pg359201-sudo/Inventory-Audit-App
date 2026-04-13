@@ -839,7 +839,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             const isEffectivelyPresent = item.present ? !isAdjusted : isAdjusted;
                             
                             return (
-                              <tr key={idx} className={isEffectivelyPresent ? 'bg-green-50/50' : item.required ? 'bg-red-50/50' : ''}>
+                              <tr 
+                                key={idx} 
+                                onClick={() => {
+                                  if (item.required) handleAdjust(selectedAudit.id, item.productName);
+                                }}
+                                className={`
+                                  ${isEffectivelyPresent ? 'bg-green-50/50' : item.required ? 'bg-red-50/50' : ''}
+                                  ${item.required ? 'cursor-pointer hover:bg-black/5 transition-colors' : ''}
+                                `}
+                                title={item.required ? "Clic para cambiar estado" : ""}
+                              >
                                 <td className="px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm text-gray-900">
                                   {item.productName}
                                 </td>
@@ -855,18 +865,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                   </span>
                                 </td>
                                 <td className="px-1 md:px-4 py-1.5 md:py-2 text-xs md:text-sm text-center">
-                                  {item.required && (
-                                    <button
-                                      onClick={() => handleAdjust(selectedAudit.id, item.productName)}
+                                  {item.required && (!isEffectivelyPresent || isAdjusted) && (
+                                    <div
                                       className={`inline-flex items-center justify-center p-0.5 md:p-1 rounded-full transition-colors ${
                                         isAdjusted 
-                                          ? 'text-amber-600 hover:bg-amber-100' 
-                                          : 'text-gray-400 hover:bg-gray-200'
+                                          ? 'text-amber-600' 
+                                          : 'text-gray-400'
                                       }`}
-                                      title={isAdjusted ? "Revertir ajuste" : "Ajustar manualmente"}
                                     >
                                       {isAdjusted ? <CircleDot size={16} /> : <Circle size={16} />}
-                                    </button>
+                                    </div>
                                   )}
                                 </td>
                               </tr>
