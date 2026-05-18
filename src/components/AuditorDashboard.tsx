@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Camera, Upload, CheckCircle, XCircle, Loader2, RefreshCw, List, Scissors } from 'lucide-react';
+import { Camera, Upload, CheckCircle, XCircle, Loader2, RefreshCw, List, Scissors, Lightbulb } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -595,9 +595,10 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                             <Scissors size={18} />
                           </button>
                         </div>
-                        <p className="mt-2 text-xs text-gray-400 italic">
-                          Tip: Podés recortar laterales de la foto usando el ícono de las tijeras
-                        </p>
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-400 italic">
+                          <Lightbulb className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                          <span>Usá las tijeras para centrar la imagen en lo que querés analizar.</span>
+                        </div>
                       </div>
                     )
                   ) : (
