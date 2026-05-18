@@ -583,16 +583,21 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                         </div>
                       </div>
                     ) : (
-                      <div className="relative group mx-auto inline-block">
-                        <img src={previewUrl} alt="Preview" className="mx-auto max-h-48 sm:max-h-64 rounded-lg object-contain" />
-                        <button
-                          type="button"
-                          onClick={() => setIsCropping(true)}
-                          className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-md shadow-sm border border-gray-200 text-gray-700 hover:text-indigo-600 hover:bg-white transition-colors"
-                          title="Recortar bordes"
-                        >
-                          <Scissors size={18} />
-                        </button>
+                      <div className="flex flex-col items-center">
+                        <div className="relative group mx-auto inline-block">
+                          <img src={previewUrl} alt="Preview" className="mx-auto max-h-48 sm:max-h-64 rounded-lg object-contain" />
+                          <button
+                            type="button"
+                            onClick={() => setIsCropping(true)}
+                            className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-md shadow-sm border border-gray-200 text-gray-700 hover:text-indigo-600 hover:bg-white transition-colors"
+                            title="Recortar bordes"
+                          >
+                            <Scissors size={18} />
+                          </button>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-400 italic">
+                          Tip: Podés recortar laterales de la foto usando el ícono de las tijeras
+                        </p>
                       </div>
                     )
                   ) : (
