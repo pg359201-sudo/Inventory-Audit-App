@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Camera, Upload, CheckCircle, XCircle, Loader2, RefreshCw, List } from 'lucide-react';
+import { Camera, Upload, CheckCircle, XCircle, Loader2, RefreshCw, List, Scissors } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
+import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import { ClientRule, AuditResult, ProductStatus } from '../types';
 
 interface AuditorDashboardProps {
@@ -27,6 +29,12 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isReferenceModalOpen, setIsReferenceModalOpen] = useState(false);
+
+  // Cropping states
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+  const [isCropping, setIsCropping] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     fetch('/api/clients')
@@ -140,6 +148,57 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     setSelectedClient('');
     setManualAdjustments({});
     setManualRejections({});
+    setIsCropping(false);
+    setCrop(undefined);
+  };
+
+  const handleApplyCrop = () => {
+    if (!completedCrop || !imgRef.current) {
+      setIsCropping(false);
+      return;
+    }
+
+    const img = imgRef.current;
+    
+    // Create a canvas to draw the cropped image
+    const canvas = document.createElement('canvas');
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+    
+    canvas.width = Math.floor(completedCrop.width * scaleX);
+    canvas.height = Math.floor(completedCrop.height * scaleY);
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      alert("Error al procesar el recorte");
+      return;
+    }
+
+    ctx.drawImage(
+      img,
+      completedCrop.x * scaleX,
+      completedCrop.y * scaleY,
+      completedCrop.width * scaleX,
+      completedCrop.height * scaleY,
+      0,
+      0,
+      completedCrop.width * scaleX,
+      completedCrop.height * scaleY
+    );
+
+    // Get the base64 or blob from canvas
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        alert("Error al crear la imagen");
+        return;
+      }
+      // Create new File from blob
+      const croppedFile = new File([blob], file?.name || 'cropped.jpg', { type: file?.type || 'image/jpeg' });
+      setFile(croppedFile);
+      setPreviewUrl(URL.createObjectURL(croppedFile));
+      setIsCropping(false);
+      setCrop(undefined); // reset crop state
+    }, file?.type || 'image/jpeg', 0.95);
   };
 
   const handleSaveAndExit = async () => {
@@ -480,27 +539,84 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
               >
                 <div className="text-center">
                   {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="mx-auto max-h-48 sm:max-h-64 rounded-lg object-contain" />
+                    isCropping ? (
+                      <div className="flex flex-col items-center w-full">
+                        <ReactCrop 
+                          crop={crop}
+                          onChange={(c) => setCrop(c)}
+                          onComplete={(c) => setCompletedCrop(c)}
+                        >
+                          <img 
+                            ref={imgRef}
+                            src={previewUrl} 
+                            alt="Crop Preview" 
+                            className="mx-auto rounded-lg object-contain max-h-[60vh] sm:max-h-96" 
+                            onLoad={(e) => {
+                              const { width, height } = e.currentTarget;
+                              setCrop({ unit: '%', width: 96, height: 96, x: 2, y: 2 });
+                              setCompletedCrop({
+                                unit: 'px',
+                                x: Math.floor(width * 0.02),
+                                y: Math.floor(height * 0.02),
+                                width: Math.floor(width * 0.96),
+                                height: Math.floor(height * 0.96)
+                              });
+                            }}
+                          />
+                        </ReactCrop>
+                        <div className="flex gap-2 mt-4">
+                          <button
+                            type="button"
+                            onClick={() => setIsCropping(false)}
+                            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleApplyCrop}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium flex items-center"
+                          >
+                            <Scissors className="w-4 h-4 mr-1" />
+                            Aplicar Recorte
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="relative group mx-auto inline-block">
+                        <img src={previewUrl} alt="Preview" className="mx-auto max-h-48 sm:max-h-64 rounded-lg object-contain" />
+                        <button
+                          type="button"
+                          onClick={() => setIsCropping(true)}
+                          className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-md shadow-sm border border-gray-200 text-gray-700 hover:text-indigo-600 hover:bg-white transition-colors"
+                          title="Recortar bordes"
+                        >
+                          <Scissors size={18} />
+                        </button>
+                      </div>
+                    )
                   ) : (
                     <Camera className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
                   )}
-                  <div className="mt-2 sm:mt-4 flex flex-col sm:flex-row justify-center text-sm leading-6 text-gray-600">
-                    <label
-                      htmlFor="file-upload"
-                      className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
-                    >
-                      <span>Subir un archivo</span>
-                      <input
-                        id="file-upload"
-                        name="file-upload"
-                        type="file"
-                        className="sr-only"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                      />
-                    </label>
-                    <p className="pl-1 hidden sm:block">o arrastrar y soltar</p>
-                  </div>
+                  {(!previewUrl || !isCropping) && (
+                    <div className="mt-2 sm:mt-4 flex flex-col sm:flex-row justify-center text-sm leading-6 text-gray-600">
+                      <label
+                        htmlFor="file-upload"
+                        className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
+                      >
+                        <span>Subir un archivo</span>
+                        <input
+                          id="file-upload"
+                          name="file-upload"
+                          type="file"
+                          className="sr-only"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                        />
+                      </label>
+                      <p className="pl-1 hidden sm:block">o arrastrar y soltar</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
