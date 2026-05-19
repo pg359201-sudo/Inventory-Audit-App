@@ -418,9 +418,8 @@ app.post('/api/references/upload', upload.single('file'), async (req, res) => {
 
 app.post('/api/audit', upload.single('photo'), async (req, res) => {
   const processLog: { step: string; status: 'OK' | 'Error' | 'Warning'; details?: string }[] = [];
-  
   try {
-    const { usuario, clienteId } = req.body;
+    const { usuario, clienteId, isRescan, missingProducts, previousDetailedResult } = req.body;
     const file = req.file;
 
     if (!file) return res.status(400).json({ error: 'No photo uploaded' });
@@ -445,11 +444,58 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       "Sandy Mac 1L", "Vat 69 1L", "Vat 69 200 ml", "White Horse 1L"
     ];
 
-    const requiredProducts = productColumns.filter(prod => clientRule[prod] === 'Si');
+    let requiredProducts = productColumns.filter(prod => clientRule[prod] === 'Si');
+    
+    const isRescanObj = isRescan === 'true';
+    if (isRescanObj && missingProducts) {
+      const missingList = missingProducts.split(',').filter(Boolean);
+      requiredProducts = requiredProducts.filter(p => missingList.includes(p));
+    }
 
     // Call Gemini
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const prompt = `
+    
+    let prompt = "";
+    if (isRescanObj) {
+      prompt = `
+      Atención: Ya encontramos muchos productos, pero no logramos ver: ${requiredProducts.join(', ')}. 
+      Ignora TODO lo demás en la góndola.
+      Tu ÚNICA TAREA es analizar la imagen principal y buscar como un microscopio si este producto con formato plano o transparente está oculto, mal posicionado, o en algún rincón.
+      
+      Busca exclusivamente: ${requiredProducts.join(', ')}.
+      
+      ═══════════════════════════════
+      REGLAS DE IDENTIFICACIÓN
+      ═══════════════════════════════
+      Basa la identificación PRINCIPALMENTE en características visuales:
+      - Forma y silueta de la botella
+      - Color del vidrio (transparente, verde oscuro, marrón oscuro, ámbar)
+      - Colores dominantes de la etiqueta
+      - Elementos distintivos: sellos, franjas, logos
+      - Altura relativa comparada con otras botellas
+      NO dependas únicamente de la lectura del texto de la etiqueta.
+      
+      ═══════════════════════════════
+      FORMATO DE SALIDA
+      ═══════════════════════════════
+      Devolvé un objeto JSON donde las claves sean los nombres exactos de los productos buscados.
+      Cada valor DEBE ser un objeto con:
+      1. "status": "Present" (Presente) o "Missing" (Faltante)
+      2. "reason": explicación breve citando las DOS características visuales 
+         que confirmaron la presencia, o por qué no fue encontrado.
+
+      DEVUELVE ÚNICA Y EXCLUSIVAMENTE EL OBJETO JSON. NO incluyas texto antes ni después, ni bloques de código markdown.
+
+      Ejemplo:
+      {
+        "${requiredProducts[0] || 'Gin Gordons'}": {
+          "status": "Present",
+          "reason": "Botella transparente con franja amarilla + tapa violeta visible en estante del medio"
+        }
+      }
+      `;
+    } else {
+      prompt = `
       Analyze this image of a liquor shelf.
       Check for the presence of the following products: ${requiredProducts.join(', ')}.
       
@@ -537,7 +583,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
           "reason": "Solo se detectaron botellas Vat 69 1L de tamaño completo; no se encontró el formato de media altura"
         }
       }
-    `;
+      `;
+    }
 
     const parts: any[] = [
       { text: prompt },
