@@ -712,7 +712,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           {step.status === 'OK' ? '✓' : step.status === 'Warning' ? '!' : 'X'}
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900">{step.step}</h4>
+                          <h4 className="font-semibold text-gray-900">{step.step.replace(/Guía Maestra/g, 'Referencias productos en Góndola Real (referencias_visuales.jpg)')}</h4>
                           <p className={`text-sm font-medium ${
                             step.status === 'OK' ? 'text-green-700' : 
                             step.status === 'Warning' ? 'text-yellow-700' : 
@@ -723,8 +723,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           {step.details && (
                             <div className="mt-1 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
                               {(() => {
-                                if (step.details.includes('Reglas (JSON):') || step.details.includes('Guía Maestra:') || step.details.includes('Refs Individuales:') || step.step === 'Análisis de referencias faltantes') {
-                                  const parts = step.details.split(' | ');
+                                const displayDetails = step.details.replace(/Guía Maestra/g, 'Referencias productos en Góndola Real (referencias_visuales.jpg)');
+                                
+                                if (displayDetails.includes('Reglas (JSON):') || displayDetails.includes('Referencias productos en Góndola Real (referencias_visuales.jpg):') || displayDetails.includes('Refs Individuales:') || step.step === 'Análisis de referencias faltantes') {
+                                  const parts = displayDetails.split(' | ');
                                   return (
                                     <div className="space-y-1">
                                       {parts.map((part, i) => {
@@ -743,7 +745,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                     </div>
                                   );
                                 }
-                                return <>{step.details}</>;
+                                return <>{displayDetails}</>;
                               })()}
                             </div>
                           )}
