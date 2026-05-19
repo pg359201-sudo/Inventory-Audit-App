@@ -460,13 +460,15 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       prompt = `
       Atención: Ya encontramos muchos productos, pero no logramos ver: ${requiredProducts.join(', ')}. 
       Ignora TODO lo demás en la góndola.
-      Tu ÚNICA TAREA es analizar la imagen principal y buscar como un microscopio si este producto con formato plano o transparente está oculto, mal posicionado, o en algún rincón.
+      Tu ÚNICA TAREA es analizar la imagen principal y examinar detalladamente la primera fila de la góndola. 
+      IMPORTANTE: NO busques botellas ocultas, tapadas por otras, o ubicadas detrás. Limítate exclusivamente a los productos claramente visibles de frente en la primera fila.
       
       Busca exclusivamente: ${requiredProducts.join(', ')}.
       
       ═══════════════════════════════
       REGLAS DE IDENTIFICACIÓN
       ═══════════════════════════════
+      - IMPORTANTE: Solo identifica productos que se encuentren en la primera fila de la góndola (visibles de frente). Ignora por completo botellas ocultas, tapadas por otras o en las filas de atrás.
       Basa la identificación PRINCIPALMENTE en características visuales:
       - Forma y silueta de la botella
       - Color del vidrio (transparente, verde oscuro, marrón oscuro, ámbar)
@@ -502,6 +504,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       ═══════════════════════════════
       REGLAS DE IDENTIFICACIÓN
       ═══════════════════════════════
+      - IMPORTANTE: Solo identifica productos que se encuentren en la primera fila de la góndola (visibles de frente). Ignora por completo botellas ocultas, tapadas por otras o en las filas de atrás.
       Basa la identificación PRINCIPALMENTE en características visuales:
       - Forma y silueta de la botella
       - Color del vidrio (transparente, verde oscuro, marrón oscuro, ámbar)
