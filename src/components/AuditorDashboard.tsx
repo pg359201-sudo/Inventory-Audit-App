@@ -82,7 +82,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
   const processFile = async (originalFile: File) => {
     // Compress image
     const options = {
-      maxSizeMB: 1,
+      maxSizeMB: 1.5,
       maxWidthOrHeight: 1920,
       useWebWorker: true
     };
