@@ -326,27 +326,32 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
             <button onClick={onLogout} className="text-base font-medium text-gray-500 hover:text-gray-800 transition-colors">Salir</button>
           </div>
 
-          <div className="w-full rounded-xl bg-white p-4 shadow-sm flex flex-col relative">
-            {hasMissing && (
-              <button
-                onClick={handleRescan}
-                disabled={loading}
-                title="Re-Auditar Faltantes"
-                className="absolute right-4 top-4 flex h-10 px-3 items-center justify-center gap-2 rounded-full border-2 border-[#D4AF37] bg-white text-[#B5952F] hover:bg-[#fdf8e7] transition-colors shadow-sm disabled:opacity-50"
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                <span className="text-xs font-medium">Re-Auditar faltantes</span>
-              </button>
-            )}
-            <div className="mb-3 text-center shrink-0">
-              {currentGlobalResult === 'OK' ? (
-                <CheckCircle className="mx-auto h-8 w-8 text-green-500" />
-              ) : (
-                <XCircle className="mx-auto h-8 w-8 text-red-500" />
+          <div className="w-full rounded-xl bg-white p-4 shadow-sm flex flex-col">
+            <div className="mb-3 flex flex-col items-center justify-center relative">
+              <div className="text-center">
+                {currentGlobalResult === 'OK' ? (
+                  <CheckCircle className="mx-auto h-8 w-8 text-green-500" />
+                ) : (
+                  <XCircle className="mx-auto h-8 w-8 text-red-500" />
+                )}
+                <h2 className="mt-1 text-base font-bold">
+                  Resultado: {currentGlobalResult}
+                </h2>
+              </div>
+              
+              {hasMissing && (
+                <div className="w-full mt-3 sm:mt-0 sm:absolute sm:right-0 sm:top-0 sm:w-auto flex justify-center">
+                  <button
+                    onClick={handleRescan}
+                    disabled={loading}
+                    title="Re-Auditar Faltantes"
+                    className="flex h-10 px-4 items-center justify-center gap-2 rounded-full border-2 border-[#D4AF37] bg-[#fdf8e7] text-[#B5952F] hover:bg-[#fcf3d9] transition-colors shadow-sm disabled:opacity-50 active:scale-95 w-full sm:w-auto"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                    <span className="text-sm font-medium">Re-Auditar faltantes</span>
+                  </button>
+                </div>
               )}
-              <h2 className="mt-1 text-base font-bold">
-                Resultado: {currentGlobalResult}
-              </h2>
             </div>
 
             <div className="mb-3">
