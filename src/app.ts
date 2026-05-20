@@ -638,9 +638,9 @@ Solo las botellas que están dentro de los recuadros rojos deben utilizarse como
 Todas las demás botellas visibles en la imagen forman parte del contexto de la góndola y no deben considerarse como productos objetivo.
 La imagen debe usarse únicamente como guía visual complementaria.` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
-            processLog.push({ step: 'Carga de Referencias productos en Góndola Real (referencias_visuales.jpg)', status: 'OK', details: 'Archivo referencias_visuales.jpg cargado y enviado a la IA' });
+            processLog.push({ step: 'Carga de Productos en Góndola Real (referencias_visuales.jpg)', status: 'OK', details: 'Archivo referencias_visuales.jpg cargado y enviado a la IA' });
         } else {
-             // processLog.push({ step: 'Carga de Referencias productos en Góndola Real (referencias_visuales.jpg)', status: 'Warning', details: 'No se encontró el archivo referencias_visuales.jpg' });
+             // processLog.push({ step: 'Carga de Productos en Góndola Real (referencias_visuales.jpg)', status: 'Warning', details: 'No se encontró el archivo referencias_visuales.jpg' });
         }
     } catch (e) {
         console.warn("Failed to load master reference:", e);
