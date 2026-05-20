@@ -345,7 +345,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                     onClick={handleRescan}
                     disabled={loading}
                     title="Re-Auditar Faltantes"
-                    className="flex h-10 px-4 items-center justify-center gap-2 rounded-full border-2 border-[#D4AF37] bg-[#fdf8e7] text-[#B5952F] hover:bg-[#fcf3d9] transition-colors shadow-sm disabled:opacity-50 active:scale-95 w-full sm:w-auto"
+                    className="flex h-9 px-3 text-sm sm:h-10 sm:px-4 sm:text-base items-center justify-center gap-2 rounded-full border-2 border-[#D4AF37] bg-[#fdf8e7] text-[#B5952F] hover:bg-[#fcf3d9] transition-colors shadow-sm disabled:opacity-50 active:scale-95 w-full sm:w-auto"
                   >
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                     <span className="text-sm font-medium">Re-Auditar faltantes</span>

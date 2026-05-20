@@ -476,6 +476,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       - Elementos distintivos: sellos, franjas, logos
       - Altura relativa comparada con otras botellas
       NO dependas únicamente de la lectura del texto de la etiqueta.
+      - IMPORTANTE SOBRE REFERENCIAS INDIVIDUALES: Ten en cuenta que las imágenes de referencia individuales provistas son fotografías de estudio; los colores, brillos, reflejos en el vidrio, sombras y la nitidez de la etiqueta varían significativamente en la foto de la góndola real bajo la iluminación artificial del local y la perspectiva de la cámara.
+      NO busques una coincidencia fotográfica exacta.
       
       ═══════════════════════════════
       FORMATO DE SALIDA
@@ -512,6 +514,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       - Elementos distintivos: sellos, franjas, logos
       - Altura relativa comparada con otras botellas
       NO dependas únicamente de la lectura del texto de la etiqueta.
+      - IMPORTANTE SOBRE REFERENCIAS INDIVIDUALES: Ten en cuenta que las imágenes de referencia individuales provistas son fotografías de estudio; los colores, brillos, reflejos en el vidrio, sombras y la nitidez de la etiqueta varían significativamente en la foto de la góndola real bajo la iluminación artificial del local y la perspectiva de la cámara.
+      NO busques una coincidencia fotográfica exacta.
 
       ═══════════════════════════════
       MÉTODO DE ANÁLISIS OBLIGATORIO
