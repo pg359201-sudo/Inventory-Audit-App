@@ -38,7 +38,7 @@ const PRODUCT_DESCRIPTIONS: Record<string, string> = {
   "Vat 69 200 ml": "Forma: Rectangular, plana (tipo petaca). Vidrio verde oscuro.\nCRÍTICO: Botella chata. Altura a la mitad (50%). Buscar franjas amarillas en la etiqueta (NO rojas).",
   "Sandy Mac 1L": "·\tForma: cuadrada/rectangular, ancha y robusta\n·\tAltura: más baja que botellas estándar del estante\n·\tVidrio: ámbar oscuro\n·\tEtiqueta central: grande, color crema/dorada\nSeñal más confiable: forma cuadrada + altura baja respecto al resto + etiqueta crema/dorada central.",
   "JW Blonde": "Forma: Rectangular, alta. Vidrio transparente, líquido ámbar.\nCRÍTICO: Franja diagonal AMARILLA cruzando la botella. Tapa azul. Es la única referencia con diagonal amarilla.",
-  "Smirnoff Ice": "·\tVidrio: transparente, se ve el líquido interior\n·\tTamaño: notablemente más pequeña que botellas estándar del estante\n·\tForma: cuello largo, cuerpo proporcionado (no corto)\n·\tEtiqueta: rojo suave/apagado (no rojo intenso) con blanco, ubicada en el centro del cuerpo\n·\tLíquido visible: blanco/transparente a través del vidrio\n·\tSeñal más confiable: botella pequeña transparente + etiqueta rojo suave con blanco + cuello largo.",
+  "Smirnoff Ice": "·\tBotella transparente pequeña con cuello largo\n·\tEtiqueta rojo suave (no intenso) con blanco al centro\n·\tLíquido transparente visible\nSeñal más confiable: tamaño pequeño + transparente + etiqueta rojo suave.",
   "Vodka Smirnoff 750mL": "Forma: Alta, cilíndrica, recta.\nCRÍTICO: Líquido interno transparente. Botella mucho más alta y esbelta que la versión \"Smirnoff Ice\""
 };
 
