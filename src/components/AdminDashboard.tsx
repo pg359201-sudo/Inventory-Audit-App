@@ -365,6 +365,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const errorLogs: { date: string; auditId: number; productName: string; type: 'Falso Positivo' | 'Falso Negativo'; client: string; iaState: string; auditorState: string }[] = [];
 
     history.forEach(audit => {
+      // Solo contabilizar desde el mes de mayo de 2026 en adelante
+      if (new Date(audit.fecha).getTime() < new Date('2026-05-01T00:00:00Z').getTime()) {
+        return;
+      }
+
       const details = parseDetails(audit.resultado_detallado);
       const manualAdjs = audit.manual_adjustments || [];
 
