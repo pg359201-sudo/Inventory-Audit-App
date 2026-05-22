@@ -725,7 +725,42 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                               {(() => {
                                 const displayDetails = step.details.replace(/Guía Maestra/g, 'Productos en Góndola Real (referencias_visuales.jpg)');
                                 
-                                if (displayDetails.includes('Reglas (JSON):') || displayDetails.includes('Productos en Góndola Real (referencias_visuales.jpg):') || displayDetails.includes('Refs Individuales:') || step.step === 'Análisis de referencias faltantes') {
+                                if (step.step === 'Análisis de referencias faltantes') {
+                                  const parts = displayDetails.split(' | ');
+                                  const manualAdjs = selectedAudit.manual_adjustments || [];
+                                  
+                                  const notAdjustedParts = parts.filter(p => !manualAdjs.some(adj => p.startsWith(adj + ':')));
+                                  const adjustedParts = parts.filter(p => manualAdjs.some(adj => p.startsWith(adj + ':')));
+
+                                  const renderPart = (part: string, i: number, isAdjusted: boolean = false) => {
+                                    const colonIndex = part.indexOf(':');
+                                    if (colonIndex !== -1) {
+                                      const title = part.substring(0, colonIndex + 1);
+                                      const rest = part.substring(colonIndex + 1);
+                                      return (
+                                        <div key={i} className={isAdjusted ? "text-gray-400 line-through" : ""}>
+                                          <span className={`font-bold ${isAdjusted ? "text-gray-400" : "text-gray-800"}`}>{title}</span>{rest}
+                                        </div>
+                                      );
+                                    }
+                                    return <div key={i} className={isAdjusted ? "text-gray-400 line-through" : ""}>{part}</div>;
+                                  };
+
+                                  return (
+                                    <div className="space-y-1">
+                                      {notAdjustedParts.length > 0 && notAdjustedParts.map((part, i) => renderPart(part, i, false))}
+                                      {adjustedParts.length > 0 && (
+                                        <div className="mt-4 pt-2 border-t border-gray-200">
+                                          <div className="font-bold text-gray-800 mb-1">Ajustadas por auditor:</div>
+                                          {adjustedParts.map((part, i) => renderPart(part, i + notAdjustedParts.length, true))}
+                                        </div>
+                                      )}
+                                      {parts.length === 1 && parts[0] === 'Todas las referencias requeridas fueron encontradas' && (
+                                        <div>{parts[0]}</div>
+                                      )}
+                                    </div>
+                                  );
+                                } else if (displayDetails.includes('Reglas (JSON):') || displayDetails.includes('Productos en Góndola Real (referencias_visuales.jpg):') || displayDetails.includes('Refs Individuales:')) {
                                   const parts = displayDetails.split(' | ');
                                   return (
                                     <div className="space-y-1">
