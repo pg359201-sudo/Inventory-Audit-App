@@ -36,10 +36,10 @@ const PRODUCT_DESCRIPTIONS: Record<string, string> = {
   "White Horse 200 ml": "Forma: Rectangular, plana (tipo petaca).\nCRÍTICO: Botella chata. Altura a la mitad (50%) de las referencias normales.",
   "Vat 69 1L": "Forma: Cilíndrica, alta. Vidrio verde oscuro.\nCRÍTICO: Etiqueta negra central con texto blanco \"VAT 69\" y un sello rojo en la parte superior.",
   "Vat 69 200 ml": "Forma: Rectangular, plana (tipo petaca). Vidrio verde oscuro.\nCRÍTICO: Botella chata. Altura a la mitad (50%). Buscar franjas amarillas en la etiqueta (NO rojas).",
-  "Sandy Mac 1L": "·\tForma: cuadrada/rectangular, ancha y robusta\n·\tAltura: más baja que botellas estándar del estante\n·\tVidrio: ámbar oscuro\n·\tEtiqueta central: grande, color crema/dorada\nSeñal más confiable: forma cuadrada + altura baja respecto al resto + etiqueta crema/dorada central.",
+  "Sandy Mac 1L": "·\tFormato:\u00a0Cuadrada/rectangular, ancha y robusta. Altura más baja que las botellas estándar de 1L del estante.\n·\tColor:\u00a0Vidrio ámbar muy oscuro (se ve casi negro en góndola).\n·\tEtiquetas:\u00a0Etiqueta central grande color crema/dorada (suele tener una franja inferior del mismo color).\n·\tCRÍTICO:\u00a0Priorizar la silueta cuadrada y robusta, buscando el contraste del vidrio oscuro con el bloque de color crema/dorado.",
   "JW Blonde": "Forma: Rectangular, alta. Vidrio transparente, líquido ámbar.\nCRÍTICO: Franja diagonal AMARILLA cruzando la botella. Tapa azul. Es la única referencia con diagonal amarilla.",
-  "Smirnoff Ice": "·\tBotella transparente pequeña con cuello largo\n·\tEtiqueta rojo suave (no intenso) con blanco al centro\n·\tLíquido transparente visible\nSeñal más confiable: tamaño pequeño + transparente + etiqueta rojo suave.",
-  "Vodka Smirnoff 750mL": "Forma: Alta, cilíndrica, recta.\nCRÍTICO: Líquido interno transparente. Botella mucho más alta y esbelta que la versión \"Smirnoff Ice\""
+  "Smirnoff Ice": "·\tFormato: Botella transparente pequeña, cuello largo. Altura aproximada 60% de una referencia de 1L.\n·\tEtiqueta: Centro blanco con detalles en rojo suave (no intenso).\n·\tContenido: Líquido transparente.\n·\tCRÍTICO: Priorizar el tamaño pequeño (es la botella más baja de la categoría) y el contraste de la etiqueta clara.",
+  "Vodka Smirnoff 750mL": "·\tFormato:\u00a0Alta, cilíndrica, recta y muy esbelta. Altura equiparable a las botellas grandes de 1L del estante.\n·\tDetalles Visuales:\u00a0Líquido interno transparente. Tapa roja sólida y visible.\n·\tCRÍTICO:\u00a0Priorizar la silueta alargada transparente combinada con la tapa roja y el bloque rojo superior dentro de la etiqueta blanca."
 };
 
 // --- CONFIG ---
