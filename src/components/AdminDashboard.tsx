@@ -14,9 +14,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [referenceCount, setReferenceCount] = useState<number | null>(null);
   const [showReferenceModal, setShowReferenceModal] = useState(false);
+  const [showEffectivenessModal, setShowEffectivenessModal] = useState(false);
   const [referenceList, setReferenceList] = useState<string[]>([]);
   const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
   const modalContentRef = useRef<HTMLDivElement>(null);
+
   const [isDownloading, setIsDownloading] = useState(false);
   const [base64Image, setBase64Image] = useState<string | null>(null);
 
@@ -25,7 +27,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     let missingCount = 0;
     required.forEach((d: any) => {
       const isAdjusted = manual_adjustments?.includes(d.productName);
-      const isEffectivelyPresent = d.present ? !isAdjusted : isAdjusted;
+      const originalPresent = d.manuallyAdjusted ? false : d.present;
+      const isEffectivelyPresent = originalPresent ? !isAdjusted : isAdjusted;
       if (!isEffectivelyPresent) {
         missingCount++;
       }
@@ -357,6 +360,85 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
+  const computeEffectiveness = () => {
+    const productStats: Record<string, { total: number, failures: number, falsePositives: number, falseNegatives: number }> = {};
+    const errorLogs: { date: string; auditId: number; productName: string; type: 'Falso Positivo' | 'Falso Negativo'; client: string; iaState: string; auditorState: string }[] = [];
+
+    history.forEach(audit => {
+      const details = parseDetails(audit.resultado_detallado);
+      const manualAdjs = audit.manual_adjustments || [];
+
+      details.forEach((item: any) => {
+        if (item.reason && (item.reason.includes('No requerido') || item.reason === 'AI did not return data for this product')) {
+            return;
+        }
+
+        const pName = item.productName;
+        if (!productStats[pName]) {
+            productStats[pName] = { total: 0, failures: 0, falsePositives: 0, falseNegatives: 0 };
+        }
+        productStats[pName].total++;
+
+        let iaPresent = item.present;
+        let auditorPresent = item.present;
+        let isAdjusted = false;
+
+        if (item.manuallyRejected) {
+            iaPresent = true;
+            auditorPresent = false;
+            isAdjusted = true;
+        } else if (manualAdjs.includes(pName)) {
+            iaPresent = item.present;
+            auditorPresent = !item.present;
+            isAdjusted = true;
+        }
+
+        if (isAdjusted) {
+            productStats[pName].failures++;
+            const type = (iaPresent === true && auditorPresent === false) ? 'Falso Positivo' : 'Falso Negativo';
+            const iaStateStr = iaPresent ? 'Sí está' : 'No está';
+            const auditorStateStr = auditorPresent ? 'Sí está' : 'No está';
+            
+            if (type === 'Falso Positivo') {
+                productStats[pName].falsePositives++;
+            } else {
+                productStats[pName].falseNegatives++;
+            }
+            
+            errorLogs.push({ 
+                date: audit.fecha, 
+                auditId: audit.id, 
+                productName: pName, 
+                type,
+                client: audit.cliente,
+                iaState: iaStateStr,
+                auditorState: auditorStateStr
+            });
+        }
+      });
+    });
+
+    // Sort logs by date descending
+    errorLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Compute top failures
+    const topProducts = Object.keys(productStats)
+        .map(k => ({
+            name: k,
+            total: productStats[k].total,
+            failures: productStats[k].failures,
+            fp: productStats[k].falsePositives,
+            fn: productStats[k].falseNegatives,
+            effectiveness: productStats[k].total > 0 ? ((productStats[k].total - productStats[k].failures) / productStats[k].total * 100).toFixed(1) : '100.0'
+        }))
+        .filter(p => p.failures > 0)
+        .sort((a, b) => b.failures - a.failures);
+
+    return { productStats, errorLogs, topProducts };
+  };
+
+  const effectivenessData = showEffectivenessModal ? computeEffectiveness() : null;
+
   const parseProcessLog = (jsonLog?: string): AuditProcessStep[] => {
     if (!jsonLog) return [];
     try {
@@ -437,6 +519,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <span className="hidden md:inline">Eliminar ({selectedIds.length})</span>
                   </button>
                 )}
+                <button
+                  onClick={() => setShowEffectivenessModal(true)}
+                  className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs text-white hover:bg-indigo-700"
+                  title="Log de Efectividad"
+                >
+                  <Activity size={14} />
+                  <span className="hidden md:inline">Log Efectividad</span>
+                </button>
                 <button
                   onClick={handleExport}
                   className="flex items-center gap-1.5 rounded-md bg-gray-900 px-3 py-1.5 text-xs text-white hover:bg-gray-800"
@@ -729,34 +819,45 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                   const parts = displayDetails.split(' | ');
                                   const manualAdjs = selectedAudit.manual_adjustments || [];
                                   
-                                  const notAdjustedParts = parts.filter(p => !manualAdjs.some(adj => p.startsWith(adj + ':')));
-                                  const adjustedParts = parts.filter(p => manualAdjs.some(adj => p.startsWith(adj + ':')));
+                                  const missingPartsAI = parts.filter(p => p !== 'Todas las referencias requeridas fueron encontradas');
+                                  const notAdjustedParts = missingPartsAI.filter(p => !manualAdjs.some(adj => p.startsWith(adj + ':')));
 
-                                  const renderPart = (part: string, i: number, isAdjusted: boolean = false) => {
+                                  const renderNotAdjustedPart = (part: string, i: number) => {
                                     const colonIndex = part.indexOf(':');
                                     if (colonIndex !== -1) {
                                       const title = part.substring(0, colonIndex + 1);
                                       const rest = part.substring(colonIndex + 1);
                                       return (
-                                        <div key={i} className={isAdjusted ? "text-gray-400 line-through" : ""}>
-                                          <span className={`font-bold ${isAdjusted ? "text-gray-400" : "text-gray-800"}`}>{title}</span>{rest}
+                                        <div key={i}>
+                                          <span className="font-bold text-gray-800">{title}</span>{rest}
                                         </div>
                                       );
                                     }
-                                    return <div key={i} className={isAdjusted ? "text-gray-400 line-through" : ""}>{part}</div>;
+                                    return <div key={i}>{part}</div>;
                                   };
 
                                   return (
                                     <div className="space-y-1">
-                                      {notAdjustedParts.length > 0 && notAdjustedParts.map((part, i) => renderPart(part, i, false))}
-                                      {adjustedParts.length > 0 && (
-                                        <div className="mt-4 pt-2 border-t border-gray-200">
+                                      {notAdjustedParts.length > 0 && notAdjustedParts.map((part, i) => renderNotAdjustedPart(part, i))}
+                                      
+                                      {manualAdjs.length > 0 && (
+                                        <div className={`${notAdjustedParts.length > 0 ? "mt-4 pt-2 border-t border-gray-200" : ""}`}>
                                           <div className="font-bold text-gray-800 mb-1">Ajustadas por auditor:</div>
-                                          {adjustedParts.map((part, i) => renderPart(part, i + notAdjustedParts.length, true))}
+                                          {manualAdjs.map((adj, i) => {
+                                             const aiSaidMissing = missingPartsAI.some(p => p.startsWith(adj + ':'));
+                                             const textState = aiSaidMissing ? "si está" : "no está";
+                                             
+                                             return (
+                                               <div key={i} className="text-gray-800">
+                                                 <span className="font-bold">{adj}:</span> {textState}
+                                               </div>
+                                             );
+                                          })}
                                         </div>
                                       )}
-                                      {parts.length === 1 && parts[0] === 'Todas las referencias requeridas fueron encontradas' && (
-                                        <div>{parts[0]}</div>
+                                      
+                                      {missingPartsAI.length === 0 && manualAdjs.length === 0 && (
+                                        <div>Todas las referencias requeridas fueron encontradas</div>
                                       )}
                                     </div>
                                   );
@@ -873,7 +974,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           })
                           .map((item: any, idx: number) => {
                             const isAdjusted = selectedAudit.manual_adjustments?.includes(item.productName);
-                            const isEffectivelyPresent = item.present ? !isAdjusted : isAdjusted;
+                            const originalPresent = item.manuallyAdjusted ? false : item.present;
+                            const isEffectivelyPresent = originalPresent ? !isAdjusted : isAdjusted;
                             
                             return (
                               <tr 
@@ -947,6 +1049,100 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <button
                 onClick={() => setSelectedAudit(null)}
                 className="w-16 md:w-20 rounded-md bg-white px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 border border-gray-300 text-center"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Effectiveness Modal */}
+      {showEffectivenessModal && effectivenessData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col my-8">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Activity size={20} className="text-indigo-600" />
+                Log de Efectividad de IA
+              </h3>
+              <button 
+                onClick={() => setShowEffectivenessModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-4 border-b pb-2">Top Productos con Fallas</h4>
+                  {effectivenessData.topProducts.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No se registran fallas.</p>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-100 text-gray-600">
+                        <tr>
+                          <th className="py-2 px-3 text-left">Producto</th>
+                          <th className="py-2 px-3 text-center">Fallas</th>
+                          <th className="py-2 px-3 text-right">Efectividad</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {effectivenessData.topProducts.map((p, i) => (
+                          <tr key={i} className="hover:bg-gray-50">
+                            <td className="py-2 px-3 font-medium text-gray-800">{p.name}</td>
+                            <td className="py-2 px-3 text-center text-red-600 font-bold">{p.failures}</td>
+                            <td className="py-2 px-3 text-right">
+                              <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                parseFloat(p.effectiveness) >= 90 ? 'bg-green-100 text-green-800' :
+                                parseFloat(p.effectiveness) >= 75 ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {p.effectiveness}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-4 border-b pb-2">Registro Detallado</h4>
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                    {effectivenessData.errorLogs.length === 0 ? (
+                      <p className="text-gray-500 text-sm">No hay registros de fallas.</p>
+                    ) : (
+                      effectivenessData.errorLogs.map((log, i) => (
+                        <div key={i} className="bg-white border rounded p-3 text-sm flex flex-col gap-1 shadow-sm">
+                          <div className="flex justify-between items-start">
+                            <span className="font-bold text-gray-800">{log.productName}</span>
+                            <span className="text-xs text-gray-500">{new Date(log.date).toLocaleDateString()} {new Date(log.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          </div>
+                          <div className="text-xs text-gray-600">Cliente: {log.client} (ID: {log.auditId})</div>
+                          <div className={`text-xs font-semibold mt-1 p-1 rounded inline-block w-fit ${
+                            log.type === 'Falso Positivo' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {log.type}
+                          </div>
+                          <div className="text-xs grid grid-cols-2 mt-1 bg-gray-50 p-1.5 rounded">
+                            <div><span className="text-gray-500">IA dijo:</span> <span className={log.iaState === 'Sí está' ? 'text-green-600' : 'text-red-600'}>{log.iaState}</span></div>
+                            <div><span className="text-gray-500">Realidad:</span> <span className={log.auditorState === 'Sí está' ? 'text-green-600' : 'text-red-600'}>{log.auditorState}</span></div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t bg-gray-50 rounded-b-xl flex justify-end shrink-0">
+              <button
+                onClick={() => setShowEffectivenessModal(false)}
+                className="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm border border-gray-300 hover:bg-gray-50"
               >
                 Cerrar
               </button>

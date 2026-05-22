@@ -36,7 +36,7 @@ const PRODUCT_DESCRIPTIONS: Record<string, string> = {
   "White Horse 200 ml": "Forma: Rectangular, plana (tipo petaca).\nCRÍTICO: Botella chata. Altura a la mitad (50%) de las referencias normales.",
   "Vat 69 1L": "Forma: Cilíndrica, alta. Vidrio verde oscuro.\nCRÍTICO: Etiqueta negra central con texto blanco \"VAT 69\" y un sello rojo en la parte superior.",
   "Vat 69 200 ml": "Forma: Rectangular, plana (tipo petaca). Vidrio verde oscuro.\nCRÍTICO: Botella chata. Altura a la mitad (50%). Buscar franjas amarillas en la etiqueta (NO rojas).",
-  "Sandy Mac 1L": "Forma: Rectangular, ancha. Vidrio muy oscuro (casi negro).\nCRÍTICO: Franja clara (beige/amarilla) ancha en la base inferior. El contraste de la base clara con el vidrio oscuro es el punto de detección más confiable.",
+  "Sandy Mac 1L": "·\tForma: cuadrada/rectangular, ancha y robusta\n·\tVidrio: ámbar oscuro\n·\tEtiqueta central: grande, color crema/dorada\n·\tTapa: dorada/bronce (mismo tono que la etiqueta)\nSeñal más confiable: etiqueta crema/dorada grande en el centro + forma cuadrada + vidrio ámbar oscuro.",
   "JW Blonde": "Forma: Rectangular, alta. Vidrio transparente, líquido ámbar.\nCRÍTICO: Franja diagonal AMARILLA cruzando la botella. Tapa azul. Es la única referencia con diagonal amarilla.",
   "Smirnoff Ice": "Forma: Tipo botella de cerveza pequeña (cuello largo, cuerpo corto).\nPunto visual clave: Altura aproximada 60% de una botella estándar de 1L.\nCRÍTICO: Líquido interno blanco turbio. Etiqueta blanca con bloque central rojo. NO confundir con el Vodka Smirnoff 750ml (que es botella alta y recta).",
   "Vodka Smirnoff 750mL": "Forma: Alta, cilíndrica, recta.\nCRÍTICO: Líquido interno transparente. Botella mucho más alta y esbelta que la versión \"Smirnoff Ice\""
