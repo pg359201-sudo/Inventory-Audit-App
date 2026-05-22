@@ -521,7 +521,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 )}
                 <button
                   onClick={() => setShowEffectivenessModal(true)}
-                  className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs text-white hover:bg-indigo-700"
+                  className="flex items-center gap-1.5 rounded-md bg-gray-900 px-3 py-1.5 text-xs text-white hover:bg-gray-800"
                   title="Log de Efectividad"
                 >
                   <Activity size={14} />
@@ -1063,7 +1063,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col my-8">
             <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Activity size={20} className="text-indigo-600" />
+                <Activity size={20} className="text-gray-900" />
                 Log de Efectividad de IA
               </h3>
               <button 
