@@ -271,7 +271,14 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     formData.append('clienteId', selectedClient);
     formData.append('isRescan', 'true');
     formData.append('missingProducts', missingProducts.join(','));
-    formData.append('previousDetailedResult', JSON.stringify(result.detailedResult));
+    
+    // Merge manual adjustments into previous results before sending
+    const mergedPreviousResult = result.detailedResult.map(p => ({
+      ...p,
+      present: p.present || !!manualAdjustments[p.productName],
+      reason: p.present ? p.reason : (manualAdjustments[p.productName] ? 'Ajustado manualmente por el auditor' : p.reason)
+    }));
+    formData.append('previousDetailedResult', JSON.stringify(mergedPreviousResult));
     
     const client = clients.find(c => c['Codigo FEMSA'] === selectedClient);
     formData.append('clienteNombre', client ? client['Nombre Store'] : '');

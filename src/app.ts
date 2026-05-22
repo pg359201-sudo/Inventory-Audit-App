@@ -38,7 +38,7 @@ const PRODUCT_DESCRIPTIONS: Record<string, string> = {
   "Vat 69 200 ml": "Forma: Rectangular, plana (tipo petaca). Vidrio verde oscuro.\nCRÍTICO: Botella chata. Altura a la mitad (50%). Buscar franjas amarillas en la etiqueta (NO rojas).",
   "Sandy Mac 1L": "Forma: Rectangular, ancha. Vidrio muy oscuro (casi negro).\nCRÍTICO: Franja clara (beige/amarilla) ancha en la base inferior. El contraste de la base clara con el vidrio oscuro es el punto de detección más confiable.",
   "JW Blonde": "Forma: Rectangular, alta. Vidrio transparente, líquido ámbar.\nCRÍTICO: Franja diagonal AMARILLA cruzando la botella. Tapa azul. Es la única referencia con diagonal amarilla.",
-  "Smirnoff Ice": "Forma: Tipo botella de cerveza pequeña (cuello largo, cuerpo corto).\nCRÍTICO: Líquido interno blanco turbio. Etiqueta blanca con bloque central rojo.",
+  "Smirnoff Ice": "Forma: Tipo botella de cerveza pequeña (cuello largo, cuerpo corto).\nPunto visual clave: Altura aproximada 60% de una botella estándar de 1L.\nCRÍTICO: Líquido interno blanco turbio. Etiqueta blanca con bloque central rojo. NO confundir con el Vodka Smirnoff 750ml (que es botella alta y recta).",
   "Vodka Smirnoff 750mL": "Forma: Alta, cilíndrica, recta.\nCRÍTICO: Líquido interno transparente. Botella mucho más alta y esbelta que la versión \"Smirnoff Ice\""
 };
 
@@ -737,18 +737,32 @@ La imagen debe usarse únicamente como guía visual complementaria.` });
     const detailedResult: any[] = [];
     const missingReasons: string[] = [];
 
+    let prevResultsMap: Record<string, any> = {};
+    if (isRescanObj && previousDetailedResult) {
+      try {
+        const prevArr = JSON.parse(previousDetailedResult);
+        if (Array.isArray(prevArr)) {
+          prevArr.forEach((pr: any) => {
+            prevResultsMap[pr.productName] = pr;
+          });
+        }
+      } catch (e) {
+        console.error("Failed to parse previousDetailedResult", e);
+      }
+    }
+
     productColumns.forEach(prod => {
       const isRequired = clientRule[prod] === 'Si';
       
-      // Handle new object structure or fallback to old string
-      const resultData = analysisResult[prod];
-      
       let isPresent = false;
       let reason = 'No reason provided';
+      
+      const resultData = analysisResult[prod];
 
       if (!isRequired) {
           reason = 'No auditado (No requerido por el cliente)';
       } else if (resultData) {
+        // AI evaluated this product (either it was missing and we rescanned, or initial scan)
         if (typeof resultData === 'object') {
           isPresent = resultData.status === 'Present';
           reason = resultData.reason || 'No reason text in object';
@@ -756,6 +770,10 @@ La imagen debe usarse únicamente como guía visual complementaria.` });
           isPresent = resultData === 'Present';
           reason = 'AI returned legacy string format'; 
         }
+      } else if (isRescanObj && prevResultsMap[prod]) {
+        // AI didn't evaluate it because it wasn't requested in rescan, keep previous result!
+        isPresent = prevResultsMap[prod].present;
+        reason = prevResultsMap[prod].reason || 'Mantenido de auditoría anterior';
       } else {
          reason = 'AI did not return data for this product';
       }
