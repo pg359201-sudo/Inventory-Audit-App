@@ -902,7 +902,7 @@ app.patch('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
 
 app.post('/api/save-audit', express.json(), async (req, res) => {
   try {
-    const { usuario, cliente, fecha, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments } = req.body;
+    const { usuario, cliente, fecha, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments, observaciones } = req.body;
     
     await saveToDb({
       usuario,
@@ -912,7 +912,8 @@ app.post('/api/save-audit', express.json(), async (req, res) => {
       resultado_global,
       url_imagen,
       proceso_auditoria: typeof proceso_auditoria === 'string' ? proceso_auditoria : JSON.stringify(proceso_auditoria),
-      manual_adjustments
+      manual_adjustments,
+      observaciones
     });
     
     res.json({ success: true });

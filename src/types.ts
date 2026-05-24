@@ -35,6 +35,7 @@ export interface AuditResult {
   proceso_auditoria?: string; // JSON string of AuditProcessStep[]
   source?: 'db' | 'memory';
   manual_adjustments?: string[]; // Array of product names manually adjusted
+  observaciones?: string;
 }
 
 export interface ProductStatus {

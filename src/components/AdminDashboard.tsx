@@ -993,6 +993,19 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       />
                     </div>
                   </div>
+
+                  {selectedAudit.observaciones && (
+                    <div>
+                      <h3 className="mb-2 font-semibold text-gray-900 border-b pb-1">
+                        Observaciones Totales | ¿Estado OK?
+                      </h3>
+                      <div className="rounded-lg bg-yellow-50 p-3 mt-2 border border-yellow-200">
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                          {selectedAudit.observaciones}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Right Column: Product List */}

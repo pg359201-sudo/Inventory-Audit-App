@@ -25,6 +25,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
   } | null>(null);
   const [manualAdjustments, setManualAdjustments] = useState<Record<string, boolean>>({});
   const [manualRejections, setManualRejections] = useState<Record<string, boolean>>({});
+  const [observaciones, setObservaciones] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -148,6 +149,7 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
     setSelectedClient('');
     setManualAdjustments({});
     setManualRejections({});
+    setObservaciones('');
     setIsCropping(false);
     setCrop(undefined);
   };
@@ -227,7 +229,8 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
         resultado_global: finalGlobalResult,
         url_imagen: result.fileUrl,
         proceso_auditoria: result.processLog || [],
-        manual_adjustments: Object.keys(manualAdjustments).filter(k => manualAdjustments[k])
+        manual_adjustments: Object.keys(manualAdjustments).filter(k => manualAdjustments[k]),
+        observaciones
       };
 
       const res = await fetch('/api/save-audit', {
@@ -447,7 +450,18 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
               </div>
             </div>
 
-            <div className="flex flex-row gap-3 shrink-0 justify-center mt-2">
+            <div className="mt-4 border-t pt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Revisión de contexto importante / Estado OK?</label>
+              <textarea
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+                placeholder="Ingresar observaciones o justificaciones importantes..."
+                className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-3 border"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex flex-row gap-3 shrink-0 justify-center mt-4">
               <button
                 onClick={handleSaveAndExit}
                 disabled={loading}
