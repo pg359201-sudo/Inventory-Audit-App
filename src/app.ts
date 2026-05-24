@@ -630,13 +630,12 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         }
 
         if (masterRefData) {
-            parts.push({ text: `Se incluye una IMAGEN DE REFERENCIA de una góndola.
+            parts.push({ text: `GUÍA MAESTRA DE REFERENCIAS EN GÓNDOLA (PARTE 1 DE 2).
 En esta imagen:
-Las flechas rojas indican los productos objetivo.
-El recuadro rojo delimita exactamente la botella que corresponde a cada producto.
-Solo las botellas que están dentro de los recuadros rojos deben utilizarse como referencia visual.
-Todas las demás botellas visibles en la imagen forman parte del contexto de la góndola y no deben considerarse como productos objetivo.
-La imagen debe usarse únicamente como guía visual complementaria.` });
+Las flechas rojas y los nombres indican los productos objetivo.
+El recuadro rojo delimita exactamente la botella que corresponde.
+Solo las botellas que están dentro de los recuadros rojos deben utilizarse como referencia visual primaria ("la verdad absoluta") del producto en entorno de supermercado real.
+Ignora el resto de productos no remarcados en esta foto.` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
             processLog.push({ step: 'Carga de Productos en Góndola Real (referencias_visuales.jpg)', status: 'OK', details: 'Archivo referencias_visuales.jpg cargado y enviado a la IA' });
         } else {
@@ -646,7 +645,46 @@ La imagen debe usarse únicamente como guía visual complementaria.` });
         console.warn("Failed to load master reference:", e);
     }
 
-    // Add references (Try to load from Blob or Local)
+    // NEW: Load Master Reference Image 2
+    try {
+        const masterRef2Name = 'referencias_visuales2.jpg';
+        let masterRef2Data: string | null = null;
+        
+        // Try Blob
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+             try {
+                const listResult = await list({ prefix: 'referencias/' });
+                const blob = listResult.blobs.find(b => b.pathname.includes(masterRef2Name) || b.pathname.includes('referencias_visuales2.jpeg'));
+                if (blob) {
+                    const response = await fetch(blob.url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    masterRef2Data = Buffer.from(arrayBuffer).toString('base64');
+                }
+             } catch (e) {
+                 console.warn("Failed to list blobs for master ref 2:", e);
+             }
+        }
+
+        // Try Local
+        if (!masterRef2Data) {
+             let refPath = getReferencePath(masterRef2Name);
+             if (!fs.existsSync(refPath)) refPath = getReferencePath('referencias_visuales2.jpeg');
+             if (fs.existsSync(refPath)) {
+                masterRef2Data = fs.readFileSync(refPath).toString('base64');
+             }
+        }
+
+        if (masterRef2Data) {
+            parts.push({ text: `GUÍA MAESTRA DE REFERENCIAS EN GÓNDOLA (PARTE 2 DE 2).
+Esta imagen complementa la anterior bajo las MISMAS REGLAS (flechas, recuadros rojos).
+Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ven realmente los productos en la góndola, con la iluminación e imperfecciones reales del estante. PRIORIZA estas dos referencias visuales (los recuadros rojos) por sobre cualquier imagen individual de estudio (fondo blanco) que se provea más adelante.` });
+            parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRef2Data } });
+            processLog.push({ step: 'Carga de Productos en Góndola Real 2 (referencias_visuales2)', status: 'OK', details: 'Archivo referencias_visuales2 cargado y enviado a la IA' });
+        }
+    } catch (e) {
+        console.warn("Failed to load master reference 2:", e);
+    }
+
     let referenceBlobs: any[] = [];
     if (process.env.BLOB_READ_WRITE_TOKEN) {
       try {
@@ -691,7 +729,7 @@ La imagen debe usarse únicamente como guía visual complementaria.` });
         }
 
         if (refData) {
-          parts.push({ text: `Reference image for ${prod}:` });
+          parts.push({ text: `Imagen de estudio (fondo blanco) para ${prod}. ATENCIÓN: Esta es una imagen publicitaria. Usar solo para reconocer detalles de la etiqueta o el logo. Para determinar la forma, las proporciones reales y la iluminación, PRIORIZAR las dos imágenes de 'gíndolas reales' enviadas anteriormente, ya que así es como se ven realmente los productos en la góndola.` });
           parts.push({ inlineData: { mimeType: 'image/jpeg', data: refData } });
           loadedRefsCount++;
         } else {
