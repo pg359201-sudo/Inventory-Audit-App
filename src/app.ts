@@ -91,7 +91,8 @@ async function saveHistory(history: AuditResult[]) {
         await put('history.json', data, {
           access: 'public',
           contentType: 'application/json',
-          addRandomSuffix: false
+          addRandomSuffix: false,
+          allowOverwrite: true
         });
       } catch (e) {
         console.error('Error saving history to Blob:', e);
@@ -921,6 +922,11 @@ app.get('/api/history', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch history' });
   }
 });
+
+app.get('/api/check-env', (req, res) => {
+  res.json({ BLOB_TOKEN: !!process.env.BLOB_READ_WRITE_TOKEN });
+});
+
 
 app.post('/api/history/delete', express.json(), async (req, res) => {
   try {
