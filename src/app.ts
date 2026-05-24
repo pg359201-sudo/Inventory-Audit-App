@@ -426,8 +426,6 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     if (!file) return res.status(400).json({ error: 'No photo uploaded' });
 
     // Step 1: Check Client Rules
-    processLog.push({ step: 'Revisión de tabla de referencias por cliente', status: 'OK', details: `Cliente ID: ${clienteId}` });
-    
     // Load Client Rules (Embedded First)
     const records = parseCSV(EMBEDDED_CSV_DATA);
     const clientRule = records.find((r: any) => r['Codigo FEMSA'] === clienteId);
@@ -638,9 +636,8 @@ El recuadro rojo delimita exactamente la botella que corresponde.
 Solo las botellas que están dentro de los recuadros rojos deben utilizarse como referencia visual primaria ("la verdad absoluta") del producto en entorno de supermercado real.
 Ignora el resto de productos no remarcados en esta foto.` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
-            processLog.push({ step: 'Carga de Productos en Góndola Real (referencias_visuales.jpg)', status: 'OK', details: 'Archivo referencias_visuales.jpg cargado y enviado a la IA' });
         } else {
-             // processLog.push({ step: 'Carga de Productos en Góndola Real (referencias_visuales.jpg)', status: 'Warning', details: 'No se encontró el archivo referencias_visuales.jpg' });
+             // not found
         }
     } catch (e) {
         console.warn("Failed to load master reference:", e);
@@ -680,7 +677,6 @@ Ignora el resto de productos no remarcados en esta foto.` });
 Esta imagen complementa la anterior bajo las MISMAS REGLAS (flechas, recuadros rojos).
 Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ven realmente los productos en la góndola, con la iluminación e imperfecciones reales del estante. PRIORIZA estas dos referencias visuales (los recuadros rojos) por sobre cualquier imagen individual de estudio (fondo blanco) que se provea más adelante.` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRef2Data } });
-            processLog.push({ step: 'Carga de Productos en Góndola Real 2 (referencias_visuales2)', status: 'OK', details: 'Archivo referencias_visuales2 cargado y enviado a la IA' });
         }
     } catch (e) {
         console.warn("Failed to load master reference 2:", e);
@@ -697,9 +693,13 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
     }
 
     let loadedRefsCount = 0;
+    const loadedRefsList: string[] = [];
+    let injectedDescriptionsCount = 0;
+
     for (const prod of requiredProducts) {
       // 1. Add Visual Description if available
       if (PRODUCT_DESCRIPTIONS[prod]) {
+        injectedDescriptionsCount++;
         parts.push({ text: `Visual description for ${prod}: ${PRODUCT_DESCRIPTIONS[prod]}` });
       }
       
@@ -733,6 +733,7 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
           parts.push({ text: `Imagen de estudio (fondo blanco) para ${prod}. ATENCIÓN: Esta es una imagen publicitaria. Usar solo para reconocer detalles de la etiqueta o el logo. Para determinar la forma, las proporciones reales y la iluminación, PRIORIZAR las dos imágenes de 'gíndolas reales' enviadas anteriormente, ya que así es como se ven realmente los productos en la góndola.` });
           parts.push({ inlineData: { mimeType: 'image/jpeg', data: refData } });
           loadedRefsCount++;
+          loadedRefsList.push(prod);
         } else {
              missingRefs++;
         }
@@ -742,14 +743,19 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
       }
     }
     
-    processLog.push({ 
-        step: 'Análisis de fotos de referencias', 
-        status: missingRefs === 0 ? 'OK' : 'Warning', 
-        details: `Cargadas: ${loadedRefsCount}, Faltantes: ${missingRefs}` 
-    });
+    // Add the consolidated step log
+    const masterActivaInfo = (typeof masterRefData !== 'undefined' && masterRefData) 
+      ? 'ACTIVA (Solo Diccionario)'
+      : 'NO ENCONTRADA';
 
-    // Step 3: Context Check
-    processLog.push({ step: 'Revisión de contexto importante', status: 'OK', details: 'Prompt y descripciones visuales inyectadas correctamente' });
+    processLog.push({ 
+        step: 'Carga de Referencias y Contexto IA', 
+        status: missingRefs === 0 ? 'OK' : 'Warning', 
+        details: `Reglas (JSON): Buscar ${requiredProducts.length} productos (${requiredProducts.join(', ')})
+Productos en Góndola Real (referencias_visuales.jpg): ${masterActivaInfo}
+Refs Individuales (Imágenes): ${loadedRefsCount} cargadas (${loadedRefsList.join(', ')})
+Descripciones Visuales (Texto): ${injectedDescriptionsCount} inyectadas`
+    });
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",

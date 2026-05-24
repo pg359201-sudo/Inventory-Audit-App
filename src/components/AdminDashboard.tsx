@@ -816,7 +816,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             Estado: {step.status}
                           </p>
                           {step.details && (
-                            <div className="mt-1 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
+                            <div className="mt-1 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 whitespace-pre-wrap">
                               {(() => {
                                 const displayDetails = step.details.replace(/Guía Maestra/g, 'Productos en Góndola Real (referencias_visuales.jpg)');
                                 
@@ -906,7 +906,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                     </div>
                                   );
                                 } else if (displayDetails.includes('Reglas (JSON):') || displayDetails.includes('Productos en Góndola Real (referencias_visuales.jpg):') || displayDetails.includes('Refs Individuales:')) {
-                                  const parts = displayDetails.split(' | ');
+                                  // Split by newline or pipe for backwards compatibility
+                                  const parts = displayDetails.split(/\n| \| /);
                                   return (
                                     <div className="space-y-1">
                                       {parts.map((part, i) => {
