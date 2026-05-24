@@ -444,10 +444,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const effectivenessData = showEffectivenessModal ? computeEffectiveness() : null;
 
-  const parseProcessLog = (jsonLog?: string): AuditProcessStep[] => {
+  const parseProcessLog = (jsonLog?: string | any[]): AuditProcessStep[] => {
     if (!jsonLog) return [];
+    if (Array.isArray(jsonLog)) return jsonLog;
     try {
-      return JSON.parse(jsonLog);
+      return JSON.parse(jsonLog as string);
     } catch (e) {
       return [];
     }
