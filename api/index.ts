@@ -3,6 +3,9 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
+import { put, list, del } from '@vercel/blob';
+import { ProductStatus } from './types';
+// import { fileURLToPath } from 'url';
 
 // --- TYPES ---
 interface ClientRule {
@@ -20,197 +23,106 @@ interface AuditResult {
   resultado_global: string;
   url_imagen: string;
   proceso_auditoria?: string;
-  source?: 'db' | 'memory';
+  manual_adjustments?: string[];
 }
+
+// --- PRODUCT DESCRIPTIONS ---
+const PRODUCT_DESCRIPTIONS: Record<string, string> = {
+  "Gin Gordons": "Forma: Botella transparente, alta (referencia 1L).\nCRÍTICO: Bloque blanco muy visible en el centro del cuerpo + tapa violeta. No intentar leer texto.",
+  "Gin Tanqueray": "Forma: Silueta tipo coctelera (hombros redondeados).\nCRÍTICO: Vidrio verde oscuro. Franja inferior plateada bajo la etiqueta principal.",
+  "Gin Sevilla": "Forma: Silueta tipo coctelera.\nCRÍTICO: Vidrio ámbar/naranja. Franja inferior naranja bajo la etiqueta principal.",
+  "Gin Royale": "Forma: Silueta tipo coctelera.\nCRÍTICO: Vidrio violeta oscuro. Franja inferior verde claro bajo la etiqueta principal.",
+  "White Horse 1L": "Forma: Cilíndrica, alta. Vidrio transparente, líquido ámbar.\nCRÍTICO: Etiqueta amarilla gigante que domina casi todo el frente de la botella. NO confundir con formato petaca.",
+  "White Horse 200 ml": "Forma: Rectangular, plana (tipo petaca).\nCRÍTICO: Botella chata. Altura a la mitad (50%) de las referencias normales.",
+  "Vat 69 1L": "Forma: Cilíndrica, alta. Vidrio verde oscuro.\nCRÍTICO: Etiqueta negra central con texto blanco \"VAT 69\" y un sello rojo en la parte superior.",
+  "Vat 69 200 ml": "Forma: Rectangular, plana (tipo petaca). Vidrio verde oscuro.\nCRÍTICO: Botella chata. Altura a la mitad (50%). Buscar franjas amarillas en la etiqueta (NO rojas).",
+  "Sandy Mac 1L": "·\tFormato:\u00a0Cuadrada/rectangular, ancha y robusta. Altura más baja que las botellas estándar de 1L del estante.\n·\tColor:\u00a0Vidrio ámbar muy oscuro (se ve casi negro en góndola).\n·\tEtiquetas:\u00a0Etiqueta central grande color crema/dorada (suele tener una franja inferior del mismo color).\n·\tCRÍTICO:\u00a0Priorizar la silueta cuadrada y robusta, buscando el contraste del vidrio oscuro con el bloque de color crema/dorado.",
+  "JW Blonde": "Forma: Rectangular, alta. Vidrio transparente, líquido ámbar.\nCRÍTICO: Franja diagonal AMARILLA cruzando la botella. Tapa azul. Es la única referencia con diagonal amarilla.",
+  "Smirnoff Ice": "·\tFormato: Botella transparente pequeña, cuello largo. Altura aproximada 60% de una referencia de 1L.\n·\tEtiqueta: Centro blanco con detalles en rojo suave (no intenso).\n·\tContenido: Líquido transparente.\n·\tCRÍTICO: Priorizar el tamaño pequeño (es la botella más baja de la categoría) y el contraste de la etiqueta clara.",
+  "Vodka Smirnoff 750mL": "·\tFormato:\u00a0Alta, cilíndrica, recta y muy esbelta. Altura equiparable a las botellas grandes de 1L del estante.\n·\tDetalles Visuales:\u00a0Líquido interno transparente. Tapa roja sólida y visible.\n·\tCRÍTICO:\u00a0Priorizar la silueta alargada transparente combinada con la tapa roja y el bloque rojo superior dentro de la etiqueta blanca."
+};
 
 // --- CONFIG ---
 const app = express();
 const isVercel = process.env.VERCEL === '1';
 
-import { sql } from '@vercel/postgres';
-
-// --- PRODUCT DESCRIPTIONS ---
-const PRODUCT_DESCRIPTIONS: Record<string, string> = {
-  "Gin Gordons": "Botella de vidrio transparente. Altura equivalente a referencias de 1L (JW Black, JW Red, Vat 69). Etiqueta principal con fondo blanco, destacando la palabra 'GORDON'S' en letras mayúsculas rojas grandes; en su límite inferior presenta una franja gruesa amarilla seguida de una línea delgada violeta. Tapa color violeta con finas franjas amarilla en parte superior e inferior.\nCRÍTICO: botella transparente alta con etiqueta blanca claramente visible en el centro del cuerpo.",
-  "Gin Tanqueray": "Botella color verde oscuro con silueta inspirada en una coctelera (hombros redondeados pronunciados). Tapa superior de color plateada. En la parte superior del cuerpo destaca un distintivo sello redondo rojo tipo lacre. La etiqueta principal es un bloque central predominantemente blanco (aunque puede perder visibilidad en góndola), y justo debajo tiene una franja horizontal gruesa y muy visible de color plateada. Altura levemente inferior a botellas “JW Red 1L” o “Vat 69 1L”.\nCRÍTICO: el color verde oscuro de la botella es el principal diferenciador frente a otras variantes Tanqueray.\nCRÍTICO adicional: silueta tipo coctelera con hombros redondeados pronunciados.",
-  "Gin Sevilla": "Botella color ámbar/naranja claro con silueta inspirada en una coctelera (hombros redondeados pronunciados). Tapa superior de color rojo. En la parte superior del cuerpo destaca un distintivo sello redondo rojo tipo lacre. La etiqueta principal es un bloque central blanco con bordes claros (verdes/amarillos), y justo debajo tiene una franja horizontal gruesa y muy visible de color naranja. Altura levemente inferior a botellas “JW Red 1L” o “Vat 69 1L”.\nCRÍTICO: el color ámbar/naranja de la botella es el principal diferenciador frente a otras variantes Tanqueray.\nCRÍTICO adicional: silueta tipo coctelera con hombros redondeados pronunciados.",
-  "Gin Royale": "Botella violeta oscuro con silueta tipo coctelera (hombros redondeados pronunciados). Tapa superior de color violeta. En la parte superior del cuerpo destaca un distintivo sello redondo rojo tipo lacre. La etiqueta principal es un bloque central blanco con bordes oscuros, y justo debajo tiene una franja horizontal gruesa y muy visible de color verde claro. Altura levemente inferior a botellas “JW Red 1L” o “Vat 69 1L”.\nCRÍTICO: el color violeta oscuro de la botella es el principal diferenciador frente a otras variantes Tanqueray.\nCRÍTICO adicional: silueta tipo coctelera con hombros redondeados pronunciados.",
-  "White Horse 1L": "Botella de vidrio transparente con cuerpo cilíndrico alto, que contiene líquido color ámbar. Altura total equivalente a referencias de 1L (como “JW Red 1L” o “Vat 69 1L”). Etiqueta principal muy amplia con fondo amarillo, que ocupa gran parte del cuerpo de la botella. Destacan las palabras 'White Horse' en letras rojas grandes dispuestas en diagonal ascendente. En el límite inferior de la etiqueta aparece una franja horizontal oscura (marrón/negra). Tapa negra con una fina franja amarilla en el borde superior. CRÍTICO: botella alta y cilíndrica de tamaño completo (1L). NO CONFUNDIR con White Horse 200 ml, que es una botella baja tipo petaca rectangular, aproximadamente 50% de la altura.",
-  "White Horse 200 ml": "Botella de vidrio transparente con formato plano tipo petaca rectangular, que contiene líquido color ámbar. Punto visual clave: altura aproximada 50% de una botella estándar de 1 L (como “JW Red 1L” o “Vat 69 1L”). Etiqueta principal amarilla con el texto “White Horse” en letras rojas grandes dispuestas en diagonal ascendente. Tapa y cápsula del cuello de color amarillo. CRÍTICO: botella baja y rectangular tipo petaca. NO CONFUNDIR con White Horse 1L, que es una botella cilíndrica alta con etiqueta amarilla muy amplia que ocupa gran parte del cuerpo de la botella.",
-  "Vat 69 1L": "Botella de vidrio verde oscuro con cuerpo cilíndrico tradicional de whisky. Altura equivalente a otras botellas estándar de 1L (como \"JW Red 1L\" o \"JW Black 1L\"). Etiqueta principal negra de gran tamaño con: dos franjas rojas horizontales finas (una superior y una inferior), texto “VAT 69” en blanco grande en el centro y sello circular rojo encima del nombre. Tapa y cápsula del cuello negras con fina franja roja en el borde superior.\nCRÍTICO: botella alta y cilíndrica.\nNO CONFUNDIR con Vat 69 200 ml, que es una botella baja tipo petaca rectangular (aprox. 50% de la altura).\nNO CONFUNDIR con \"JW Red 1L”, que tiene una franja roja diagonal grande que cruza la botella.",
-  "Vat 69 200 ml": "Botella de vidrio verde oscuro con formato plano tipo petaca rectangular. Punto visual clave: altura aproximada 50% de una botella estándar de 1L. Etiqueta principal negra con: dos franjas amarillas horizontales una delgada en la parte superior una más gruesa en la parte inferior. Tapa negra con fina franja amarilla en el borde superior.\nCRÍTICO: botella baja, oscura y rectangular (tipo petaca), aproximadamente 50% de la altura de una botella estándar.\nNO CONFUNDIR con Vat 69 1L, que es cilíndrica, mucho más alta y con franjas rojas (no amarillas).",
-  "Smirnoff Ice": "Botella de vidrio transparente tipo cerveza con cuello largo y cuerpo corto. Punto visual clave: altura aproximada 60% de una botella estándar de 1L. Contiene líquido blanco turbio, muy distintivo. Etiqueta principal blanca con un bloque rojo visible en el centro. Etiqueta blanca adicional en el cuello. Tapa fina roja. CRÍTICO: botella más baja que las de vodka y con líquido blanco turbio. NO CONFUNDIR con Smirnoff Vodka 750 ml, que es una botella alta, recta y con líquido transparente.",
-  "Vodka Smirnoff 750mL": "Botella de vidrio transparente alta y recta con cuerpo cilíndrico largo. Altura similar a botellas grandes de whisky, cercana a referencias de 1L. Contiene líquido transparente. Etiqueta principal blanca con elementos rojos en el centro. Cuello largo con etiqueta adicional. Tapa metálica roja.\nCRÍTICO: botella alta, recta y con líquido transparente.\nCRÍTICO adicional: botella más alta y esbelta que Smirnoff Ice.\nNO CONFUNDIR con Smirnoff Ice, que es más baja, tipo botella de cerveza y contiene líquido blanco turbio.",
-  "Sandy Mac 1L": "Botella de vidrio muy oscuro (marrón casi negro) con cuerpo rectangular ancho y hombros suaves. Altura ligeramente menor que botellas estándar de whisky de 1 L (como “JW Red 1L” o “Vat 69 1L”). En el cuello presenta una etiqueta angosta de color amarillo claro ubicada entre el cuello y el cuerpo de la botella.\nPunto visual clave: en la parte inferior del cuerpo aparece una franja horizontal ancha de color beige o amarillo claro, que contrasta con la botella oscura y es el elemento más confiable para detección en góndola, incluso en imágenes oscuras.\nLa etiqueta central es de forma ovalada y de color claro (beige/amarillenta), generalmente con bajo contraste respecto al fondo oscuro.\nTapa color beige o crema con una fina franja roja en el borde superior.\nCRÍTICO: botella oscura rectangular con franja horizontal beige/amarilla ancha en la parte inferior.\nNO CONFUNDIR con White Horse 1L, que tiene botella cilíndrica transparente con una etiqueta amarilla grande que cubre gran parte del frente de la botella, mientras que Sandy Mac tiene botella oscura rectangular y el bloque amarillo aparece en la parte inferior.",
-  "JW Blonde": "Botella de vidrio transparente con líquido ámbar interior. Formato 750ml, altura levemente inferior a botellas de 1L ('JW Red 1L' o 'Vat 69 1L'). Misma silueta rectangular que JW Red 1L o JW Black 1L.\nElemento más distintivo clave: FRANJA DIAGONAL AMARILLA (único elemento diagonal en la botella) que cruza el cuerpo en ángulo ascendente.\nTapa y cápsula del cuello de color azul intenso."
-};
-
-// --- DB LOGIC (Hybrid: Postgres with In-Memory Fallback) ---
-const globalHistory: AuditResult[] = [];
-
-async function createTableIfNotExists() {
-  try {
-    if (!process.env.POSTGRES_URL) return;
-    
-    await sql`
-      CREATE TABLE IF NOT EXISTS audits (
-        id SERIAL PRIMARY KEY,
-        usuario VARCHAR(255),
-        fecha VARCHAR(255),
-        cliente VARCHAR(255),
-        resultado_detallado TEXT,
-        resultado_global VARCHAR(255),
-        url_imagen TEXT,
-        proceso_auditoria TEXT
-      );
-    `;
-    try {
-      await sql`ALTER TABLE audits ADD COLUMN IF NOT EXISTS proceso_auditoria TEXT;`;
-    } catch (e) {
-      console.log('Column check/add failed (might already exist):', e);
-    }
-    try {
-      await sql`ALTER TABLE audits ADD COLUMN IF NOT EXISTS manual_adjustments TEXT;`;
-    } catch (e) {
-      console.log('Column check/add failed (might already exist):', e);
-    }
-    console.log("Table 'audits' ensured.");
-  } catch (error) {
-    console.error("Error creating table:", error);
+// Request Logger
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   }
-}
-
-// Initialize DB on startup
-if (process.env.POSTGRES_URL) {
-  createTableIfNotExists();
-}
-
-async function getDb(): Promise<AuditResult[]> {
-  let dbRows: AuditResult[] = [];
-  
-  // Try Postgres
-  if (process.env.POSTGRES_URL) {
-    try {
-      const { rows } = await sql`SELECT * FROM audits ORDER BY id DESC LIMIT 100`;
-      dbRows = rows.map((row: any) => {
-        let parsedAdjustments = [];
-        try {
-          parsedAdjustments = row.manual_adjustments ? JSON.parse(row.manual_adjustments) : [];
-        } catch (e) {
-          console.warn("Failed to parse manual_adjustments:", row.manual_adjustments);
-        }
-        return {
-          id: row.id,
-          usuario: row.usuario,
-          fecha: row.fecha,
-          cliente: row.cliente,
-          resultado_detallado: row.resultado_detallado,
-          resultado_global: row.resultado_global,
-          url_imagen: row.url_imagen,
-          proceso_auditoria: row.proceso_auditoria,
-          manual_adjustments: parsedAdjustments,
-          source: 'db'
-        };
-      });
-    } catch (error) {
-      console.warn("Postgres fetch failed:", error);
-    }
-  }
-  
-  // Merge with Memory (prioritize memory for recent items if DB failed or is slow)
-  // We combine them, removing duplicates by ID if any collision (unlikely as memory IDs are timestamps)
-  const memoryRows = globalHistory.map(h => ({ ...h, source: 'memory' as const }));
-  const combined = [...memoryRows, ...dbRows];
-  
-  // Deduplicate just in case
-  const seen = new Set();
-  const unique = combined.filter(item => {
-    const k = item.id;
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  });
-  
-  return unique.sort((a, b) => {
-      // Sort by date descending
-      return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
-  });
-}
-
-async function saveToDb(audit: any) {
-  // Try Postgres
-  if (process.env.POSTGRES_URL) {
-    try {
-      console.log('Attempting to save to Postgres:', audit.cliente, audit.resultado_global);
-      
-      await sql`
-        INSERT INTO audits (usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments)
-        VALUES (${audit.usuario}, ${audit.fecha}, ${audit.cliente}, ${audit.resultado_detallado}, ${audit.resultado_global}, ${audit.url_imagen}, ${audit.proceso_auditoria}, ${audit.manual_adjustments ? JSON.stringify(audit.manual_adjustments) : '[]'})
-      `;
-      console.log('Successfully saved to Postgres');
-      return; 
-    } catch (error) {
-      console.error("Postgres insert failed:", error);
-      // Fallback to memory if DB fails
-    }
-  } else {
-      console.warn("POSTGRES_URL not found, skipping DB save.");
-  }
-  
-  // Fallback to Memory
-  console.log('Saving to memory fallback');
-  const newRecord = { ...audit, id: Date.now() };
-  globalHistory.unshift(newRecord);
-  return newRecord;
-}
-
-async function deleteFromDb(ids: number[]) {
-  if (ids.length === 0) return;
-
-  // Try Postgres
-  if (process.env.POSTGRES_URL) {
-    try {
-      // Construct a parameterized query for multiple IDs
-      // Note: @vercel/postgres supports simple arrays in some contexts, but let's be safe with a loop or ANY
-      // Using a loop for simplicity and safety with the template literal tag
-      for (const id of ids) {
-        await sql`DELETE FROM audits WHERE id = ${id}`;
-      }
-      return;
-    } catch (error) {
-      console.error("Postgres delete failed (trying memory):", error);
-    }
-  }
-
-  // Fallback to Memory
-  // We modify the array in place or replace it. Since it's const, we can't reassign, but we can splice.
-  // Actually, globalHistory is const but it's an array, so we can mutate it.
-  // However, filtering is cleaner. Let's just mutate it for now to match the "const" declaration.
-  // Or better, let's just find indices and splice.
-  const indicesToRemove = globalHistory
-    .map((item, index) => ids.includes(item.id) ? index : -1)
-    .filter(index => index !== -1)
-    .sort((a, b) => b - a); // Sort descending to splice from end
-
-  for (const index of indicesToRemove) {
-    globalHistory.splice(index, 1);
-  }
-}
-
-// Route to manually initialize DB (useful for first setup)
-app.get('/api/init-db', async (req, res) => {
-  if (!process.env.POSTGRES_URL) {
-    return res.status(500).json({ error: 'POSTGRES_URL not found. Configure Vercel Postgres first.' });
-  }
-  try {
-    await createTableIfNotExists();
-    res.json({ message: 'Database table "audits" created/verified successfully.' });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
+  next();
 });
 
-import { put, list, del } from '@vercel/blob';
+// --- DB LOGIC (File-Based / Blob-Based) ---
+const DB_FILE = path.join(process.cwd(), 'history.json');
+
+async function loadHistory(): Promise<AuditResult[]> {
+  try {
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        const { blobs } = await list({ prefix: 'history.json' });
+        const blob = blobs.find(b => b.pathname === 'history.json');
+        if (blob) {
+          const response = await fetch(blob.url);
+          const data = await response.text();
+          return JSON.parse(data);
+        }
+      } catch (e) {
+        console.error('Error loading history from Blob:', e);
+      }
+    }
+    // Fallback to local file
+    if (fs.existsSync(DB_FILE)) {
+      const data = fs.readFileSync(DB_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.error('Error loading history:', e);
+  }
+  return [];
+}
+
+async function saveHistory(history: AuditResult[]) {
+  try {
+    const data = JSON.stringify(history, null, 2);
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        await put('history.json', data, {
+          access: 'public',
+          contentType: 'application/json',
+          addRandomSuffix: false
+        });
+      } catch (e) {
+        console.error('Error saving history to Blob:', e);
+      }
+    }
+    // Always save locally as fallback
+    fs.writeFileSync(DB_FILE, data, 'utf-8');
+  } catch (e) {
+    console.error('Error saving history:', e);
+  }
+}
+
+let globalHistory: AuditResult[] = await loadHistory();
+
+async function getDb(): Promise<AuditResult[]> {
+  return globalHistory;
+}
+
+async function saveToDb(audit: Omit<AuditResult, 'id'>) {
+  console.log('DEBUG: saveToDb called with keys:', Object.keys(audit));
+  if ('proceso_auditoria' in audit) {
+      console.log('DEBUG: proceso_auditoria present in saveToDb payload. Length:', audit.proceso_auditoria?.length);
+  } else {
+      console.error('DEBUG: proceso_auditoria MISSING in saveToDb payload');
+  }
+  
+  const newRecord = { ...audit, id: Date.now() };
+  globalHistory.unshift(newRecord);
+  await saveHistory(globalHistory);
+  return newRecord;
+}
 
 // --- STORAGE LOGIC (Hybrid: Vercel Blob with Fallback) ---
 async function saveFile(file: Express.Multer.File, filename: string): Promise<string> {
@@ -341,8 +253,7 @@ const EMBEDDED_CSV_DATA = `Codigo FEMSA,Nombre Store,Gin Gordons,Gin Tanqueray,G
 
 app.get('/api/debug-paths', (req, res) => {
   const cwd = process.cwd();
-  // __dirname is defined at top level now
-  res.json({ cwd, env: process.env });
+  res.json({ cwd, __dirname, env: process.env });
 });
 
 app.get('/api/clients', (req, res) => {
@@ -356,29 +267,9 @@ app.get('/api/clients', (req, res) => {
   }
 });
 
-app.get('/api/debug-models', async (req, res) => {
-  try {
-    if (!process.env.GEMINI_API_KEY) return res.status(500).json({error: 'No API Key'});
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const response = await ai.models.list();
-    res.json(response);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/debug-config', (req, res) => {
-  res.json({
-    hasPostgres: !!process.env.POSTGRES_URL,
-    hasBlob: !!process.env.BLOB_READ_WRITE_TOKEN,
-    hasGemini: !!process.env.GEMINI_API_KEY,
-    nodeEnv: process.env.NODE_ENV
-  });
-});
-
 app.get('/api/references/count', async (req, res) => {
   try {
-    console.log('DEBUG: /api/references/count called (api/index.ts)');
+    console.log('DEBUG: /api/references/count called (src/app.ts)');
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       // Fallback to local if no token (dev mode without blob)
       const referencesDir = path.join(process.cwd(), 'public', 'referencias');
@@ -403,6 +294,51 @@ app.get('/api/references/count', async (req, res) => {
   } catch (error) {
     console.error('Error counting references:', error);
     res.status(500).json({ error: 'Failed to count references' });
+  }
+});
+
+app.get('/api/references/test-list', (req, res) => {
+    console.log('DEBUG: /api/references/test-list called');
+    res.json({ status: 'ok', message: 'Test route works' });
+});
+
+app.get('/api/list-references', async (req, res) => {
+  try {
+    console.log(`[${new Date().toISOString()}] DEBUG: /api/list-references called`);
+    
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      // Fallback to local
+      const referencesDir = path.join(process.cwd(), 'public', 'referencias');
+      console.log(`[${new Date().toISOString()}] DEBUG: Checking local dir: ${referencesDir}`);
+      
+      if (!fs.existsSync(referencesDir)) {
+        console.log(`[${new Date().toISOString()}] DEBUG: Local dir does not exist`);
+        return res.json([]);
+      }
+      const files = fs.readdirSync(referencesDir).filter(file => {
+        return !file.startsWith('.') && (file.endsWith('.jpg') || file.endsWith('.jpeg') || file.endsWith('.png'));
+      });
+      console.log(`[${new Date().toISOString()}] DEBUG: Found ${files.length} local files`);
+      return res.json(files);
+    }
+
+    // List everything with the prefix
+    console.log(`[${new Date().toISOString()}] DEBUG: Listing blobs with prefix 'referencias/'`);
+    const response = await list({ prefix: 'referencias/' });
+    const blobs = response.blobs;
+    
+    console.log(`[${new Date().toISOString()}] DEBUG: Found ${blobs.length} blobs`);
+    
+    // Map to just filenames/pathnames to see what we have
+    const filenames = blobs.map(b => {
+      // return the full pathname for now to debug
+      return b.pathname;
+    });
+    
+    res.json(filenames);
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error listing references:`, error);
+    res.status(500).json({ error: 'Failed to list references', details: error.message });
   }
 });
 
@@ -482,7 +418,6 @@ app.post('/api/references/upload', upload.single('file'), async (req, res) => {
 
 app.post('/api/audit', upload.single('photo'), async (req, res) => {
   const processLog: { step: string; status: 'OK' | 'Error' | 'Warning'; details?: string }[] = [];
-  
   try {
     const { usuario, clienteId, isRescan, missingProducts, previousDetailedResult } = req.body;
     const file = req.file;
@@ -491,7 +426,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     // Step 1: Check Client Rules
     processLog.push({ step: 'Revisión de tabla de referencias por cliente', status: 'OK', details: `Cliente ID: ${clienteId}` });
-
+    
     // Load Client Rules (Embedded First)
     const records = parseCSV(EMBEDDED_CSV_DATA);
     const clientRule = records.find((r: any) => r['Codigo FEMSA'] === clienteId);
@@ -509,76 +444,152 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       "Sandy Mac 1L", "Vat 69 1L", "Vat 69 200 ml", "White Horse 1L"
     ];
 
-    const requiredProducts = productColumns.filter(prod => clientRule[prod] === 'Si');
+    let requiredProducts = productColumns.filter(prod => clientRule[prod] === 'Si');
     
-    const isRescanMode = isRescan === 'true';
-    const missingProductsList = missingProducts ? missingProducts.split(',') : [];
-    let prevDetailedResult: any[] = [];
-    if (isRescanMode && previousDetailedResult) {
-      try {
-        prevDetailedResult = JSON.parse(previousDetailedResult);
-      } catch (e) {
-        console.error("Failed to parse previousDetailedResult", e);
-      }
-    }
-
-    // Check API Key
-    if (!process.env.GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY is missing");
-      return res.status(500).json({ error: 'Server configuration error: Missing API Key' });
+    const isRescanObj = isRescan === 'true';
+    if (isRescanObj && missingProducts) {
+      const missingList = missingProducts.split(',').filter(Boolean);
+      requiredProducts = requiredProducts.filter(p => missingList.includes(p));
     }
 
     // Call Gemini
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     
-    let prompt = '';
-    if (isRescanMode && missingProductsList.length > 0) {
+    let prompt = "";
+    if (isRescanObj) {
       prompt = `
-      TASK: Revisa nuevamente la imagen con mucha atención, buscando EXCLUSIVAMENTE estos productos que parecen faltar. Búscalos de frente y completos.
+      Atención: Ya encontramos muchos productos, pero no logramos ver: ${requiredProducts.join(', ')}. 
+      Ignora TODO lo demás en la góndola.
+      Tu ÚNICA TAREA es analizar la imagen principal y examinar detalladamente la primera fila de la góndola. 
+      IMPORTANTE: NO busques botellas ocultas, tapadas por otras, o ubicadas detrás. Limítate exclusivamente a los productos claramente visibles de frente en la primera fila.
       
-      ESTRATEGIA DE BÚSQUEDA OBLIGATORIA (FRANCOTIRADOR):
-      1. Ignora el orden y la estructura de los estantes.
-      2. Ignora los productos que ya encontramos.
-      3. Tu única misión es buscar exhaustivamente en CADA RINCÓN de la imagen (incluso en el piso o fuera de lugar). SOLO cuenta productos que estén claramente visibles a la vista, NO ocultos detrás de otras botellas.
-      4. Concéntrate EXCLUSIVAMENTE en encontrar los productos listados a continuación.
+      Busca exclusivamente: ${requiredProducts.join(', ')}.
       
-      INPUT STRUCTURE:
-      - IMAGE 1: THE ACTUAL PHOTO UPLOADED BY THE AUDITOR (The ONLY image to be audited).
-      - IMAGE 2 (Optional): "Master Reference Guide" (Visual Dictionary ONLY).
-      - SUBSEQUENT IMAGES: Individual product references (Visual Dictionary ONLY).
+      ═══════════════════════════════
+      REGLAS DE IDENTIFICACIÓN
+      ═══════════════════════════════
+      - IMPORTANTE: Solo identifica productos que se encuentren en la primera fila de la góndola (visibles de frente). Ignora por completo botellas ocultas, tapadas por otras o en las filas de atrás.
+      Basa la identificación PRINCIPALMENTE en características visuales:
+      - Forma y silueta de la botella
+      - Color del vidrio (transparente, verde oscuro, marrón oscuro, ámbar)
+      - Colores dominantes de la etiqueta
+      - Elementos distintivos: sellos, franjas, logos
+      - Altura relativa comparada con otras botellas
+      NO dependas únicamente de la lectura del texto de la etiqueta.
+      - IMPORTANTE SOBRE REFERENCIAS INDIVIDUALES: Ten en cuenta que las imágenes de referencia individuales provistas son fotografías de estudio; los colores, brillos, reflejos en el vidrio, sombras y la nitidez de la etiqueta varían significativamente en la foto de la góndola real bajo la iluminación artificial del local y la perspectiva de la cámara.
+      NO busques una coincidencia fotográfica exacta.
+      
+      ═══════════════════════════════
+      FORMATO DE SALIDA
+      ═══════════════════════════════
+      Devolvé un objeto JSON donde las claves sean los nombres exactos de los productos buscados.
+      Cada valor DEBE ser un objeto con:
+      1. "status": "Present" (Presente) o "Missing" (Faltante)
+      2. "reason": explicación breve citando las DOS características visuales 
+         que confirmaron la presencia, o por qué no fue encontrado.
 
-      CRITICAL ANTI-HALLUCINATION RULES:
-      1. IMAGE 1 is the REALITY (The photo taken by the auditor). Only count bottles found in IMAGE 1.
-      2. IMAGE 2 is a DICTIONARY. It contains 6 specific bottles marked with arrows. THESE ARE NOT ON THE SHELF. They are just examples.
-      3. IGNORE all bottles in Image 2 and subsequent reference images for the count.
-      4. If you see a bottle in Image 2 but NOT in Image 1, it is "Missing".
+      DEVUELVE ÚNICA Y EXCLUSIVAMENTE EL OBJETO JSON. NO incluyas texto antes ni después, ni bloques de código markdown.
 
-      List of products to find EXCLUSIVELY: ${missingProductsList.join(', ')}.
-
-      OUTPUT FORMAT:
-      Return a JSON object where keys are ONLY the products listed above and values are "Present" or "Missing".
-      Example: { "${missingProductsList[0] || 'Product'}": "Missing" }
+      Ejemplo:
+      {
+        "${requiredProducts[0] || 'Gin Gordons'}": {
+          "status": "Present",
+          "reason": "Botella transparente con franja amarilla + tapa violeta visible en estante del medio"
+        }
+      }
       `;
     } else {
       prompt = `
-      TASK: Perform a strict shelf audit on the FIRST image provided.
+      Analyze this image of a liquor shelf.
+      Check for the presence of the following products: ${requiredProducts.join(', ')}.
       
-      INPUT STRUCTURE:
-      - IMAGE 1: THE ACTUAL PHOTO UPLOADED BY THE AUDITOR (The ONLY image to be audited).
-      - IMAGE 2 (Optional): "Master Reference Guide" (Visual Dictionary ONLY).
-      - SUBSEQUENT IMAGES: Individual product references (Visual Dictionary ONLY).
+      ═══════════════════════════════
+      REGLAS DE IDENTIFICACIÓN
+      ═══════════════════════════════
+      - IMPORTANTE: Solo identifica productos que se encuentren en la primera fila de la góndola (visibles de frente). Ignora por completo botellas ocultas, tapadas por otras o en las filas de atrás.
+      Basa la identificación PRINCIPALMENTE en características visuales:
+      - Forma y silueta de la botella
+      - Color del vidrio (transparente, verde oscuro, marrón oscuro, ámbar)
+      - Colores dominantes de la etiqueta
+      - Elementos distintivos: sellos, franjas, logos
+      - Altura relativa comparada con otras botellas
+      NO dependas únicamente de la lectura del texto de la etiqueta.
+      - IMPORTANTE SOBRE REFERENCIAS INDIVIDUALES: Ten en cuenta que las imágenes de referencia individuales provistas son fotografías de estudio; los colores, brillos, reflejos en el vidrio, sombras y la nitidez de la etiqueta varían significativamente en la foto de la góndola real bajo la iluminación artificial del local y la perspectiva de la cámara.
+      NO busques una coincidencia fotográfica exacta.
 
-      CRITICAL ANTI-HALLUCINATION RULES:
-      1. IMAGE 1 is the REALITY (The photo taken by the auditor). Only count bottles found in IMAGE 1.
-      2. IMAGE 2 is a DICTIONARY. It contains 6 specific bottles marked with arrows ("JW Blonde", "Vat 69 200 ml", "Smirnoff Ice", "Gin Tanqueray", "Gin Royale", "Gin Sevilla"). THESE ARE NOT ON THE SHELF. They are just examples.
-      3. IGNORE all bottles in Image 2 and subsequent reference images for the count.
-      4. If you see a bottle in Image 2 but NOT in Image 1, it is "Missing".
+      ═══════════════════════════════
+      MÉTODO DE ANÁLISIS OBLIGATORIO
+      ═══════════════════════════════
 
-      List of products to find: ${requiredProducts.join(', ')}.
+      PASO 1 — Divide la góndola en zonas horizontales
+      Divide visualmente la imagen en zonas horizontales por estante (de arriba hacia abajo).
+      Examina cada estante de forma independiente. Recorre la imagen de manera sistemática de arriba hacia abajo.
+      NO analices toda la imagen de forma global al mismo tiempo.
 
-      OUTPUT FORMAT:
-      Return a JSON object where keys are ONLY the products listed above and values are "Present" or "Missing".
-      Example: { "${requiredProducts[0] || 'Product'}": "Missing" }
+      PASO 2 — Clasificá las botellas por color dominante PRIMERO
+      Antes de identificar marcas, agrupá las botellas visibles por color de vidrio/líquido:
+      □ Botellas de vidrio transparente
+      □ Botellas de vidrio verde oscuro
+      □ Botellas de vidrio marrón oscuro
+      □ Botellas ámbar/naranja
+      Esta pre-clasificación reduce el espacio de búsqueda para cada producto.
+
+      PASO 3 — Detectá candidatos por estante
+      En cada estante, identificá botellas que podrían coincidir visualmente 
+      con los productos buscados.
+      Para cada posible coincidencia, observá:
+      - Forma general de la botella
+      - Color dominante del vidrio
+      - Colores de la etiqueta
+      - Color de la tapa
+      - Elementos distintivos (franjas, sellos, logos)
+      - Altura relativa comparada con botellas de referencia de 1L
+
+      PASO 4 — Validá las coincidencias (REGLA OBLIGATORIA)
+      Solo confirmá un producto si AL MENOS DOS características visuales 
+      coinciden con la descripción del producto.
+      Ejemplos de coincidencias válidas:
+      ✓ forma de botella + color de etiqueta
+      ✓ color del vidrio + color de tapa
+      ✓ forma + elemento distintivo (sello, franja)
+      Una sola característica coincidente NO es suficiente para confirmar presencia.
+
+      ═══════════════════════════════
+      REFERENCIAS DE ESCALA
+      ═══════════════════════════════
+      Usá el tamaño relativo entre botellas para estimar el volumen:
+      - Botellas 1L → las más altas (~30–32 cm de referencia)
+      - Botellas 750ml → levemente más bajas que las de 1L
+      - Botellas 200ml → aproximadamente el 50% de la altura de una botella de 1L
+      - Botellas 275ml (Smirnoff Ice) → aproximadamente el 60% de una botella de 1L
+
+      Esto es clave para diferenciar:
+      - Vat 69 1L vs Vat 69 200ml (misma etiqueta, tamaño muy diferente)
+      - White Horse 1L vs White Horse 200ml
+      - Smirnoff Ice (275ml, botella tipo cerveza) vs botellas de tamaño completo
+
+      ═══════════════════════════════
+      FORMATO DE SALIDA
+      ═══════════════════════════════
+      Devolvé un objeto JSON donde las claves sean los nombres exactos de los productos buscados.
+      Cada valor DEBE ser un objeto con:
+      1. "status": "Present" (Presente) o "Missing" (Faltante)
+      2. "reason": explicación breve citando las DOS características visuales 
+         que confirmaron la presencia, o por qué no fue encontrado.
+
+      DEVUELVE ÚNICA Y EXCLUSIVAMENTE EL OBJETO JSON. NO incluyas texto antes ni después, ni bloques de código markdown.
+
+      Ejemplo:
+      {
+        "${requiredProducts[0] || 'Gin Gordons'}": {
+          "status": "Present",
+          "reason": "Botella transparente con franja amarilla + tapa violeta visible en estante del medio"
+        },
+        "${requiredProducts[1] || 'Vat 69 200ml'}": {
+          "status": "Missing",
+          "reason": "Solo se detectaron botellas Vat 69 1L de tamaño completo; no se encontró el formato de media altura"
+        }
+      }
       `;
     }
 
@@ -592,7 +603,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     
     // NEW: Load Master Reference Image
     try {
-        const masterRefName = 'referencias_visuales.jpeg';
+        const masterRefName = 'referencias_visuales.jpg';
         let masterRefData: string | null = null;
         
         // Try Blob
@@ -619,14 +630,61 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         }
 
         if (masterRefData) {
-            parts.push({ text: `[VISUAL DICTIONARY START] Image 2: Master Reference Guide. Contains 6 examples with arrows. DO NOT COUNT THESE. [VISUAL DICTIONARY END]` });
+            parts.push({ text: `GUÍA MAESTRA DE REFERENCIAS EN GÓNDOLA (PARTE 1 DE 2).
+En esta imagen:
+Las flechas rojas y los nombres indican los productos objetivo.
+El recuadro rojo delimita exactamente la botella que corresponde.
+Solo las botellas que están dentro de los recuadros rojos deben utilizarse como referencia visual primaria ("la verdad absoluta") del producto en entorno de supermercado real.
+Ignora el resto de productos no remarcados en esta foto.` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
+            processLog.push({ step: 'Carga de Productos en Góndola Real (referencias_visuales.jpg)', status: 'OK', details: 'Archivo referencias_visuales.jpg cargado y enviado a la IA' });
+        } else {
+             // processLog.push({ step: 'Carga de Productos en Góndola Real (referencias_visuales.jpg)', status: 'Warning', details: 'No se encontró el archivo referencias_visuales.jpg' });
         }
     } catch (e) {
         console.warn("Failed to load master reference:", e);
     }
 
-    // Add references (Try to load from Blob or Local)
+    // NEW: Load Master Reference Image 2
+    try {
+        const masterRef2Name = 'referencias_visuales2.jpg';
+        let masterRef2Data: string | null = null;
+        
+        // Try Blob
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+             try {
+                const listResult = await list({ prefix: 'referencias/' });
+                const blob = listResult.blobs.find(b => b.pathname.includes(masterRef2Name) || b.pathname.includes('referencias_visuales2.jpeg'));
+                if (blob) {
+                    const response = await fetch(blob.url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    masterRef2Data = Buffer.from(arrayBuffer).toString('base64');
+                }
+             } catch (e) {
+                 console.warn("Failed to list blobs for master ref 2:", e);
+             }
+        }
+
+        // Try Local
+        if (!masterRef2Data) {
+             let refPath = getReferencePath(masterRef2Name);
+             if (!fs.existsSync(refPath)) refPath = getReferencePath('referencias_visuales2.jpeg');
+             if (fs.existsSync(refPath)) {
+                masterRef2Data = fs.readFileSync(refPath).toString('base64');
+             }
+        }
+
+        if (masterRef2Data) {
+            parts.push({ text: `GUÍA MAESTRA DE REFERENCIAS EN GÓNDOLA (PARTE 2 DE 2).
+Esta imagen complementa la anterior bajo las MISMAS REGLAS (flechas, recuadros rojos).
+Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ven realmente los productos en la góndola, con la iluminación e imperfecciones reales del estante. PRIORIZA estas dos referencias visuales (los recuadros rojos) por sobre cualquier imagen individual de estudio (fondo blanco) que se provea más adelante.` });
+            parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRef2Data } });
+            processLog.push({ step: 'Carga de Productos en Góndola Real 2 (referencias_visuales2)', status: 'OK', details: 'Archivo referencias_visuales2 cargado y enviado a la IA' });
+        }
+    } catch (e) {
+        console.warn("Failed to load master reference 2:", e);
+    }
+
     let referenceBlobs: any[] = [];
     if (process.env.BLOB_READ_WRITE_TOKEN) {
       try {
@@ -638,120 +696,76 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     }
 
     let loadedRefsCount = 0;
-    let loadedRefNames: string[] = [];
-    let loadedDescriptionsCount = 0;
-    
-    const productsToAnalyze = isRescanMode ? requiredProducts.filter(p => missingProductsList.includes(p)) : requiredProducts;
-
-    for (const prod of productsToAnalyze) {
+    for (const prod of requiredProducts) {
       // 1. Add Visual Description if available
       if (PRODUCT_DESCRIPTIONS[prod]) {
         parts.push({ text: `Visual description for ${prod}: ${PRODUCT_DESCRIPTIONS[prod]}` });
-        loadedDescriptionsCount++;
       }
-
+      
       // 2. Add Reference Image
       try {
         let refData: string | null = null;
-        let mimeType = 'image/jpeg';
-        
-        // Try multiple extensions
-        const extensions = ['.jpeg', '.jpg', '.png'];
-        const baseNames = [prod, prod.replace(/[^a-zA-Z0-9]/g, ' ')];
+        const filename = `${prod}.jpg`;
+        const altFilename = `${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`;
 
-        for (const ext of extensions) {
-          if (refData) break; // Stop if found
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+          // Try to find in Blob list
+          const blob = referenceBlobs.find(b => b.pathname === `referencias/${filename}` || b.pathname === `referencias/${altFilename}`);
+          if (blob) {
+            const response = await fetch(blob.url);
+            const arrayBuffer = await response.arrayBuffer();
+            refData = Buffer.from(arrayBuffer).toString('base64');
+          }
+        } 
+        
+        // Fallback to local if not found in blob or no token
+        if (!refData) {
+          let refPath = getReferencePath(filename);
+          if (!fs.existsSync(refPath)) refPath = getReferencePath(altFilename);
           
-          for (const baseName of baseNames) {
-             if (refData) break; // Stop if found
-             
-             const filename = `${baseName}${ext}`;
-             const normalizedFilename = filename.toLowerCase().replace(/\s+/g, ' ').trim();
-             
-             if (process.env.BLOB_READ_WRITE_TOKEN) {
-               // Try to find in Blob list (case-insensitive and space-insensitive match)
-               const blob = referenceBlobs.find(b => {
-                 const blobName = b.pathname.replace('referencias/', '');
-                 const normalizedBlobName = blobName.toLowerCase().replace(/\s+/g, ' ').trim();
-                 return normalizedBlobName === normalizedFilename;
-               });
-               
-               if (blob) {
-                 const response = await fetch(blob.url);
-                 const arrayBuffer = await response.arrayBuffer();
-                 refData = Buffer.from(arrayBuffer).toString('base64');
-                 if (blob.pathname.toLowerCase().endsWith('.png')) mimeType = 'image/png';
-               }
-             } 
-             
-             // Fallback to local if not found in blob or no token
-             if (!refData) {
-               // For local files, we still try the exact filename first
-               const refPath = getReferencePath(filename);
-               if (fs.existsSync(refPath)) {
-                 refData = fs.readFileSync(refPath).toString('base64');
-                 if (ext === '.png') mimeType = 'image/png';
-               }
-             }
+          if (fs.existsSync(refPath)) {
+            refData = fs.readFileSync(refPath).toString('base64');
           }
         }
 
         if (refData) {
-          parts.push({ text: `Reference image for ${prod}:` });
-          parts.push({ inlineData: { mimeType: mimeType, data: refData } });
+          parts.push({ text: `Imagen de estudio (fondo blanco) para ${prod}. ATENCIÓN: Esta es una imagen publicitaria. Usar solo para reconocer detalles de la etiqueta o el logo. Para determinar la forma, las proporciones reales y la iluminación, PRIORIZAR las dos imágenes de 'gíndolas reales' enviadas anteriormente, ya que así es como se ven realmente los productos en la góndola.` });
+          parts.push({ inlineData: { mimeType: 'image/jpeg', data: refData } });
           loadedRefsCount++;
-          loadedRefNames.push(prod);
         } else {
              missingRefs++;
-             parts.push({ text: `[WARNING] No reference image found for "${prod}". Rely strictly on the product name and any description provided.` });
         }
       } catch (e) {
         console.warn(`Failed to load reference for ${prod}:`, e);
         missingRefs++;
-        parts.push({ text: `[WARNING] Failed to load reference image for "${prod}". Rely strictly on the product name.` });
       }
     }
     
-    const contextDetails = [
-        `Reglas (JSON): Buscar ${productsToAnalyze.length} productos (${productsToAnalyze.join(', ')})`,
-        `Guía Maestra: ${parts.some(p => p.text?.includes('Master Reference Guide')) ? 'ACTIVA (Solo Diccionario)' : 'NO'}`,
-        `Refs Individuales (Imágenes): ${loadedRefsCount} cargadas (${loadedRefNames.join(', ')})`,
-        `Descripciones Visuales (Texto): ${loadedDescriptionsCount} inyectadas`
-    ].join(' | ');
-
     processLog.push({ 
-        step: 'Carga de Referencias y Contexto IA', 
+        step: 'Análisis de fotos de referencias', 
         status: missingRefs === 0 ? 'OK' : 'Warning', 
-        details: contextDetails
+        details: `Cargadas: ${loadedRefsCount}, Faltantes: ${missingRefs}` 
     });
 
     // Step 3: Context Check
     processLog.push({ step: 'Revisión de contexto importante', status: 'OK', details: 'Prompt y descripciones visuales inyectadas correctamente' });
-    
-    // Use the confirmed available model
+
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: { parts }
+      model: "gemini-2.5-flash-latest",
+      contents: { parts },
+      config: {
+        temperature: 0, // Force deterministic output
+      }
     });
 
-    let jsonString = response.text || '{}';
+    const jsonString = response.text?.replace(/```json/g, '').replace(/```/g, '').trim() || '{}';
+    console.log("Gemini Raw Response:", jsonString); // DEBUG LOG
     
-    // Robust JSON extraction: Find the first '{' and the last '}'
-    const firstOpen = jsonString.indexOf('{');
-    const lastClose = jsonString.lastIndexOf('}');
-    
-    if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
-      jsonString = jsonString.substring(firstOpen, lastClose + 1);
-    } else {
-      // Fallback: Try to clean markdown code blocks if simple extraction failed
-      jsonString = jsonString.replace(/```json/g, '').replace(/```/g, '').trim();
-    }
-
     let analysisResult;
     try {
       analysisResult = JSON.parse(jsonString);
     } catch (e) {
-      console.error("JSON Parse Error. Raw text:", response.text);
+      console.error("Failed to parse JSON:", e);
       analysisResult = {};
       processLog.push({ step: 'Análisis de IA', status: 'Error', details: 'Fallo al parsear respuesta JSON de Gemini' });
     }
@@ -761,42 +775,45 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     const detailedResult: any[] = [];
     const missingReasons: string[] = [];
 
+    let prevResultsMap: Record<string, any> = {};
+    if (isRescanObj && previousDetailedResult) {
+      try {
+        const prevArr = JSON.parse(previousDetailedResult);
+        if (Array.isArray(prevArr)) {
+          prevArr.forEach((pr: any) => {
+            prevResultsMap[pr.productName] = pr;
+          });
+        }
+      } catch (e) {
+        console.error("Failed to parse previousDetailedResult", e);
+      }
+    }
+
     productColumns.forEach(prod => {
       const isRequired = clientRule[prod] === 'Si';
       
       let isPresent = false;
       let reason = 'No reason provided';
+      
+      const resultData = analysisResult[prod];
 
-      if (isRescanMode && !missingProductsList.includes(prod)) {
-        // Use previous result for products we didn't rescan
-        const prev = prevDetailedResult.find(p => p.productName === prod);
-        if (prev) {
-          isPresent = prev.present;
-          reason = prev.reason;
-        } else {
-          reason = 'Not found in previous result';
-        }
-      } else {
-        // Handle new object structure or fallback to old string
-        const resultData = analysisResult[prod];
-        
-        if (resultData) {
-          if (typeof resultData === 'object') {
-            isPresent = resultData.status === 'Present';
-            reason = resultData.reason || 'No reason text in object';
-          } else if (typeof resultData === 'string') {
-            isPresent = resultData === 'Present';
-            reason = isPresent ? 'Presente' : 'falta referencia en cliente'; 
-          }
-        } else {
-           reason = 'AI did not return data for this product';
-        }
-      }
-
-      // Force isPresent to false if the product is not required
       if (!isRequired) {
-        isPresent = false;
-        reason = 'Not required for this client';
+          reason = 'No auditado (No requerido por el cliente)';
+      } else if (resultData) {
+        // AI evaluated this product (either it was missing and we rescanned, or initial scan)
+        if (typeof resultData === 'object') {
+          isPresent = resultData.status === 'Present';
+          reason = resultData.reason || 'No reason text in object';
+        } else if (typeof resultData === 'string') {
+          isPresent = resultData === 'Present';
+          reason = 'AI returned legacy string format'; 
+        }
+      } else if (isRescanObj && prevResultsMap[prod]) {
+        // AI didn't evaluate it because it wasn't requested in rescan, keep previous result!
+        isPresent = prevResultsMap[prod].present;
+        reason = prevResultsMap[prod].reason || 'Mantenido de auditoría anterior';
+      } else {
+         reason = 'AI did not return data for this product';
       }
 
       detailedResult.push({ productName: prod, required: isRequired, present: isPresent, reason });
@@ -823,36 +840,55 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     const newFilename = `${safeClientName}_${timestamp}_${globalResult.replace(' ', '_')}.jpg`;
     const fileUrl = await saveFile(file, newFilename);
 
+    console.log('Returning audit with process log length:', processLog.length); // DEBUG
+
     res.json({ globalResult, detailedResult, fileUrl, processLog });
 
   } catch (error: any) {
     console.error('Audit processing error:', error);
-    
-    let errorMessage = error.message || 'Internal server error';
-    
-    // If model not found, try to list available models to help debug
-    if (errorMessage.includes('404') || errorMessage.includes('NOT_FOUND')) {
-      try {
-         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-         const listResp: any = await ai.models.list();
-         
-         // Handle various response structures (including pageInternal seen in logs)
-         const models = listResp.models || listResp.data || listResp.pageInternal || listResp;
-         
-         if (Array.isArray(models)) {
-             const modelNames = models.map((m: any) => m.name?.replace('models/', '')).join(', ');
-             errorMessage += ` | AVAILABLE MODELS: ${modelNames}`;
-         } else {
-             errorMessage += ` | COULD NOT PARSE MODELS LIST: ${JSON.stringify(listResp).substring(0, 200)}...`;
-         }
-      } catch (listError: any) {
-         errorMessage += ` | Could not list models: ${listError.message}`;
-      }
-    }
-
-    res.status(500).json({ error: errorMessage });
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
+
+const adjustAuditHandler = async (req: express.Request, res: express.Response) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid audit ID' });
+    }
+    const { productName } = req.body;
+
+    const audit = globalHistory.find(a => a.id === id);
+    if (!audit) {
+      return res.status(404).json({ error: 'Audit not found' });
+    }
+
+    // Initialize array if it doesn't exist
+    if (!audit.manual_adjustments) {
+      audit.manual_adjustments = [];
+    }
+
+    // Toggle the product in the manual_adjustments array
+    const index = audit.manual_adjustments.indexOf(productName);
+    if (index > -1) {
+      // If it's already there, remove it (revert adjustment)
+      audit.manual_adjustments.splice(index, 1);
+    } else {
+      // If it's not there, add it (apply adjustment)
+      audit.manual_adjustments.push(productName);
+    }
+
+    await saveHistory(globalHistory);
+
+    res.json({ success: true, audit });
+  } catch (error: any) {
+    console.error('Adjustment error:', error);
+    res.status(500).json({ error: 'Failed to adjust audit' });
+  }
+};
+
+app.post('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
+app.patch('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
 
 app.post('/api/save-audit', express.json(), async (req, res) => {
   try {
@@ -886,81 +922,36 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-const adjustAuditHandler = async (req: express.Request, res: express.Response) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: 'Invalid audit ID' });
-    }
-    const { productName } = req.body;
-
-    let audit = null;
-
-    // Try Postgres
-    if (process.env.POSTGRES_URL) {
-      try {
-        const { rows } = await sql`SELECT * FROM audits WHERE id = ${id}`;
-        if (rows.length > 0) {
-          audit = rows[0];
-          let manual_adjustments = audit.manual_adjustments ? JSON.parse(audit.manual_adjustments) : [];
-          
-          const index = manual_adjustments.indexOf(productName);
-          if (index > -1) {
-            manual_adjustments.splice(index, 1);
-          } else {
-            manual_adjustments.push(productName);
-          }
-
-          await sql`UPDATE audits SET manual_adjustments = ${JSON.stringify(manual_adjustments)} WHERE id = ${id}`;
-          
-          audit.manual_adjustments = manual_adjustments;
-          return res.json({ success: true, audit });
-        }
-      } catch (error) {
-        console.error("Postgres adjust failed:", error);
-      }
-    }
-
-    // Fallback to memory
-    audit = globalHistory.find(a => a.id === id);
-    if (!audit) {
-      return res.status(404).json({ error: 'Audit not found' });
-    }
-
-    if (!audit.manual_adjustments) {
-      audit.manual_adjustments = [];
-    }
-
-    const index = audit.manual_adjustments.indexOf(productName);
-    if (index > -1) {
-      audit.manual_adjustments.splice(index, 1);
-    } else {
-      audit.manual_adjustments.push(productName);
-    }
-
-    res.json({ success: true, audit });
-  } catch (error: any) {
-    console.error('Adjustment error:', error);
-    res.status(500).json({ error: 'Failed to adjust audit' });
-  }
-};
-
-app.post('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
-app.patch('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
-
 app.post('/api/history/delete', express.json(), async (req, res) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids)) {
-      return res.status(400).json({ error: 'Invalid input: ids must be an array' });
+      return res.status(400).json({ error: 'Invalid ids array' });
     }
-    await deleteFromDb(ids);
-    res.json({ success: true });
-  } catch (error: any) {
-    console.error('Delete error:', error);
-    res.status(500).json({ error: 'Failed to delete records', details: error.message });
+    
+    globalHistory = globalHistory.filter(record => !ids.includes(record.id));
+    await saveHistory(globalHistory);
+    
+    res.json({ success: true, deletedCount: ids.length });
+  } catch (error) {
+    console.error('History delete error:', error);
+    res.status(500).json({ error: 'Failed to delete history records' });
   }
 });
+
+// Vite Middleware (local only)
+if (!isVercel && process.env.NODE_ENV !== 'production') {
+  try {
+    const viteModule = await import('vite');
+    const vite = await viteModule.createServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } catch (err) {
+    console.error('Failed to load vite', err);
+  }
+}
 
 // Global Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
