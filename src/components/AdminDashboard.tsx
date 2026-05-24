@@ -842,27 +842,66 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                   };
 
                                   return (
-                                    <div className="space-y-1">
-                                      {notAdjustedParts.length > 0 && notAdjustedParts.map((part, i) => renderNotAdjustedPart(part, i))}
-                                      
-                                      {manualAdjs.length > 0 && (
-                                        <div className={`${notAdjustedParts.length > 0 ? "mt-4 pt-2 border-t border-gray-200" : ""}`}>
-                                          <div className="font-bold text-gray-800 mb-1">Ajustadas por auditor:</div>
-                                          {manualAdjs.map((adj, i) => {
-                                             const aiSaidMissing = missingPartsAI.some(p => p.startsWith(adj + ':'));
-                                             const textState = aiSaidMissing ? "si está" : "no está";
-                                             
-                                             return (
-                                               <div key={i} className="text-gray-800">
-                                                 <span className="font-bold">{adj}:</span> {textState}
-                                               </div>
-                                             );
-                                          })}
+                                    <div className="space-y-4">
+                                      {/* Original detection */}
+                                      {missingPartsAI.length > 0 && (
+                                        <div>
+                                          <div className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Detectado como faltante por IA:</div>
+                                          <div className="space-y-1 text-red-700">
+                                            {missingPartsAI.map((part, i) => renderNotAdjustedPart(part, i))}
+                                          </div>
                                         </div>
                                       )}
                                       
+                                      {/* Adjustments */}
+                                      {manualAdjs.length > 0 && (
+                                        <div>
+                                          <div className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Ajustadas por auditor:</div>
+                                          <div className="space-y-1 text-blue-700">
+                                            {manualAdjs.map((adj, i) => {
+                                               const aiSaidMissing = missingPartsAI.some(p => p.startsWith(adj + ':'));
+                                               const textState = aiSaidMissing ? "si está" : "no está";
+                                               
+                                               return (
+                                                 <div key={i}>
+                                                   <span className="font-semibold">{adj}:</span> {textState}
+                                                 </div>
+                                               );
+                                            })}
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Final Results */}
+                                      {(missingPartsAI.length > 0 || manualAdjs.length > 0) && (
+                                        <div className="bg-gray-200 p-3 rounded-md">
+                                          <div className="font-bold text-gray-900 border-b border-gray-300 pb-1 mb-2">Resultado Final (Faltantes reales tras auditoría):</div>
+                                          <div className="space-y-1 text-gray-900">
+                                            {(() => {
+                                              const finalMissingParts = missingPartsAI.filter(p => !manualAdjs.some(adj => p.startsWith(adj + ':')));
+                                              const aiSaidPresentButManuallyAddedAsMissing = manualAdjs.filter(adj => !missingPartsAI.some(p => p.startsWith(adj + ':')));
+                                              
+                                              const finalMissingComponents = [
+                                                ...finalMissingParts.map((part, i) => renderNotAdjustedPart(part, i)),
+                                                ...aiSaidPresentButManuallyAddedAsMissing.map((adj, i) => (
+                                                  <div key={`manual-${i}`}>
+                                                    <span className="font-bold">{adj}:</span> <span className="text-red-600 font-medium">Marcado como faltante por el auditor</span>
+                                                  </div>
+                                                ))
+                                              ];
+                                              
+                                              if (finalMissingComponents.length === 0) {
+                                                return <div className="text-green-700 font-semibold">Todas las referencias requeridas están presentes</div>;
+                                              }
+                                              
+                                              return finalMissingComponents;
+                                            })()}
+                                          </div>
+                                        </div>
+                                      )}
+
                                       {missingPartsAI.length === 0 && manualAdjs.length === 0 && (
-                                        <div>Todas las referencias requeridas fueron encontradas</div>
+                                        <div className="text-green-700 font-semibold mt-1">Todas las referencias requeridas fueron encontradas</div>
                                       )}
                                     </div>
                                   );
