@@ -103,9 +103,10 @@ async function loadHistory(): Promise<AuditResult[]> {
      }
   }
 
-  if (globalHistoryCache) {
-    return globalHistoryCache;
-  }
+  // Remove memory cache to prevent stale data across serverless instances
+  // if (globalHistoryCache) {
+  //  return globalHistoryCache;
+  // }
   
   try {
     if (process.env.BLOB_READ_WRITE_TOKEN) {
