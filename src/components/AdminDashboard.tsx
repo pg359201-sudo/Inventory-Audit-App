@@ -1049,8 +1049,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 title={item.required ? "Clic para cambiar estado" : ""}
                               >
                                 <td className="px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm text-gray-900">
-                                  <div className="font-medium">{item.productName}</div>
-                                  {item.reason && <div className="text-[10px] text-gray-500 mt-0.5 leading-tight">{item.reason}</div>}
+                                  {item.productName}
                                 </td>
                                 <td className="px-1 md:px-4 py-1.5 md:py-2 text-xs md:text-sm">
                                   <span className={`inline-flex items-center rounded-md px-1.5 md:px-2 py-0.5 md:py-1 text-[10px] md:text-xs font-medium ${

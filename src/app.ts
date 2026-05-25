@@ -759,12 +759,6 @@ Refs Individuales (Imágenes): ${loadedRefsCount} cargadas (${loadedRefsList.joi
 Descripciones Visuales (Texto): ${injectedDescriptionsCount} inyectadas`
     });
 
-    processLog.push({
-        step: 'Revisión de contexto importante',
-        status: 'OK',
-        details: 'Prompt y descripciones visuales inyectadas correctamente'
-    });
-
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: { parts },
