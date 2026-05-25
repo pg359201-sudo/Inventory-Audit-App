@@ -1078,7 +1078,17 @@ app.post('/api/history/delete', express.json(), async (req, res) => {
     
     if (pgPool) {
        for (const id of ids) {
-           await pgPool.query('DELETE FROM audits WHERE id = $1', [id]);
+           const parsedId = Number(id);
+           if (!isNaN(parsedId)) {
+               console.log(`[DELETE] Attempting to delete id=${parsedId} from Postgres`);
+               try {
+                 const deleteRes = await pgPool.query('DELETE FROM audits WHERE id = $1', [parsedId]);
+                 console.log(`[DELETE] Result rows deleted:`, deleteRes.rowCount);
+               } catch (e) {
+                 console.error(`[DELETE] Error deleting ${parsedId} from Postgres:`, e);
+                 throw e;
+               }
+           }
        }
     } else {
        let currentHistory = await loadHistory();
