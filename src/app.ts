@@ -390,7 +390,7 @@ app.get('/api/list-references', async (req, res) => {
   }
 });
 
-app.post('/api/references/delete', express.json(), async (req, res) => {
+app.post('/api/references/delete', express.json({ limit: '50mb' }), async (req, res) => {
   try {
     const { filenames } = req.body;
     if (!Array.isArray(filenames) || filenames.length === 0) {
@@ -982,10 +982,10 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
   }
 };
 
-app.post('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
-app.patch('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
+app.post('/api/audit/:id/adjust', express.json({ limit: '50mb' }), adjustAuditHandler);
+app.patch('/api/audit/:id/adjust', express.json({ limit: '50mb' }), adjustAuditHandler);
 
-app.post('/api/save-audit', express.json(), async (req, res) => {
+app.post('/api/save-audit', express.json({ limit: '50mb' }), async (req, res) => {
   try {
     const { usuario, cliente, fecha, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments, observaciones } = req.body;
     
@@ -1035,7 +1035,7 @@ app.get('/api/check-env', (req, res) => {
 });
 
 
-app.post('/api/history/delete', express.json(), async (req, res) => {
+app.post('/api/history/delete', express.json({ limit: '50mb' }), async (req, res) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids)) {
