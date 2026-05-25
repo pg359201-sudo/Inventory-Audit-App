@@ -484,21 +484,26 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       return;
     }
 
+    // Actualización optimista de UI
+    const idsToDelete = [...selectedIds];
+    setHistory(prev => prev.filter(record => !idsToDelete.includes(record.id)));
+    setSelectedIds([]);
+
     try {
       const res = await fetch('/api/history/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: selectedIds })
+        body: JSON.stringify({ ids: idsToDelete })
       });
 
-      if (res.ok) {
-        setSelectedIds([]);
+      if (!res.ok) {
+        // En caso de error, revertimos trayendo de nuevo los datos del servidor
         fetchHistory();
-      } else {
         alert('Error al eliminar registros');
       }
     } catch (error) {
       console.error('Error deleting records:', error);
+      fetchHistory(); // Revertir en caso de fallo de red
       alert('Error al eliminar registros');
     }
   };
