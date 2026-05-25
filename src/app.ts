@@ -618,17 +618,25 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     // Step 2: Reference Images Analysis
     let missingRefs = 0;
+    let referenceBlobs: any[] = [];
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        const listResult = await list({ prefix: 'referencias/' });
+        referenceBlobs = listResult.blobs;
+      } catch (e) {
+        console.warn("Failed to list reference blobs:", e);
+      }
+    }
     
     // NEW: Load Master Reference Image
+    let masterRefData: string | null = null;
     try {
         const masterRefName = 'referencias_visuales.jpg';
-        let masterRefData: string | null = null;
         
         // Try Blob
         if (process.env.BLOB_READ_WRITE_TOKEN) {
              try {
-                const listResult = await list({ prefix: 'referencias/' });
-                const blob = listResult.blobs.find(b => b.pathname.includes(masterRefName));
+                const blob = referenceBlobs.find(b => b.pathname.includes(masterRefName));
                 if (blob) {
                     const fetchUrl = new URL(blob.url);
                     fetchUrl.searchParams.append('t', Date.now().toString());
@@ -637,7 +645,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
                     masterRefData = Buffer.from(arrayBuffer).toString('base64');
                 }
              } catch (e) {
-                 console.warn("Failed to list blobs for master ref:", e);
+                 console.warn("Failed to fetch blob for master ref:", e);
              }
         }
 
@@ -672,8 +680,7 @@ Ignora el resto de productos no remarcados en esta foto.` });
         // Try Blob
         if (process.env.BLOB_READ_WRITE_TOKEN) {
              try {
-                const listResult = await list({ prefix: 'referencias/' });
-                const blob = listResult.blobs.find(b => b.pathname.includes(masterRef2Name) || b.pathname.includes('referencias_visuales2.jpeg'));
+                const blob = referenceBlobs.find(b => b.pathname.includes(masterRef2Name) || b.pathname.includes('referencias_visuales2.jpeg'));
                 if (blob) {
                     const fetchUrl = new URL(blob.url);
                     fetchUrl.searchParams.append('t', Date.now().toString());
@@ -682,7 +689,7 @@ Ignora el resto de productos no remarcados en esta foto.` });
                     masterRef2Data = Buffer.from(arrayBuffer).toString('base64');
                 }
              } catch (e) {
-                 console.warn("Failed to list blobs for master ref 2:", e);
+                 console.warn("Failed to fetch blob for master ref 2:", e);
              }
         }
 
@@ -703,16 +710,6 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
         }
     } catch (e) {
         console.warn("Failed to load master reference 2:", e);
-    }
-
-    let referenceBlobs: any[] = [];
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
-      try {
-        const listResult = await list({ prefix: 'referencias/' });
-        referenceBlobs = listResult.blobs;
-      } catch (e) {
-        console.warn("Failed to list reference blobs:", e);
-      }
     }
 
     let loadedRefsCount = 0;
