@@ -59,25 +59,49 @@ const DB_FILE = path.join(process.cwd(), 'history.json');
 
 async function loadHistory(): Promise<AuditResult[]> {
   try {
+    let blobData: any = null;
+    let blobDate: Date | null = null;
+
     if (process.env.BLOB_READ_WRITE_TOKEN) {
       try {
         const { blobs } = await list({ prefix: 'history.json' });
         const blob = blobs.find(b => b.pathname === 'history.json');
         if (blob) {
+          blobDate = new Date(blob.uploadedAt);
           const fetchUrl = new URL(blob.downloadUrl);
           fetchUrl.searchParams.append('t', Date.now().toString());
           const response = await fetch(fetchUrl.toString(), { cache: 'no-store' });
           const data = await response.text();
-          return JSON.parse(data);
+          blobData = JSON.parse(data);
         }
       } catch (e) {
         console.error('Error loading history from Blob:', e);
       }
     }
-    // Fallback to local file
+
+    let localData: any = null;
+    let localDate: Date | null = null;
     if (fs.existsSync(DB_FILE)) {
-      const data = fs.readFileSync(DB_FILE, 'utf-8');
-      return JSON.parse(data);
+      const stats = fs.statSync(DB_FILE);
+      localDate = stats.mtime;
+      const fileData = fs.readFileSync(DB_FILE, 'utf-8');
+      try {
+          localData = JSON.parse(fileData);
+      } catch(e) {}
+    }
+
+    if (localData && (!blobDate || (localDate && localDate > blobDate))) {
+      console.log('Loading history from newer local file.');
+      return localData;
+    }
+
+    if (blobData) {
+      console.log('Loading history from Blob.');
+      return blobData;
+    }
+
+    if (localData) {
+        return localData;
     }
   } catch (e) {
     console.error('Error loading history:', e);
