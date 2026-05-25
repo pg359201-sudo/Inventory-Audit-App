@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 import { put, list, del } from '@vercel/blob';
+import { createPool } from '@vercel/postgres';
 import { ProductStatus } from './types';
 // import { fileURLToPath } from 'url';
 
@@ -24,6 +25,7 @@ interface AuditResult {
   url_imagen: string;
   proceso_auditoria?: string;
   manual_adjustments?: string[];
+  observaciones?: string;
 }
 
 // --- PRODUCT DESCRIPTIONS ---
@@ -54,36 +56,65 @@ app.use((req, res, next) => {
   next();
 });
 
+// --- POSTGRES SETUP ---
+let pgPool: ReturnType<typeof createPool> | null = null;
+const rawUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.DATABASE_URL_UNPOOLED;
+if (rawUrl) {
+  const sanitizedUrl = rawUrl.replace(/^=/, '').trim();
+  try {
+      pgPool = createPool({ connectionString: sanitizedUrl });
+      
+      // Initialize table
+      pgPool.query(`
+        CREATE TABLE IF NOT EXISTS audits (
+          id BIGINT PRIMARY KEY,
+          usuario TEXT,
+          fecha TEXT,
+          cliente TEXT,
+          resultado_detallado TEXT,
+          resultado_global TEXT,
+          url_imagen TEXT,
+          proceso_auditoria TEXT,
+          manual_adjustments JSONB,
+          observaciones TEXT
+        );
+      `).catch(err => console.error('Error creating PG table:', err));
+  } catch(e) {
+      console.error('Error initializing Postgres pool:', e);
+  }
+}
+
 // --- DB LOGIC (File-Based / Blob-Based) ---
 const DB_FILE = path.join(process.cwd(), 'history.json');
 
+let globalHistoryCache: AuditResult[] | null = null;
+
 async function loadHistory(): Promise<AuditResult[]> {
-  try {
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
-      try {
-        const { blobs } = await list({ prefix: 'history.json' });
-        const blob = blobs.find(b => b.pathname === 'history.json');
-        if (blob) {
-          const response = await fetch(blob.url);
-          const data = await response.text();
-          return JSON.parse(data);
-        }
-      } catch (e) {
-        console.error('Error loading history from Blob:', e);
-      }
-    }
-    // Fallback to local file
-    if (fs.existsSync(DB_FILE)) {
-      const data = fs.readFileSync(DB_FILE, 'utf-8');
-      return JSON.parse(data);
-    }
-  } catch (e) {
-    console.error('Error loading history:', e);
+  if (pgPool) {
+     try {
+       const { rows } = await pgPool.query('SELECT * FROM audits ORDER BY id DESC');
+       return rows.map(r => ({
+         ...r,
+         id: Number(r.id), // Because BIGINT comes as string sometimes
+       }));
+     } catch (e) {
+       console.error('Error loading history from Postgres:', e);
+       return [];
+     }
   }
+  
+  console.warn('PostgreSQL is not configured properly (pgPool is null). Returning empty history.');
   return [];
 }
 
 async function saveHistory(history: AuditResult[]) {
+  if (pgPool) {
+      // With Postgres, we usually save one by one. But this function might be used in fallback.
+      // So let's skip complete overwrite for Postgres here, because saveToDb and deletes handle Postgres independently.
+      return; 
+  }
+
+  globalHistoryCache = history;
   try {
     const data = JSON.stringify(history, null, 2);
     if (process.env.BLOB_READ_WRITE_TOKEN) {
@@ -91,7 +122,8 @@ async function saveHistory(history: AuditResult[]) {
         await put('history.json', data, {
           access: 'public',
           contentType: 'application/json',
-          addRandomSuffix: false
+          addRandomSuffix: false,
+          allowOverwrite: true
         });
       } catch (e) {
         console.error('Error saving history to Blob:', e);
@@ -104,23 +136,38 @@ async function saveHistory(history: AuditResult[]) {
   }
 }
 
-let globalHistory: AuditResult[] = await loadHistory();
-
 async function getDb(): Promise<AuditResult[]> {
-  return globalHistory;
+  return await loadHistory();
 }
 
 async function saveToDb(audit: Omit<AuditResult, 'id'>) {
-  console.log('DEBUG: saveToDb called with keys:', Object.keys(audit));
-  if ('proceso_auditoria' in audit) {
-      console.log('DEBUG: proceso_auditoria present in saveToDb payload. Length:', audit.proceso_auditoria?.length);
-  } else {
-      console.error('DEBUG: proceso_auditoria MISSING in saveToDb payload');
-  }
-  
   const newRecord = { ...audit, id: Date.now() };
-  globalHistory.unshift(newRecord);
-  await saveHistory(globalHistory);
+
+  if (pgPool) {
+     try {
+       await pgPool.query(`
+         INSERT INTO audits (id, usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments, observaciones)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       `, [
+         newRecord.id,
+         newRecord.usuario,
+         newRecord.fecha,
+         newRecord.cliente,
+         newRecord.resultado_detallado,
+         newRecord.resultado_global,
+         newRecord.url_imagen,
+         newRecord.proceso_auditoria,
+         JSON.stringify(newRecord.manual_adjustments || []),
+         newRecord.observaciones || ''
+       ]);
+       return newRecord;
+     } catch (err) {
+       console.error("Error inserting into PG:", err);
+     }
+  } else {
+    console.warn('PostgreSQL is not configured properly (pgPool is null). Data not saved.');
+  }
+
   return newRecord;
 }
 
@@ -425,8 +472,6 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
     if (!file) return res.status(400).json({ error: 'No photo uploaded' });
 
     // Step 1: Check Client Rules
-    processLog.push({ step: 'Revisión de tabla de referencias por cliente', status: 'OK', details: `Cliente ID: ${clienteId}` });
-    
     // Load Client Rules (Embedded First)
     const records = parseCSV(EMBEDDED_CSV_DATA);
     const clientRule = records.find((r: any) => r['Codigo FEMSA'] === clienteId);
@@ -600,24 +645,34 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
     // Step 2: Reference Images Analysis
     let missingRefs = 0;
+    let referenceBlobs: any[] = [];
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        const listResult = await list({ prefix: 'referencias/' });
+        referenceBlobs = listResult.blobs;
+      } catch (e) {
+        console.warn("Failed to list reference blobs:", e);
+      }
+    }
     
     // NEW: Load Master Reference Image
+    let masterRefData: string | null = null;
     try {
         const masterRefName = 'referencias_visuales.jpg';
-        let masterRefData: string | null = null;
         
         // Try Blob
         if (process.env.BLOB_READ_WRITE_TOKEN) {
              try {
-                const listResult = await list({ prefix: 'referencias/' });
-                const blob = listResult.blobs.find(b => b.pathname.includes(masterRefName));
+                const blob = referenceBlobs.find(b => b.pathname.includes(masterRefName));
                 if (blob) {
-                    const response = await fetch(blob.url);
+                    const fetchUrl = new URL(blob.url);
+                    fetchUrl.searchParams.append('t', Date.now().toString());
+                    const response = await fetch(fetchUrl.toString(), { cache: 'no-store' });
                     const arrayBuffer = await response.arrayBuffer();
                     masterRefData = Buffer.from(arrayBuffer).toString('base64');
                 }
              } catch (e) {
-                 console.warn("Failed to list blobs for master ref:", e);
+                 console.warn("Failed to fetch blob for master ref:", e);
              }
         }
 
@@ -637,31 +692,31 @@ El recuadro rojo delimita exactamente la botella que corresponde.
 Solo las botellas que están dentro de los recuadros rojos deben utilizarse como referencia visual primaria ("la verdad absoluta") del producto en entorno de supermercado real.
 Ignora el resto de productos no remarcados en esta foto.` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRefData } });
-            processLog.push({ step: 'Carga de Productos en Góndola Real (referencias_visuales.jpg)', status: 'OK', details: 'Archivo referencias_visuales.jpg cargado y enviado a la IA' });
         } else {
-             // processLog.push({ step: 'Carga de Productos en Góndola Real (referencias_visuales.jpg)', status: 'Warning', details: 'No se encontró el archivo referencias_visuales.jpg' });
+             // not found
         }
     } catch (e) {
         console.warn("Failed to load master reference:", e);
     }
 
+    let masterRef2Data: string | null = null;
     // NEW: Load Master Reference Image 2
     try {
         const masterRef2Name = 'referencias_visuales2.jpg';
-        let masterRef2Data: string | null = null;
         
         // Try Blob
         if (process.env.BLOB_READ_WRITE_TOKEN) {
              try {
-                const listResult = await list({ prefix: 'referencias/' });
-                const blob = listResult.blobs.find(b => b.pathname.includes(masterRef2Name) || b.pathname.includes('referencias_visuales2.jpeg'));
+                const blob = referenceBlobs.find(b => b.pathname.includes(masterRef2Name) || b.pathname.includes('referencias_visuales2.jpeg'));
                 if (blob) {
-                    const response = await fetch(blob.url);
+                    const fetchUrl = new URL(blob.url);
+                    fetchUrl.searchParams.append('t', Date.now().toString());
+                    const response = await fetch(fetchUrl.toString(), { cache: 'no-store' });
                     const arrayBuffer = await response.arrayBuffer();
                     masterRef2Data = Buffer.from(arrayBuffer).toString('base64');
                 }
              } catch (e) {
-                 console.warn("Failed to list blobs for master ref 2:", e);
+                 console.warn("Failed to fetch blob for master ref 2:", e);
              }
         }
 
@@ -679,40 +734,42 @@ Ignora el resto de productos no remarcados en esta foto.` });
 Esta imagen complementa la anterior bajo las MISMAS REGLAS (flechas, recuadros rojos).
 Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ven realmente los productos en la góndola, con la iluminación e imperfecciones reales del estante. PRIORIZA estas dos referencias visuales (los recuadros rojos) por sobre cualquier imagen individual de estudio (fondo blanco) que se provea más adelante.` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRef2Data } });
-            processLog.push({ step: 'Carga de Productos en Góndola Real 2 (referencias_visuales2)', status: 'OK', details: 'Archivo referencias_visuales2 cargado y enviado a la IA' });
         }
     } catch (e) {
         console.warn("Failed to load master reference 2:", e);
     }
 
-    let referenceBlobs: any[] = [];
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
-      try {
-        const listResult = await list({ prefix: 'referencias/' });
-        referenceBlobs = listResult.blobs;
-      } catch (e) {
-        console.warn("Failed to list reference blobs:", e);
-      }
-    }
-
     let loadedRefsCount = 0;
+    const loadedRefsList: string[] = [];
+    let injectedDescriptionsCount = 0;
+
     for (const prod of requiredProducts) {
       // 1. Add Visual Description if available
       if (PRODUCT_DESCRIPTIONS[prod]) {
+        injectedDescriptionsCount++;
         parts.push({ text: `Visual description for ${prod}: ${PRODUCT_DESCRIPTIONS[prod]}` });
       }
       
       // 2. Add Reference Image
       try {
         let refData: string | null = null;
-        const filename = `${prod}.jpg`;
-        const altFilename = `${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`;
+        const altFilenameBase = prod.replace(/[^a-zA-Z0-9]/g, ' ');
 
         if (process.env.BLOB_READ_WRITE_TOKEN) {
-          // Try to find in Blob list
-          const blob = referenceBlobs.find(b => b.pathname === `referencias/${filename}` || b.pathname === `referencias/${altFilename}`);
+          // Try to find in Blob list (handling different extensions)
+          const blob = referenceBlobs.find(b => {
+             const lowerPath = b.pathname.toLowerCase();
+             const lowerProd = prod.toLowerCase();
+             const lowerAlt = altFilenameBase.toLowerCase();
+             return (
+               lowerPath.includes(`referencias/${lowerProd}.`) || 
+               lowerPath.includes(`referencias/${lowerAlt}.`)
+             );
+          });
           if (blob) {
-            const response = await fetch(blob.url);
+            const fetchUrl = new URL(blob.url);
+            fetchUrl.searchParams.append('t', Date.now().toString());
+            const response = await fetch(fetchUrl.toString(), { cache: 'no-store' });
             const arrayBuffer = await response.arrayBuffer();
             refData = Buffer.from(arrayBuffer).toString('base64');
           }
@@ -720,18 +777,26 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
         
         // Fallback to local if not found in blob or no token
         if (!refData) {
-          let refPath = getReferencePath(filename);
-          if (!fs.existsSync(refPath)) refPath = getReferencePath(altFilename);
-          
-          if (fs.existsSync(refPath)) {
-            refData = fs.readFileSync(refPath).toString('base64');
-          }
+           const refDir = path.join(process.cwd(), 'public', 'referencias');
+           if (fs.existsSync(refDir)) {
+               const files = fs.readdirSync(refDir);
+               const matchedFile = files.find(f => {
+                   const lowerF = f.toLowerCase();
+                   const lowerProd = prod.toLowerCase();
+                   const lowerAlt = altFilenameBase.toLowerCase();
+                   return lowerF.startsWith(`${lowerProd}.`) || lowerF.startsWith(`${lowerAlt}.`);
+               });
+               if (matchedFile) {
+                   refData = fs.readFileSync(path.join(refDir, matchedFile)).toString('base64');
+               }
+           }
         }
 
         if (refData) {
           parts.push({ text: `Imagen de estudio (fondo blanco) para ${prod}. ATENCIÓN: Esta es una imagen publicitaria. Usar solo para reconocer detalles de la etiqueta o el logo. Para determinar la forma, las proporciones reales y la iluminación, PRIORIZAR las dos imágenes de 'gíndolas reales' enviadas anteriormente, ya que así es como se ven realmente los productos en la góndola.` });
           parts.push({ inlineData: { mimeType: 'image/jpeg', data: refData } });
           loadedRefsCount++;
+          loadedRefsList.push(prod);
         } else {
              missingRefs++;
         }
@@ -741,14 +806,28 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
       }
     }
     
+    // Add the consolidated step log
+    const masterActivaInfo = (masterRefData || masterRef2Data)
+      ? 'ACTIVA (Solo Diccionario)'
+      : 'NO ENCONTRADA';
+
     processLog.push({ 
-        step: 'Análisis de fotos de referencias', 
+        step: 'Carga de Imágenes de Referencia', 
         status: missingRefs === 0 ? 'OK' : 'Warning', 
-        details: `Cargadas: ${loadedRefsCount}, Faltantes: ${missingRefs}` 
+        details: `Cargadas: ${loadedRefsCount}, Faltantes: ${missingRefs}. Productos cargados: ${loadedRefsList.length > 0 ? loadedRefsList.join(', ') : 'Ninguno'}. Productos en góndola (fotos maestras): ${masterActivaInfo}`
     });
 
-    // Step 3: Context Check
-    processLog.push({ step: 'Revisión de contexto importante', status: 'OK', details: 'Prompt y descripciones visuales inyectadas correctamente' });
+    processLog.push({ 
+        step: 'Inyección de Descripciones Visuales (Texto)', 
+        status: injectedDescriptionsCount > 0 ? 'OK' : 'Warning', 
+        details: `Inyectadas correctamente: ${injectedDescriptionsCount} descripciones. Esto ayuda al modelo a identificar la forma, tapa y color de los productos.`
+    });
+
+    processLog.push({ 
+        step: 'Revisión de contexto importante', 
+        status: 'OK', 
+        details: 'Prompt y descripciones visuales inyectadas correctamente'
+    });
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -858,7 +937,8 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
     }
     const { productName } = req.body;
 
-    const audit = globalHistory.find(a => a.id === id);
+    let currentHistory = await loadHistory();
+    const audit = currentHistory.find(a => a.id === id);
     if (!audit) {
       return res.status(404).json({ error: 'Audit not found' });
     }
@@ -866,6 +946,13 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
     // Initialize array if it doesn't exist
     if (!audit.manual_adjustments) {
       audit.manual_adjustments = [];
+    }
+    else if (typeof audit.manual_adjustments === 'string') {
+        try {
+            audit.manual_adjustments = JSON.parse(audit.manual_adjustments);
+        } catch(e) {
+            audit.manual_adjustments = [];
+        }
     }
 
     // Toggle the product in the manual_adjustments array
@@ -878,7 +965,14 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
       audit.manual_adjustments.push(productName);
     }
 
-    await saveHistory(globalHistory);
+    if (pgPool) {
+       await pgPool.query('UPDATE audits SET manual_adjustments = $1 WHERE id = $2', [
+           JSON.stringify(audit.manual_adjustments),
+           id
+       ]);
+    } else {
+       await saveHistory(currentHistory);
+    }
 
     res.json({ success: true, audit });
   } catch (error: any) {
@@ -892,7 +986,7 @@ app.patch('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
 
 app.post('/api/save-audit', express.json(), async (req, res) => {
   try {
-    const { usuario, cliente, fecha, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments } = req.body;
+    const { usuario, cliente, fecha, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments, observaciones } = req.body;
     
     await saveToDb({
       usuario,
@@ -902,7 +996,8 @@ app.post('/api/save-audit', express.json(), async (req, res) => {
       resultado_global,
       url_imagen,
       proceso_auditoria: typeof proceso_auditoria === 'string' ? proceso_auditoria : JSON.stringify(proceso_auditoria),
-      manual_adjustments
+      manual_adjustments,
+      observaciones
     });
     
     res.json({ success: true });
@@ -913,6 +1008,10 @@ app.post('/api/save-audit', express.json(), async (req, res) => {
 });
 
 app.get('/api/history', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
   try {
     const rows = await getDb();
     res.json(rows);
@@ -922,6 +1021,17 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
+app.get('/api/check-env', (req, res) => {
+  res.json({
+    BLOB_TOKEN: !!process.env.BLOB_READ_WRITE_TOKEN,
+    POSTGRES_URL: !!process.env.POSTGRES_URL,
+    DATABASE_URL: !!process.env.DATABASE_URL,
+    DATABASE_URL_UNPOOLED: !!process.env.DATABASE_URL_UNPOOLED,
+    KEYS: Object.keys(process.env).filter(k => k.includes('URL') || k.includes('POSTGRES') || k.includes('DATABASE')).join(', '),
+  });
+});
+
+
 app.post('/api/history/delete', express.json(), async (req, res) => {
   try {
     const { ids } = req.body;
@@ -929,8 +1039,23 @@ app.post('/api/history/delete', express.json(), async (req, res) => {
       return res.status(400).json({ error: 'Invalid ids array' });
     }
     
-    globalHistory = globalHistory.filter(record => !ids.includes(record.id));
-    await saveHistory(globalHistory);
+    if (pgPool) {
+       for (const id of ids) {
+           const parsedId = Number(id);
+           if (!isNaN(parsedId)) {
+               console.log(`[DELETE] Attempting to delete id=${parsedId} from Postgres`);
+               try {
+                 const deleteRes = await pgPool.query('DELETE FROM audits WHERE id = $1', [parsedId]);
+                 console.log(`[DELETE] Result rows deleted:`, deleteRes.rowCount);
+               } catch (e) {
+                 console.error(`[DELETE] Error deleting ${parsedId} from Postgres:`, e);
+                 throw e;
+               }
+           }
+       }
+    } else {
+       console.warn('PostgreSQL is not configured properly (pgPool is null). Delete failed.');
+    }
     
     res.json({ success: true, deletedCount: ids.length });
   } catch (error) {
