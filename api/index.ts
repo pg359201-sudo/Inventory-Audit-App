@@ -1023,6 +1023,8 @@ app.get('/api/history', async (req, res) => {
 
 app.get('/api/check-env', (req, res) => {
   res.json({
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL: process.env.VERCEL,
     BLOB_TOKEN: !!process.env.BLOB_READ_WRITE_TOKEN,
     POSTGRES_URL: !!process.env.POSTGRES_URL,
     DATABASE_URL: !!process.env.DATABASE_URL,
