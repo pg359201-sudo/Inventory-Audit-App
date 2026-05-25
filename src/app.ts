@@ -1065,16 +1065,26 @@ app.post('/api/history/delete', express.json(), async (req, res) => {
 });
 
 // Vite Middleware (local only)
-if (!isVercel && process.env.NODE_ENV !== 'production') {
-  try {
-    const viteModule = await import('vite');
-    const vite = await viteModule.createServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
+if (!isVercel) {
+  if (process.env.NODE_ENV !== 'production') {
+    (async () => {
+      try {
+        const viteModule = await import('vite');
+        const vite = await viteModule.createServer({
+          server: { middlewareMode: true },
+          appType: 'spa',
+        });
+        app.use(vite.middlewares);
+      } catch (err) {
+        console.error('Failed to load vite', err);
+      }
+    })();
+  } else {
+    const distPath = path.resolve('dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
     });
-    app.use(vite.middlewares);
-  } catch (err) {
-    console.error('Failed to load vite', err);
   }
 }
 
