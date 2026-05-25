@@ -134,9 +134,7 @@ async function saveHistory(history: AuditResult[]) {
 let globalHistory: AuditResult[] = await loadHistory();
 
 async function getDb(): Promise<AuditResult[]> {
-  if (!globalHistory || globalHistory.length === 0) {
-    globalHistory = await loadHistory();
-  }
+  globalHistory = await loadHistory();
   return globalHistory;
 }
 
@@ -149,9 +147,7 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
   }
   
   const newRecord = { ...audit, id: Date.now() };
-  if (!globalHistory || globalHistory.length === 0) {
-      globalHistory = await loadHistory();
-  }
+  globalHistory = await loadHistory();
   globalHistory.unshift(newRecord);
   await saveHistory(globalHistory);
   return newRecord;
@@ -909,9 +905,7 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
     }
     const { productName } = req.body;
 
-    if (!globalHistory || globalHistory.length === 0) {
-      globalHistory = await loadHistory();
-    }
+    globalHistory = await loadHistory();
     const audit = globalHistory.find(a => a.id === id);
     if (!audit) {
       return res.status(404).json({ error: 'Audit not found' });
@@ -989,9 +983,7 @@ app.post('/api/history/delete', express.json(), async (req, res) => {
       return res.status(400).json({ error: 'Invalid ids array' });
     }
     
-    if (!globalHistory || globalHistory.length === 0) {
-      globalHistory = await loadHistory();
-    }
+    globalHistory = await loadHistory();
     globalHistory = globalHistory.filter(record => !ids.includes(record.id));
     await saveHistory(globalHistory);
     

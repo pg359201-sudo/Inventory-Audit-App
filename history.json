@@ -1,16 +1,5 @@
 [
   {
-    "usuario": "test",
-    "fecha": "2026-05-24T23:47:38.261Z",
-    "cliente": "test2",
-    "resultado_detallado": "test",
-    "resultado_global": "OK",
-    "url_imagen": "test",
-    "proceso_auditoria": "[{\"step\":\"test\",\"status\":\"OK\"}]",
-    "manual_adjustments": [],
-    "id": 1779666458380
-  },
-  {
     "id": 1779665534152,
     "usuario": "Auditor",
     "fecha": "2026-05-23T11:27:15.048Z",
