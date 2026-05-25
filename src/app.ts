@@ -110,7 +110,9 @@ async function saveHistory(history: AuditResult[]) {
 let globalHistory: AuditResult[] = await loadHistory();
 
 async function getDb(): Promise<AuditResult[]> {
-  globalHistory = await loadHistory();
+  if (!globalHistory || globalHistory.length === 0) {
+    globalHistory = await loadHistory();
+  }
   return globalHistory;
 }
 
@@ -123,7 +125,9 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
   }
   
   const newRecord = { ...audit, id: Date.now() };
-  globalHistory = await loadHistory();
+  if (!globalHistory || globalHistory.length === 0) {
+      globalHistory = await loadHistory();
+  }
   globalHistory.unshift(newRecord);
   await saveHistory(globalHistory);
   return newRecord;
@@ -649,10 +653,10 @@ Ignora el resto de productos no remarcados en esta foto.` });
         console.warn("Failed to load master reference:", e);
     }
 
+    let masterRef2Data: string | null = null;
     // NEW: Load Master Reference Image 2
     try {
         const masterRef2Name = 'referencias_visuales2.jpg';
-        let masterRef2Data: string | null = null;
         
         // Try Blob
         if (process.env.BLOB_READ_WRITE_TOKEN) {
@@ -754,7 +758,7 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
     }
     
     // Add the consolidated step log
-    const masterActivaInfo = (typeof masterRefData !== 'undefined' && masterRefData) 
+    const masterActivaInfo = (masterRefData || masterRef2Data)
       ? 'ACTIVA (Solo Diccionario)'
       : 'NO ENCONTRADA';
 
@@ -762,9 +766,15 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
         step: 'Carga de Referencias y Contexto IA', 
         status: missingRefs === 0 ? 'OK' : 'Warning', 
         details: `Reglas (JSON): Buscar ${requiredProducts.length} productos (${requiredProducts.join(', ')})
-Productos en Góndola Real (referencias_visuales.jpg): ${masterActivaInfo}
+Productos en Góndola Real (referencias_visuales.jpg y referencias_visuales2.jpg): ${masterActivaInfo}
 Refs Individuales (Imágenes): ${loadedRefsCount} cargadas (${loadedRefsList.join(', ')})
 Descripciones Visuales (Texto): ${injectedDescriptionsCount} inyectadas`
+    });
+
+    processLog.push({ 
+        step: 'Revisión de contexto importante', 
+        status: 'OK', 
+        details: 'Prompt y descripciones visuales inyectadas correctamente'
     });
 
     const response = await ai.models.generateContent({
@@ -875,7 +885,9 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
     }
     const { productName } = req.body;
 
-    globalHistory = await loadHistory();
+    if (!globalHistory || globalHistory.length === 0) {
+      globalHistory = await loadHistory();
+    }
     const audit = globalHistory.find(a => a.id === id);
     if (!audit) {
       return res.status(404).json({ error: 'Audit not found' });
@@ -953,7 +965,9 @@ app.post('/api/history/delete', express.json(), async (req, res) => {
       return res.status(400).json({ error: 'Invalid ids array' });
     }
     
-    globalHistory = await loadHistory();
+    if (!globalHistory || globalHistory.length === 0) {
+      globalHistory = await loadHistory();
+    }
     globalHistory = globalHistory.filter(record => !ids.includes(record.id));
     await saveHistory(globalHistory);
     
