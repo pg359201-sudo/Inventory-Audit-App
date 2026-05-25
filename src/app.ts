@@ -64,7 +64,7 @@ async function loadHistory(): Promise<AuditResult[]> {
         const { blobs } = await list({ prefix: 'history.json' });
         const blob = blobs.find(b => b.pathname === 'history.json');
         if (blob) {
-          const fetchUrl = new URL(blob.url);
+          const fetchUrl = new URL(blob.downloadUrl);
           fetchUrl.searchParams.append('t', Date.now().toString());
           const response = await fetch(fetchUrl.toString(), { cache: 'no-store' });
           const data = await response.text();
