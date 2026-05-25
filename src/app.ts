@@ -115,8 +115,13 @@ async function saveHistory(history: AuditResult[]) {
   }
 }
 
+let globalHistory: AuditResult[] | null = null;
+
 async function getDb(): Promise<AuditResult[]> {
-  return await loadHistory();
+  if (!globalHistory) {
+    globalHistory = await loadHistory();
+  }
+  return globalHistory;
 }
 
 async function saveToDb(audit: Omit<AuditResult, 'id'>) {
@@ -128,9 +133,11 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
   }
   
   const newRecord = { ...audit, id: Date.now() };
-  let currentHistory = await loadHistory();
-  currentHistory.unshift(newRecord);
-  await saveHistory(currentHistory);
+  if (!globalHistory) {
+    globalHistory = await loadHistory();
+  }
+  globalHistory.unshift(newRecord);
+  await saveHistory(globalHistory);
   return newRecord;
 }
 
@@ -719,12 +726,19 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
       // 2. Add Reference Image
       try {
         let refData: string | null = null;
-        const filename = `${prod}.jpg`;
-        const altFilename = `${prod.replace(/[^a-zA-Z0-9]/g, ' ')}.jpg`;
+        const altFilenameBase = prod.replace(/[^a-zA-Z0-9]/g, ' ');
 
         if (process.env.BLOB_READ_WRITE_TOKEN) {
-          // Try to find in Blob list
-          const blob = referenceBlobs.find(b => b.pathname === `referencias/${filename}` || b.pathname === `referencias/${altFilename}`);
+          // Try to find in Blob list (handling different extensions)
+          const blob = referenceBlobs.find(b => {
+             const lowerPath = b.pathname.toLowerCase();
+             const lowerProd = prod.toLowerCase();
+             const lowerAlt = altFilenameBase.toLowerCase();
+             return (
+               lowerPath.includes(`referencias/${lowerProd}.`) || 
+               lowerPath.includes(`referencias/${lowerAlt}.`)
+             );
+          });
           if (blob) {
             const fetchUrl = new URL(blob.url);
             fetchUrl.searchParams.append('t', Date.now().toString());
@@ -736,12 +750,19 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
         
         // Fallback to local if not found in blob or no token
         if (!refData) {
-          let refPath = getReferencePath(filename);
-          if (!fs.existsSync(refPath)) refPath = getReferencePath(altFilename);
-          
-          if (fs.existsSync(refPath)) {
-            refData = fs.readFileSync(refPath).toString('base64');
-          }
+           const refDir = path.join(process.cwd(), 'public', 'referencias');
+           if (fs.existsSync(refDir)) {
+               const files = fs.readdirSync(refDir);
+               const matchedFile = files.find(f => {
+                   const lowerF = f.toLowerCase();
+                   const lowerProd = prod.toLowerCase();
+                   const lowerAlt = altFilenameBase.toLowerCase();
+                   return lowerF.startsWith(`${lowerProd}.`) || lowerF.startsWith(`${lowerAlt}.`);
+               });
+               if (matchedFile) {
+                   refData = fs.readFileSync(path.join(refDir, matchedFile)).toString('base64');
+               }
+           }
         }
 
         if (refData) {
@@ -764,12 +785,15 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
       : 'NO ENCONTRADA';
 
     processLog.push({ 
-        step: 'Carga de Referencias y Contexto IA', 
+        step: 'Carga de Imágenes de Referencia', 
         status: missingRefs === 0 ? 'OK' : 'Warning', 
-        details: `Reglas (JSON): Buscar ${requiredProducts.length} productos (${requiredProducts.join(', ')})
-Productos en Góndola Real (referencias_visuales.jpg y referencias_visuales2.jpg): ${masterActivaInfo}
-Refs Individuales (Imágenes): ${loadedRefsCount} cargadas (${loadedRefsList.join(', ')})
-Descripciones Visuales (Texto): ${injectedDescriptionsCount} inyectadas`
+        details: `Cargadas: ${loadedRefsCount}, Faltantes: ${missingRefs}. Productos cargados: ${loadedRefsList.length > 0 ? loadedRefsList.join(', ') : 'Ninguno'}. Productos en góndola (fotos maestras): ${masterActivaInfo}`
+    });
+
+    processLog.push({ 
+        step: 'Inyección de Descripciones Visuales (Texto)', 
+        status: injectedDescriptionsCount > 0 ? 'OK' : 'Warning', 
+        details: `Inyectadas correctamente: ${injectedDescriptionsCount} descripciones. Esto ayuda al modelo a identificar la forma, tapa y color de los productos.`
     });
 
     processLog.push({ 
@@ -886,8 +910,10 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
     }
     const { productName } = req.body;
 
-    let currentHistory = await loadHistory();
-    const audit = currentHistory.find(a => a.id === id);
+    if (!globalHistory) {
+      globalHistory = await loadHistory();
+    }
+    const audit = globalHistory.find(a => a.id === id);
     if (!audit) {
       return res.status(404).json({ error: 'Audit not found' });
     }
@@ -907,7 +933,7 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
       audit.manual_adjustments.push(productName);
     }
 
-    await saveHistory(currentHistory);
+    await saveHistory(globalHistory);
 
     res.json({ success: true, audit });
   } catch (error: any) {
@@ -964,9 +990,11 @@ app.post('/api/history/delete', express.json(), async (req, res) => {
       return res.status(400).json({ error: 'Invalid ids array' });
     }
     
-    let currentHistory = await loadHistory();
-    currentHistory = currentHistory.filter(record => !ids.includes(record.id));
-    await saveHistory(currentHistory);
+    if (!globalHistory) {
+      globalHistory = await loadHistory();
+    }
+    globalHistory = globalHistory.filter(record => !ids.includes(record.id));
+    await saveHistory(globalHistory);
     
     res.json({ success: true, deletedCount: ids.length });
   } catch (error) {
