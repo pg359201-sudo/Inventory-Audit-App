@@ -414,9 +414,12 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
                     >
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1">
-                          <span className={`font-semibold truncate text-xs leading-tight ${isRequired ? 'text-gray-800' : 'text-gray-400'}`} title={item.productName}>
-                            {item.productName}
-                          </span>
+                          <div className="flex-1 min-w-0">
+                            <span className={`font-semibold truncate block text-xs leading-tight ${isRequired ? 'text-gray-800' : 'text-gray-400'}`} title={item.productName}>
+                              {item.productName}
+                            </span>
+                            {item.reason && <span className="text-[10px] text-gray-500 block leading-tight mt-0.5 line-clamp-2" title={item.reason}>{item.reason}</span>}
+                          </div>
                           {!isRequired && isPresent && (
                             <CheckCircle className="w-3 h-3 text-gray-400 shrink-0" />
                           )}
