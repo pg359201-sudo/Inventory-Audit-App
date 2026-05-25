@@ -102,48 +102,9 @@ async function loadHistory(): Promise<AuditResult[]> {
        return [];
      }
   }
-
-  // Remove memory cache to prevent stale data across serverless instances
-  // if (globalHistoryCache) {
-  //  return globalHistoryCache;
-  // }
   
-  try {
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
-      try {
-        const tokenParts = process.env.BLOB_READ_WRITE_TOKEN.split('_');
-        if (tokenParts.length > 3) {
-          const storeId = tokenParts[3].toLowerCase();
-          const blobUrl = `https://${storeId}.public.blob.vercel-storage.com/history.json`;
-          console.log(`[loadHistory] Fetching directly: ${blobUrl}`);
-          
-          const response = await fetch(`${blobUrl}?download=1&t=${Date.now()}`, { cache: 'no-store' });
-          if (response.ok) {
-            const data = await response.text();
-            globalHistoryCache = JSON.parse(data);
-            return globalHistoryCache!;
-          } else {
-            console.warn(`[loadHistory] Failed to fetch Blob. Status: ${response.status}`);
-          }
-        }
-      } catch (e) {
-        console.error('Error loading history from Blob directly:', e);
-      }
-    }
-
-    if (fs.existsSync(DB_FILE)) {
-      console.log('Loading history from local file fallback.');
-      const fileData = fs.readFileSync(DB_FILE, 'utf-8');
-      try {
-          globalHistoryCache = JSON.parse(fileData);
-          return globalHistoryCache!;
-      } catch(e) {}
-    }
-  } catch (e) {
-    console.error('Error loading history:', e);
-  }
-  globalHistoryCache = [];
-  return globalHistoryCache;
+  console.warn('PostgreSQL is not configured properly (pgPool is null). Returning empty history.');
+  return [];
 }
 
 async function saveHistory(history: AuditResult[]) {
@@ -203,12 +164,10 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
      } catch (err) {
        console.error("Error inserting into PG:", err);
      }
+  } else {
+    console.warn('PostgreSQL is not configured properly (pgPool is null). Data not saved.');
   }
 
-  // Fallback blob/file flow
-  let currentHistory = await loadHistory();
-  currentHistory.unshift(newRecord);
-  await saveHistory(currentHistory);
   return newRecord;
 }
 
@@ -1095,9 +1054,7 @@ app.post('/api/history/delete', express.json(), async (req, res) => {
            }
        }
     } else {
-       let currentHistory = await loadHistory();
-       currentHistory = currentHistory.filter(record => !ids.includes(record.id));
-       await saveHistory(currentHistory);
+       console.warn('PostgreSQL is not configured properly (pgPool is null). Delete failed.');
     }
     
     res.json({ success: true, deletedCount: ids.length });
