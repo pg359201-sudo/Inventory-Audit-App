@@ -1049,6 +1049,10 @@ app.post('/api/save-audit', express.json(), async (req, res) => {
 });
 
 app.get('/api/history', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
   try {
     const rows = await getDb();
     res.json(rows);

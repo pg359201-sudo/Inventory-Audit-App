@@ -161,6 +161,13 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   useEffect(() => {
     fetchHistory();
     fetchReferenceCount();
+
+    // Auto-refresh every 5 seconds for real-time synchronization
+    const interval = setInterval(() => {
+      fetchHistory();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchReferenceCount = () => {
