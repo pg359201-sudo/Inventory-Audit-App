@@ -163,6 +163,7 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
        return newRecord;
      } catch (err) {
        console.error("Error inserting into PG:", err);
+       throw err;
      }
   } else {
     console.warn('PostgreSQL is not configured properly (pgPool is null). Data not saved.');

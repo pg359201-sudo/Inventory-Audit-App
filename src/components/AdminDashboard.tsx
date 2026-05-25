@@ -275,7 +275,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const fetchHistory = () => {
-    fetch(`/api/history?t=${Date.now()}`)
+    fetch(`/api/history?t=${Date.now()}`, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    })
       .then(res => res.json())
       .then(data => {
         console.log('History data received:', data);
