@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 import { put, list, del } from '@vercel/blob';
+import { createPool } from '@vercel/postgres';
 import { ProductStatus } from './types';
 // import { fileURLToPath } from 'url';
 
@@ -24,6 +25,7 @@ interface AuditResult {
   url_imagen: string;
   proceso_auditoria?: string;
   manual_adjustments?: string[];
+  observaciones?: string;
 }
 
 // --- PRODUCT DESCRIPTIONS ---
@@ -54,12 +56,47 @@ app.use((req, res, next) => {
   next();
 });
 
+// --- POSTGRES SETUP ---
+let pgPool: ReturnType<typeof createPool> | null = null;
+if (process.env.POSTGRES_URL) {
+  pgPool = createPool({ connectionString: process.env.POSTGRES_URL });
+  
+  // Initialize table
+  pgPool.query(`
+    CREATE TABLE IF NOT EXISTS audits (
+      id BIGINT PRIMARY KEY,
+      usuario TEXT,
+      fecha TEXT,
+      cliente TEXT,
+      resultado_detallado TEXT,
+      resultado_global TEXT,
+      url_imagen TEXT,
+      proceso_auditoria TEXT,
+      manual_adjustments JSONB,
+      observaciones TEXT
+    );
+  `).catch(err => console.error('Error creating PG table:', err));
+}
+
 // --- DB LOGIC (File-Based / Blob-Based) ---
 const DB_FILE = path.join(process.cwd(), 'history.json');
 
 let globalHistoryCache: AuditResult[] | null = null;
 
 async function loadHistory(): Promise<AuditResult[]> {
+  if (pgPool) {
+     try {
+       const { rows } = await pgPool.query('SELECT * FROM audits ORDER BY id DESC');
+       return rows.map(r => ({
+         ...r,
+         id: Number(r.id), // Because BIGINT comes as string sometimes
+       }));
+     } catch (e) {
+       console.error('Error loading history from Postgres:', e);
+       return [];
+     }
+  }
+
   if (globalHistoryCache) {
     return globalHistoryCache;
   }
@@ -103,6 +140,12 @@ async function loadHistory(): Promise<AuditResult[]> {
 }
 
 async function saveHistory(history: AuditResult[]) {
+  if (pgPool) {
+      // With Postgres, we usually save one by one. But this function might be used in fallback.
+      // So let's skip complete overwrite for Postgres here, because saveToDb and deletes handle Postgres independently.
+      return; 
+  }
+
   globalHistoryCache = history;
   try {
     const data = JSON.stringify(history, null, 2);
@@ -130,14 +173,32 @@ async function getDb(): Promise<AuditResult[]> {
 }
 
 async function saveToDb(audit: Omit<AuditResult, 'id'>) {
-  console.log('DEBUG: saveToDb called with keys:', Object.keys(audit));
-  if ('proceso_auditoria' in audit) {
-      console.log('DEBUG: proceso_auditoria present in saveToDb payload. Length:', audit.proceso_auditoria?.length);
-  } else {
-      console.error('DEBUG: proceso_auditoria MISSING in saveToDb payload');
-  }
-  
   const newRecord = { ...audit, id: Date.now() };
+
+  if (pgPool) {
+     try {
+       await pgPool.query(`
+         INSERT INTO audits (id, usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments, observaciones)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       `, [
+         newRecord.id,
+         newRecord.usuario,
+         newRecord.fecha,
+         newRecord.cliente,
+         newRecord.resultado_detallado,
+         newRecord.resultado_global,
+         newRecord.url_imagen,
+         newRecord.proceso_auditoria,
+         JSON.stringify(newRecord.manual_adjustments || []),
+         newRecord.observaciones || ''
+       ]);
+       return newRecord;
+     } catch (err) {
+       console.error("Error inserting into PG:", err);
+     }
+  }
+
+  // Fallback blob/file flow
   let currentHistory = await loadHistory();
   currentHistory.unshift(newRecord);
   await saveHistory(currentHistory);
@@ -920,6 +981,13 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
     if (!audit.manual_adjustments) {
       audit.manual_adjustments = [];
     }
+    else if (typeof audit.manual_adjustments === 'string') {
+        try {
+            audit.manual_adjustments = JSON.parse(audit.manual_adjustments);
+        } catch(e) {
+            audit.manual_adjustments = [];
+        }
+    }
 
     // Toggle the product in the manual_adjustments array
     const index = audit.manual_adjustments.indexOf(productName);
@@ -931,7 +999,14 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
       audit.manual_adjustments.push(productName);
     }
 
-    await saveHistory(currentHistory);
+    if (pgPool) {
+       await pgPool.query('UPDATE audits SET manual_adjustments = $1 WHERE id = $2', [
+           JSON.stringify(audit.manual_adjustments),
+           id
+       ]);
+    } else {
+       await saveHistory(currentHistory);
+    }
 
     res.json({ success: true, audit });
   } catch (error: any) {
@@ -988,9 +1063,15 @@ app.post('/api/history/delete', express.json(), async (req, res) => {
       return res.status(400).json({ error: 'Invalid ids array' });
     }
     
-    let currentHistory = await loadHistory();
-    currentHistory = currentHistory.filter(record => !ids.includes(record.id));
-    await saveHistory(currentHistory);
+    if (pgPool) {
+       for (const id of ids) {
+           await pgPool.query('DELETE FROM audits WHERE id = $1', [id]);
+       }
+    } else {
+       let currentHistory = await loadHistory();
+       currentHistory = currentHistory.filter(record => !ids.includes(record.id));
+       await saveHistory(currentHistory);
+    }
     
     res.json({ success: true, deletedCount: ids.length });
   } catch (error) {
