@@ -5,7 +5,7 @@ import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 import { put, list, del } from '@vercel/blob';
 import { createPool } from '@vercel/postgres';
-import { ProductStatus } from './types';
+import { ProductStatus } from '../src/types';
 // import { fileURLToPath } from 'url';
 
 // --- TYPES ---
