@@ -58,24 +58,30 @@ app.use((req, res, next) => {
 
 // --- POSTGRES SETUP ---
 let pgPool: ReturnType<typeof createPool> | null = null;
-if (process.env.POSTGRES_URL) {
-  pgPool = createPool({ connectionString: process.env.POSTGRES_URL });
-  
-  // Initialize table
-  pgPool.query(`
-    CREATE TABLE IF NOT EXISTS audits (
-      id BIGINT PRIMARY KEY,
-      usuario TEXT,
-      fecha TEXT,
-      cliente TEXT,
-      resultado_detallado TEXT,
-      resultado_global TEXT,
-      url_imagen TEXT,
-      proceso_auditoria TEXT,
-      manual_adjustments JSONB,
-      observaciones TEXT
-    );
-  `).catch(err => console.error('Error creating PG table:', err));
+const rawUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.DATABASE_URL_UNPOOLED;
+if (rawUrl) {
+  const sanitizedUrl = rawUrl.replace(/^=/, '').trim();
+  try {
+      pgPool = createPool({ connectionString: sanitizedUrl });
+      
+      // Initialize table
+      pgPool.query(`
+        CREATE TABLE IF NOT EXISTS audits (
+          id BIGINT PRIMARY KEY,
+          usuario TEXT,
+          fecha TEXT,
+          cliente TEXT,
+          resultado_detallado TEXT,
+          resultado_global TEXT,
+          url_imagen TEXT,
+          proceso_auditoria TEXT,
+          manual_adjustments JSONB,
+          observaciones TEXT
+        );
+      `).catch(err => console.error('Error creating PG table:', err));
+  } catch(e) {
+      console.error('Error initializing Postgres pool:', e);
+  }
 }
 
 // --- DB LOGIC (File-Based / Blob-Based) ---
@@ -1052,7 +1058,13 @@ app.get('/api/history', async (req, res) => {
 });
 
 app.get('/api/check-env', (req, res) => {
-  res.json({ BLOB_TOKEN: !!process.env.BLOB_READ_WRITE_TOKEN });
+  res.json({
+    BLOB_TOKEN: !!process.env.BLOB_READ_WRITE_TOKEN,
+    POSTGRES_URL: !!process.env.POSTGRES_URL,
+    DATABASE_URL: !!process.env.DATABASE_URL,
+    DATABASE_URL_UNPOOLED: !!process.env.DATABASE_URL_UNPOOLED,
+    KEYS: Object.keys(process.env).filter(k => k.includes('URL') || k.includes('POSTGRES') || k.includes('DATABASE')).join(', '),
+  });
 });
 
 
