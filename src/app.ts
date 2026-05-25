@@ -115,13 +115,8 @@ async function saveHistory(history: AuditResult[]) {
   }
 }
 
-let globalHistory: AuditResult[] | null = null;
-
 async function getDb(): Promise<AuditResult[]> {
-  if (!globalHistory) {
-    globalHistory = await loadHistory();
-  }
-  return globalHistory;
+  return await loadHistory();
 }
 
 async function saveToDb(audit: Omit<AuditResult, 'id'>) {
@@ -133,11 +128,9 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
   }
   
   const newRecord = { ...audit, id: Date.now() };
-  if (!globalHistory) {
-    globalHistory = await loadHistory();
-  }
-  globalHistory.unshift(newRecord);
-  await saveHistory(globalHistory);
+  let currentHistory = await loadHistory();
+  currentHistory.unshift(newRecord);
+  await saveHistory(currentHistory);
   return newRecord;
 }
 
@@ -910,10 +903,8 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
     }
     const { productName } = req.body;
 
-    if (!globalHistory) {
-      globalHistory = await loadHistory();
-    }
-    const audit = globalHistory.find(a => a.id === id);
+    let currentHistory = await loadHistory();
+    const audit = currentHistory.find(a => a.id === id);
     if (!audit) {
       return res.status(404).json({ error: 'Audit not found' });
     }
@@ -933,7 +924,7 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
       audit.manual_adjustments.push(productName);
     }
 
-    await saveHistory(globalHistory);
+    await saveHistory(currentHistory);
 
     res.json({ success: true, audit });
   } catch (error: any) {
@@ -990,11 +981,9 @@ app.post('/api/history/delete', express.json(), async (req, res) => {
       return res.status(400).json({ error: 'Invalid ids array' });
     }
     
-    if (!globalHistory) {
-      globalHistory = await loadHistory();
-    }
-    globalHistory = globalHistory.filter(record => !ids.includes(record.id));
-    await saveHistory(globalHistory);
+    let currentHistory = await loadHistory();
+    currentHistory = currentHistory.filter(record => !ids.includes(record.id));
+    await saveHistory(currentHistory);
     
     res.json({ success: true, deletedCount: ids.length });
   } catch (error) {
