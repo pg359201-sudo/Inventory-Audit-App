@@ -615,7 +615,9 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
                 const listResult = await list({ prefix: 'referencias/' });
                 const blob = listResult.blobs.find(b => b.pathname.includes(masterRefName));
                 if (blob) {
-                    const response = await fetch(blob.url);
+                    const fetchUrl = new URL(blob.url);
+                    fetchUrl.searchParams.append('t', Date.now().toString());
+                    const response = await fetch(fetchUrl.toString(), { cache: 'no-store' });
                     const arrayBuffer = await response.arrayBuffer();
                     masterRefData = Buffer.from(arrayBuffer).toString('base64');
                 }
@@ -658,7 +660,9 @@ Ignora el resto de productos no remarcados en esta foto.` });
                 const listResult = await list({ prefix: 'referencias/' });
                 const blob = listResult.blobs.find(b => b.pathname.includes(masterRef2Name) || b.pathname.includes('referencias_visuales2.jpeg'));
                 if (blob) {
-                    const response = await fetch(blob.url);
+                    const fetchUrl = new URL(blob.url);
+                    fetchUrl.searchParams.append('t', Date.now().toString());
+                    const response = await fetch(fetchUrl.toString(), { cache: 'no-store' });
                     const arrayBuffer = await response.arrayBuffer();
                     masterRef2Data = Buffer.from(arrayBuffer).toString('base64');
                 }
@@ -717,7 +721,9 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
           // Try to find in Blob list
           const blob = referenceBlobs.find(b => b.pathname === `referencias/${filename}` || b.pathname === `referencias/${altFilename}`);
           if (blob) {
-            const response = await fetch(blob.url);
+            const fetchUrl = new URL(blob.url);
+            fetchUrl.searchParams.append('t', Date.now().toString());
+            const response = await fetch(fetchUrl.toString(), { cache: 'no-store' });
             const arrayBuffer = await response.arrayBuffer();
             refData = Buffer.from(arrayBuffer).toString('base64');
           }
