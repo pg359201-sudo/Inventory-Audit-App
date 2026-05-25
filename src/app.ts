@@ -57,7 +57,13 @@ app.use((req, res, next) => {
 // --- DB LOGIC (File-Based / Blob-Based) ---
 const DB_FILE = path.join(process.cwd(), 'history.json');
 
+let globalHistoryCache: AuditResult[] | null = null;
+
 async function loadHistory(): Promise<AuditResult[]> {
+  if (globalHistoryCache) {
+    return globalHistoryCache;
+  }
+  
   try {
     if (process.env.BLOB_READ_WRITE_TOKEN) {
       try {
@@ -70,7 +76,8 @@ async function loadHistory(): Promise<AuditResult[]> {
           const response = await fetch(`${blobUrl}?download=1&t=${Date.now()}`, { cache: 'no-store' });
           if (response.ok) {
             const data = await response.text();
-            return JSON.parse(data);
+            globalHistoryCache = JSON.parse(data);
+            return globalHistoryCache!;
           } else {
             console.warn(`[loadHistory] Failed to fetch Blob. Status: ${response.status}`);
           }
@@ -84,16 +91,19 @@ async function loadHistory(): Promise<AuditResult[]> {
       console.log('Loading history from local file fallback.');
       const fileData = fs.readFileSync(DB_FILE, 'utf-8');
       try {
-          return JSON.parse(fileData);
+          globalHistoryCache = JSON.parse(fileData);
+          return globalHistoryCache!;
       } catch(e) {}
     }
   } catch (e) {
     console.error('Error loading history:', e);
   }
-  return [];
+  globalHistoryCache = [];
+  return globalHistoryCache;
 }
 
 async function saveHistory(history: AuditResult[]) {
+  globalHistoryCache = history;
   try {
     const data = JSON.stringify(history, null, 2);
     if (process.env.BLOB_READ_WRITE_TOKEN) {
