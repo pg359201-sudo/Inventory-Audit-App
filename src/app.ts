@@ -145,21 +145,21 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
 
   if (pgPool) {
      try {
-       await pgPool.query(`
+       await pgPool.sql`
          INSERT INTO audits (id, usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments, observaciones)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       `, [
-         newRecord.id,
-         newRecord.usuario,
-         newRecord.fecha,
-         newRecord.cliente,
-         newRecord.resultado_detallado,
-         newRecord.resultado_global,
-         newRecord.url_imagen,
-         newRecord.proceso_auditoria,
-         JSON.stringify(newRecord.manual_adjustments || []),
-         newRecord.observaciones || ''
-       ]);
+         VALUES (
+           ${newRecord.id}, 
+           ${newRecord.usuario}, 
+           ${newRecord.fecha}, 
+           ${newRecord.cliente}, 
+           ${newRecord.resultado_detallado}, 
+           ${newRecord.resultado_global}, 
+           ${newRecord.url_imagen}, 
+           ${newRecord.proceso_auditoria}, 
+           ${JSON.stringify(newRecord.manual_adjustments || [])}, 
+           ${newRecord.observaciones || ''}
+         )
+       `;
        return newRecord;
      } catch (err) {
        console.error("Error inserting into PG:", err);

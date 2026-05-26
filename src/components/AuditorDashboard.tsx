@@ -239,7 +239,10 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) throw new Error('Error al guardar la auditoría');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.details || 'Error al guardar la auditoría en el servidor');
+      }
       
       setShowSuccessModal(true);
       setTimeout(() => {
