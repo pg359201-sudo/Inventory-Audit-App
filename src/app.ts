@@ -145,6 +145,7 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
 
   if (pgPool) {
      try {
+       // Se inserta usando pgPool.sql para parsear correctamente los parámetros y evitar errores de sintaxis
        await pgPool.sql`
          INSERT INTO audits (id, usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments, observaciones)
          VALUES (
