@@ -1005,6 +1005,7 @@ app.post('/api/save-audit', express.json({ limit: '50mb' }), async (req, res) =>
     res.json({ success: true });
   } catch (error: any) {
     console.error('Save audit error:', error);
+    try { fs.writeFileSync('last_save_error.json', JSON.stringify({ msg: error.message, stack: error.stack })); } catch(e){}
     res.status(500).json({ error: 'Failed to save audit', details: error.message });
   }
 });
