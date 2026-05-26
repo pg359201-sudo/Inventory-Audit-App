@@ -93,17 +93,53 @@ async function loadHistory(): Promise<AuditResult[]> {
   if (pgPool) {
      try {
        const { rows } = await pgPool.query('SELECT * FROM audits ORDER BY id DESC');
-       return rows.map(r => ({
+       let parsedRows = rows.map(r => ({
          ...r,
-         id: Number(r.id), // Because BIGINT comes as string sometimes
+         id: Number(r.id),
        }));
+       
+       if (parsedRows.length > 0) {
+         return parsedRows;
+       }
      } catch (e) {
        console.error('Error loading history from Postgres:', e);
-       return [];
      }
   }
   
-  console.warn('PostgreSQL is not configured properly (pgPool is null). Returning empty history.');
+  // Fallback to memory cache
+  if (globalHistoryCache) return globalHistoryCache;
+
+  // Fallback to Vercel Blob
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const { blobs } = await list({ token: process.env.BLOB_READ_WRITE_TOKEN });
+      const historyBlob = blobs.find((b: any) => b.pathname === 'history.json');
+      if (historyBlob) {
+        console.log('Postgres unavailable/empty, fetching from fallback blob...');
+        const res = await fetch(historyBlob.url);
+        if (res.ok) {
+          const data = await res.json();
+          globalHistoryCache = Array.isArray(data) ? data : [];
+          return globalHistoryCache;
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching history from Blob:', e);
+    }
+  }
+
+  // Fallback to local file
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      console.log('Fetching from fallback local file...');
+      const data = fs.readFileSync(DB_FILE, 'utf-8');
+      globalHistoryCache = JSON.parse(data);
+      return globalHistoryCache || [];
+    }
+  } catch (e) {
+    console.warn('Error reading fallback local history file:', e);
+  }
+
   return [];
 }
 
@@ -164,11 +200,15 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
        return newRecord;
      } catch (err) {
        console.error("Error inserting into PG:", err);
-       throw err;
+       // Throw error unless we want to fallback locally too
      }
-  } else {
-    console.warn('PostgreSQL is not configured properly (pgPool is null). Data not saved.');
   }
+
+  // Fallback if no pgPool or insertion failed
+  console.warn('PostgreSQL is not available. Saving to fallback Blob/Local JSON.');
+  const history = await getDb();
+  history.unshift(newRecord);
+  await saveHistory(history);
 
   return newRecord;
 }
