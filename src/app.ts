@@ -75,11 +75,16 @@ if (rawUrl) {
           resultado_detallado TEXT,
           resultado_global TEXT,
           url_imagen TEXT,
-          proceso_auditoria TEXT,
-          manual_adjustments JSONB,
-          observaciones TEXT
+          proceso_auditoria TEXT
         );
-      `).catch(err => console.error('Error creating PG table:', err));
+      `)
+      .then(async () => {
+         // Auto-migrate newly added columns for older deployments
+         try { await pgPool?.query(`ALTER TABLE audits ADD COLUMN manual_adjustments JSONB;`); } catch(e){}
+         try { await pgPool?.query(`ALTER TABLE audits ADD COLUMN observaciones TEXT;`); } catch(e){}
+         try { await pgPool?.query(`ALTER TABLE audits ADD COLUMN prompt_usado TEXT;`); } catch(e){}
+      })
+      .catch(err => console.error('Error creating PG table:', err));
   } catch(e) {
       console.error('Error initializing Postgres pool:', e);
   }
