@@ -578,11 +578,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </button>
                 <button
                   onClick={() => setShowRulesInfoModal(true)}
-                  className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs text-white hover:bg-indigo-700"
+                  className="flex items-center gap-1.5 rounded-md bg-gray-900 px-2 py-1.5 text-xs text-white hover:bg-gray-800"
                   title="Contexto de Análisis"
                 >
                   <BookOpen size={14} />
-                  <span className="hidden md:inline">Lógica de IA</span>
                 </button>
               </div>
               <button onClick={onLogout} className="text-sm font-medium text-gray-600 hover:text-gray-900">Salir</button>
@@ -1268,7 +1267,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   </p>
                 </section>
 
-                <section className="bg-white border rounded-xl p-5 shadow-sm">
+                <section className="bg-white border rounded-xl p-5 shadow-sm border-l-4 border-l-indigo-500">
                   <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
                     <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full inline-flex items-center justify-center text-sm font-bold">2</span>
                     Inyección Visual (Guías Maestras)
@@ -1276,9 +1275,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <p className="text-sm text-gray-600 leading-relaxed mb-3">
                     Se introducen hasta dos <strong>fotografías maestras (góndolas reales)</strong>. A la IA se le da la instrucción de que estas son "las referencias maestras y verdad absoluta". Los recuadros rojos delimitan los productos en su entorno natural con la iluminación e imperfecciones correspondientes. La IA descarta visualmente los productos restantes no enmarcados.
                   </p>
+                  <div className="bg-gray-100 p-3 mt-3 rounded text-xs text-gray-700 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                    "GUÍA MAESTRA DE REFERENCIAS EN GÓNDOLA... Solo las botellas que están dentro de los recuadros rojos deben utilizarse como referencia visual primaria ("la verdad absoluta") del producto en entorno de supermercado real. Ignora el resto de productos no remarcados en esta foto."
+                  </div>
                 </section>
                 
-                <section className="bg-white border rounded-xl p-5 shadow-sm">
+                <section className="bg-white border rounded-xl p-5 shadow-sm border-l-4 border-l-indigo-500">
                   <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
                     <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full inline-flex items-center justify-center text-sm font-bold">3</span>
                     Inyección de Diccionario Técnico (Texto)
@@ -1286,23 +1288,28 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <p className="text-sm text-gray-600 leading-relaxed">
                     Se insertan descripciones de texto estrictas sobre proporciones y características de las botellas:
                   </p>
-                  <ul className="text-sm text-gray-600 list-disc pl-5 mt-2 space-y-1">
+                  <ul className="text-sm text-gray-600 list-disc pl-5 mt-2 space-y-1 mb-3">
                     <li>Contraste de tamaños (ej. 1L vs 200ml).</li>
                     <li>Forma de siluetas (coctelera vs transparente alargada).</li>
                     <li>Color de la tapa y etiquetas.</li>
                     <li>Contraste del color de vidrio frente a iluminación artificial.</li>
                   </ul>
+                  <div className="bg-gray-100 p-3 mt-3 rounded text-xs text-gray-700 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                    "Visual description for [Nombre del Producto]: [Características críticas de la forma, vidrio y tapas...]"
+                  </div>
                 </section>
 
-                <section className="bg-white border rounded-xl p-5 shadow-sm">
+                <section className="bg-white border rounded-xl p-5 shadow-sm border-l-4 border-l-indigo-500">
                   <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
                     <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full inline-flex items-center justify-center text-sm font-bold">4</span>
                     Inyección de Referencias Individuales
                   </h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    Se envían las fotos de estudio de los productos. Un prompt maestro le advierte explícitamente a la IA que: <br/>
-                    <em>"Esta es una imagen publicitaria. Usar solo para reconocer detalles de la etiqueta o logo. Para determinar la forma, dimensiones o iluminación correcta, debes buscar en las imágenes de las guías maestras proveídas previamente."</em>
+                  <p className="text-sm text-gray-600 leading-relaxed mb-3">
+                    Se envían las fotos de estudio de los productos. Un prompt maestro le advierte explícitamente a la IA que dependa más de la guía en góndola (fotos reales) para temas de forma o color real.
                   </p>
+                  <div className="bg-gray-100 p-3 mt-3 rounded text-xs text-gray-700 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                    "Imagen de estudio (fondo blanco) para [Producto]. ATENCIÓN: Esta es una imagen publicitaria. Usar solo para reconocer detalles de la etiqueta o el logo. Para determinar la forma, las proporciones reales y la iluminación, PRIORIZAR las dos imágenes de 'góndolas reales' enviadas anteriormente, ya que así es como se ven realmente los productos en la góndola."
+                  </div>
                 </section>
 
                 <section className="bg-white border rounded-xl p-5 shadow-sm border-l-4 border-l-indigo-500">
