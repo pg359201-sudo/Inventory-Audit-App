@@ -1344,7 +1344,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     Inyección Visual (Guías Maestras)
                   </h3>
                   <p className="text-sm text-gray-600 leading-relaxed mb-3">
-                    Se introducen hasta dos <strong>fotografías maestras (góndolas reales)</strong>. A la IA se le da la instrucción de que estas son "las referencias maestras y verdad absoluta". Los recuadros rojos delimitan los productos en su entorno natural con la iluminación e imperfecciones correspondientes. La IA descarta visualmente los productos restantes no enmarcados.
+                    Se introducen hasta tres <strong>fotografías maestras (góndolas reales)</strong>. A la IA se le da la instrucción de que estas son "las referencias maestras y verdad absoluta". Los recuadros rojos delimitan los productos en su entorno natural con la iluminación e imperfecciones correspondientes. La IA descarta visualmente los productos restantes no enmarcados.
                   </p>
                   <div className="bg-gray-100 p-3 mt-3 rounded text-xs text-gray-700 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
                     "GUÍA MAESTRA DE REFERENCIAS EN GÓNDOLA... Solo las botellas que están dentro de los recuadros rojos deben utilizarse como referencia visual primaria ("la verdad absoluta") del producto en entorno de supermercado real. Ignora el resto de productos no remarcados en esta foto."
@@ -1394,7 +1394,7 @@ El diccionario completo es el siguiente:
                     Se envían las fotos de estudio de los productos. Un prompt maestro le advierte explícitamente a la IA que dependa más de la guía en góndola (fotos reales) para temas de forma o color real.
                   </p>
                   <div className="bg-gray-100 p-3 mt-3 rounded text-xs text-gray-700 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
-                    "Imagen de estudio (fondo blanco) para [Producto]. ATENCIÓN: Esta es una imagen publicitaria. Usar solo para reconocer detalles de la etiqueta o el logo. Para determinar la forma, las proporciones reales y la iluminación, PRIORIZAR las dos imágenes de 'góndolas reales' enviadas anteriormente, ya que así es como se ven realmente los productos en la góndola."
+                    "Imagen de estudio (fondo blanco) para [Producto]. ATENCIÓN: Esta es una imagen publicitaria. Usar solo para reconocer detalles de la etiqueta o el logo. Para determinar la forma, las proporciones reales y la iluminación, PRIORIZAR las imágenes de 'góndolas reales' enviadas anteriormente, ya que así es como se ven realmente los productos en la góndola."
                   </div>
                 </section>
 

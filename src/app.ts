@@ -755,7 +755,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         }
 
         if (masterRefData) {
-            parts.push({ text: `GUÍA MAESTRA DE REFERENCIAS EN GÓNDOLA (PARTE 1 DE 2).
+            parts.push({ text: `GUÍA MAESTRA DE REFERENCIAS EN GÓNDOLA (PARTE 1 DE 3).
 En esta imagen:
 Las flechas rojas y los nombres indican los productos objetivo.
 El recuadro rojo delimita exactamente la botella que corresponde.
@@ -800,13 +800,52 @@ Ignora el resto de productos no remarcados en esta foto.` });
         }
 
         if (masterRef2Data) {
-            parts.push({ text: `GUÍA MAESTRA DE REFERENCIAS EN GÓNDOLA (PARTE 2 DE 2).
-Esta imagen complementa la anterior bajo las MISMAS REGLAS (flechas, recuadros rojos).
-Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ven realmente los productos en la góndola, con la iluminación e imperfecciones reales del estante. PRIORIZA estas dos referencias visuales (los recuadros rojos) por sobre cualquier imagen individual de estudio (fondo blanco) que se provea más adelante.` });
+            parts.push({ text: `GUÍA MAESTRA DE REFERENCIAS EN GÓNDOLA (PARTE 2 DE 3).
+Esta imagen complementa la anterior bajo las MISMAS REGLAS (flechas, recuadros rojos).` });
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRef2Data } });
         }
     } catch (e) {
         console.warn("Failed to load master reference 2:", e);
+    }
+
+    let masterRef3Data: string | null = null;
+    // NEW: Load Master Reference Image 3
+    try {
+        const masterRef3Name = 'referencias_visuales3.jpg';
+        
+        // Try Blob
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+             try {
+                const blob = referenceBlobs.find(b => b.pathname.includes(masterRef3Name) || b.pathname.includes('referencias_visuales3.jpeg'));
+                if (blob) {
+                    const fetchUrl = new URL(blob.url);
+                    fetchUrl.searchParams.append('t', Date.now().toString());
+                    const response = await fetch(fetchUrl.toString(), { cache: 'no-store' });
+                    const arrayBuffer = await response.arrayBuffer();
+                    masterRef3Data = Buffer.from(arrayBuffer).toString('base64');
+                }
+             } catch (e) {
+                 console.warn("Failed to fetch blob for master ref 3:", e);
+             }
+        }
+
+        // Try Local
+        if (!masterRef3Data) {
+             let refPath = getReferencePath(masterRef3Name);
+             if (!fs.existsSync(refPath)) refPath = getReferencePath('referencias_visuales3.jpeg');
+             if (fs.existsSync(refPath)) {
+                masterRef3Data = fs.readFileSync(refPath).toString('base64');
+             }
+        }
+
+        if (masterRef3Data) {
+            parts.push({ text: `GUÍA MAESTRA DE REFERENCIAS EN GÓNDOLA (PARTE 3 DE 3).
+Esta imagen complementa las anteriores bajo las MISMAS REGLAS (flechas, recuadros rojos).
+Instrucción Crítica: TODAS las imágenes (Parte 1, 2 y 3) contienen cómo se ven realmente los productos en la góndola, con la iluminación e imperfecciones reales del estante. PRIORIZA estas referencias visuales maestras (los recuadros rojos) por sobre cualquier imagen individual de estudio (fondo blanco) que se provea más adelante.` });
+            parts.push({ inlineData: { mimeType: 'image/jpeg', data: masterRef3Data } });
+        }
+    } catch (e) {
+        console.warn("Failed to load master reference 3:", e);
     }
 
     let loadedRefsCount = 0;
@@ -863,11 +902,12 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
         }
 
         if (refData) {
-          parts.push({ text: `Imagen de estudio (fondo blanco) para ${prod}. ATENCIÓN: Esta es una imagen publicitaria. Usar solo para reconocer detalles de la etiqueta o el logo. Para determinar la forma, las proporciones reales y la iluminación, PRIORIZAR las dos imágenes de 'gíndolas reales' enviadas anteriormente, ya que así es como se ven realmente los productos en la góndola.` });
+          parts.push({ text: `Imagen de estudio (fondo blanco) para ${prod}. ATENCIÓN: Esta es una imagen publicitaria. Usar solo para reconocer detalles de la etiqueta o el logo. Para determinar la forma, las proporciones reales y la iluminación, PRIORIZAR las imágenes de 'góndolas reales' enviadas anteriormente, ya que así es como se ven realmente los productos en la góndola.` });
           parts.push({ inlineData: { mimeType: 'image/jpeg', data: refData } });
           loadedRefsCount++;
           loadedRefsList.push(prod);
         } else {
+
              missingRefs++;
         }
       } catch (e) {
@@ -880,6 +920,7 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
     let numMasterPhotos = 0;
     if (masterRefData) numMasterPhotos++;
     if (masterRef2Data) numMasterPhotos++;
+    if (masterRef3Data) numMasterPhotos++;
 
     const masterActivaInfo = numMasterPhotos > 0
       ? `ACTIVA (${numMasterPhotos} foto/s inyectada/s - Solo Diccionario)`
