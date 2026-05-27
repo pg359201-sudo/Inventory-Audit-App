@@ -732,7 +732,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
         // Try Blob
         if (process.env.BLOB_READ_WRITE_TOKEN) {
              try {
-                const blob = referenceBlobs.find(b => b.pathname.includes(masterRefName));
+                const blob = referenceBlobs.find(b => b.pathname.includes(masterRefName) || b.pathname.includes('referencias_visuales.jpeg'));
                 if (blob) {
                     const fetchUrl = new URL(blob.url);
                     fetchUrl.searchParams.append('t', Date.now().toString());
@@ -747,7 +747,8 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
 
         // Try Local
         if (!masterRefData) {
-             const refPath = getReferencePath(masterRefName);
+             let refPath = getReferencePath(masterRefName);
+             if (!fs.existsSync(refPath)) refPath = getReferencePath('referencias_visuales.jpeg');
              if (fs.existsSync(refPath)) {
                 masterRefData = fs.readFileSync(refPath).toString('base64');
              }
