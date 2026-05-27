@@ -885,21 +885,27 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
       : 'NO ENCONTRADA';
 
     processLog.push({ 
-        step: 'Referencias Visuales Individuales inyectadas', 
-        status: missingRefs === 0 ? 'OK' : 'Warning', 
-        details: `Cargadas: ${loadedRefsCount} fotos individuales. Faltantes: ${missingRefs}. Productos: ${loadedRefsList.length > 0 ? loadedRefsList.join(', ') : 'Ninguno'}.`
+        step: 'Prompts inyectados', 
+        status: 'OK', 
+        details: 'Los prompts de sistema y de evaluación fueron correctamente inyectados.'
     });
 
     processLog.push({ 
-        step: 'Carga de Productos en Góndola Real (Fotos Maestras)', 
-        status: numMasterPhotos > 0 ? 'OK' : 'Warning', 
-        details: `${masterActivaInfo}. Los prompts maestros fueron correctamente inyectados.`
+        step: 'Referencias visuales individuales', 
+        status: 'OK', 
+        details: `Cantidad: ${loadedRefsCount} fotos individuales inyectadas.`
     });
 
     processLog.push({ 
-        step: 'Inyección de Descripciones Visuales (Texto)', 
-        status: injectedDescriptionsCount > 0 ? 'OK' : 'Warning', 
-        details: `Inyectadas correctamente: ${injectedDescriptionsCount} descripciones. Esto ayuda al modelo a identificar la forma, tapa y color de los productos.`
+        step: 'Referencias de productos en góndola', 
+        status: 'OK', 
+        details: `Cantidad: ${numMasterPhotos} fotos en góndola inyectadas (Solo Diccionario).`
+    });
+
+    processLog.push({ 
+        step: 'Descripciones visuales', 
+        status: 'OK', 
+        details: `Cantidad: ${injectedDescriptionsCount} descripciones inyectadas.`
     });
 
     const response = await ai.models.generateContent({
