@@ -939,20 +939,20 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                   const manualAdjs = selectedAudit.manual_adjustments || [];
                                   
                                   const missingPartsAI = parts.filter(p => p !== 'Todas las referencias requeridas fueron encontradas');
-                                  const notAdjustedParts = missingPartsAI.filter(p => !manualAdjs.some(adj => p.startsWith(adj + ':')));
+                                  const isMatch = (p: string, adj: string) => p === adj || p.startsWith(adj + ':');
+                                  const notAdjustedParts = missingPartsAI.filter(p => !manualAdjs.some(adj => isMatch(p, adj)));
 
                                   const renderNotAdjustedPart = (part: string, i: number) => {
                                     const colonIndex = part.indexOf(':');
+                                    let title = part;
                                     if (colonIndex !== -1) {
-                                      const title = part.substring(0, colonIndex + 1);
-                                      const rest = part.substring(colonIndex + 1);
-                                      return (
-                                        <div key={i}>
-                                          <span className="font-bold text-gray-800">{title}</span>{rest}
-                                        </div>
-                                      );
+                                      title = part.substring(0, colonIndex);
                                     }
-                                    return <div key={i}>{part}</div>;
+                                    return (
+                                      <div key={i}>
+                                        <span className="font-bold text-gray-800">- {title}</span>
+                                      </div>
+                                    );
                                   };
 
                                   return (
@@ -973,12 +973,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                           <div className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Ajustadas por auditor:</div>
                                           <div className="space-y-1 text-blue-700">
                                             {manualAdjs.map((adj, i) => {
-                                               const aiSaidMissing = missingPartsAI.some(p => p.startsWith(adj + ':'));
+                                               const aiSaidMissing = missingPartsAI.some(p => isMatch(p, adj));
                                                const textState = aiSaidMissing ? "si está" : "no está";
                                                
                                                return (
                                                  <div key={i}>
-                                                   <span className="font-semibold">{adj}:</span> {textState}
+                                                   <span className="font-semibold">- {adj}:</span> {textState}
                                                  </div>
                                                );
                                             })}
@@ -992,14 +992,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                           <div className="font-bold text-gray-900 border-b border-gray-300 pb-1 mb-2">Resultado Final (Faltantes reales tras auditoría):</div>
                                           <div className="space-y-1 text-gray-900">
                                             {(() => {
-                                              const finalMissingParts = missingPartsAI.filter(p => !manualAdjs.some(adj => p.startsWith(adj + ':')));
-                                              const aiSaidPresentButManuallyAddedAsMissing = manualAdjs.filter(adj => !missingPartsAI.some(p => p.startsWith(adj + ':')));
+                                              const finalMissingParts = missingPartsAI.filter(p => !manualAdjs.some(adj => isMatch(p, adj)));
+                                              const aiSaidPresentButManuallyAddedAsMissing = manualAdjs.filter(adj => !missingPartsAI.some(p => isMatch(p, adj)));
                                               
                                               const finalMissingComponents = [
                                                 ...finalMissingParts.map((part, i) => renderNotAdjustedPart(part, i)),
                                                 ...aiSaidPresentButManuallyAddedAsMissing.map((adj, i) => (
                                                   <div key={`manual-${i}`}>
-                                                    <span className="font-bold">{adj}:</span> <span className="text-red-600 font-medium">Marcado como faltante por el auditor</span>
+                                                    <span className="font-bold text-gray-800">- {adj}</span> <span className="text-red-600 font-medium">(marcado faltante por auditor)</span>
                                                   </div>
                                                 ))
                                               ];

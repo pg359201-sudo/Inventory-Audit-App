@@ -978,7 +978,7 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
       detailedResult.push({ productName: prod, required: isRequired, present: isPresent, reason });
       if (isRequired && !isPresent) {
           globalResult = 'Falta Referencia';
-          missingReasons.push(`${prod}: ${reason}`);
+          missingReasons.push(prod);
       }
     });
 
