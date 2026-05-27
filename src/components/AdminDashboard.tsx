@@ -375,9 +375,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     link.click();
   };
 
-  const parseDetails = (jsonDetails: string) => {
+  const parseDetails = (jsonDetails: string | null) => {
+    if (!jsonDetails) return [];
     try {
-      return JSON.parse(jsonDetails);
+      const parsed = JSON.parse(jsonDetails);
+      return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       return [];
     }

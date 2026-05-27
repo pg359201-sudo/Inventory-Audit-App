@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
@@ -93,10 +94,17 @@ async function loadHistory(): Promise<AuditResult[]> {
   if (pgPool) {
      try {
        const { rows } = await pgPool.query('SELECT * FROM audits ORDER BY id DESC');
-       let parsedRows = rows.map(r => ({
-         ...r,
-         id: Number(r.id),
-       }));
+       let parsedRows = rows.map(r => {
+         let ma = r.manual_adjustments;
+         if (typeof ma === 'string') {
+           try { ma = JSON.parse(ma); } catch (e) { ma = []; }
+         }
+         return {
+           ...r,
+           id: Number(r.id),
+           manual_adjustments: Array.isArray(ma) ? ma : []
+         };
+       });
        
        if (parsedRows.length > 0) {
          return parsedRows;
