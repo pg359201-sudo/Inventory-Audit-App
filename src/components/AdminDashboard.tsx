@@ -1084,15 +1084,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                   </span>
                                 </td>
                                 <td className="px-1 md:px-4 py-1.5 md:py-2 text-xs md:text-sm text-center">
-                                  {item.required && (!isEffectivelyPresent || isAdjusted) && (
-                                    <div
-                                      className={`inline-flex items-center justify-center p-0.5 md:p-1 rounded-full transition-colors ${
-                                        isAdjusted 
-                                          ? 'text-amber-600' 
-                                          : 'text-gray-400'
-                                      }`}
-                                    >
-                                      {isAdjusted ? <CircleDot size={16} /> : <Circle size={16} />}
+                                {isAdjusted && (
+                                    <div className="inline-flex items-center justify-center p-0.5 md:p-1 rounded-full text-amber-600">
+                                      <CircleDot size={16} />
                                     </div>
                                   )}
                                 </td>
