@@ -887,25 +887,25 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
     processLog.push({ 
         step: 'Prompts inyectados', 
         status: 'OK', 
-        details: 'Los prompts de sistema y de evaluación fueron correctamente inyectados.'
+        details: 'Los prompts fueron inyectados correctamente.'
     });
 
     processLog.push({ 
         step: 'Referencias visuales individuales', 
         status: 'OK', 
-        details: `Cantidad: ${loadedRefsCount} fotos individuales inyectadas.`
+        details: `Incluyendo la cantidad de fotos: ${loadedRefsCount}`
     });
 
     processLog.push({ 
         step: 'Referencias de productos en góndola', 
         status: 'OK', 
-        details: `Cantidad: ${numMasterPhotos} fotos en góndola inyectadas (Solo Diccionario).`
+        details: `Incluyendo la cantidad de fotos maestras detectadas: ${numMasterPhotos}`
     });
 
     processLog.push({ 
         step: 'Descripciones visuales', 
         status: 'OK', 
-        details: `Cantidad: ${injectedDescriptionsCount} descripciones inyectadas.`
+        details: `Incluyendo la cantidad de descripciones inyectadas: ${injectedDescriptionsCount}`
     });
 
     const response = await ai.models.generateContent({

@@ -472,12 +472,83 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const parseProcessLog = (jsonLog?: string | any[]): AuditProcessStep[] => {
     if (!jsonLog) return [];
-    if (Array.isArray(jsonLog)) return jsonLog;
-    try {
-      return JSON.parse(jsonLog as string);
-    } catch (e) {
-      return [];
+    let log: AuditProcessStep[] = [];
+    if (Array.isArray(jsonLog)) log = jsonLog;
+    else {
+      try { log = JSON.parse(jsonLog as string); } catch (e) { return []; }
     }
+
+    const hasOldImageStep = log.find(s => s.step === 'Carga de Imágenes de Referencia');
+    const hasOldDescStep = log.find(s => s.step === 'Inyección de Descripciones Visuales (Texto)');
+    const hasMyNewImageStep = log.find(s => s.step === 'Referencias visuales individuales');
+
+    if (hasOldImageStep || hasOldDescStep || hasMyNewImageStep) {
+      const newLog: AuditProcessStep[] = [];
+      let missingRefStep = null;
+      let validationStep = null;
+      let analysisStep = null;
+      let reviewSteps: AuditProcessStep[] = [];
+      
+      let loadedRefs = 0;
+      let masterPhotos = 1; // default assumption for old
+      let descCount = 0;
+
+      for (const step of log) {
+        if (step.step === 'Validación de cliente') validationStep = step;
+        else if (step.step === 'Análisis de referencias faltantes') missingRefStep = step;
+        else if (step.step === 'Análisis de IA' || step.step.startsWith('--- INTENTO')) {
+          if (step.step === 'Análisis de IA') analysisStep = step;
+          else reviewSteps.push(step);
+        } else if (step.step === 'Carga de Imágenes de Referencia') {
+          const matchRefs = step.details.match(/Cargadas: (\d+)/);
+          if (matchRefs) loadedRefs = parseInt(matchRefs[1]);
+          if (step.details.includes('ACTIVA')) {
+             masterPhotos = step.details.includes('2 foto/s') ? 2 : (step.details.includes('Solo Diccionario') ? 1 : 2);
+          } else {
+             masterPhotos = 0;
+          }
+        } else if (step.step === 'Inyección de Descripciones Visuales (Texto)') {
+           const matchDesc = step.details.match(/Inyectadas correctamente: (\d+)/);
+           if (matchDesc) descCount = parseInt(matchDesc[1]);
+        } else if (step.step === 'Referencias visuales individuales') {
+           const matchRefs = step.details.match(/Cantidad: (\d+)/);
+           if (matchRefs) loadedRefs = parseInt(matchRefs[1]);
+           else {
+             const m2 = step.details.match(/fotos: (\d+)/);
+             if (m2) loadedRefs = parseInt(m2[1]);
+           }
+        } else if (step.step === 'Referencias de productos en góndola') {
+           const matchRefs = step.details.match(/Cantidad: (\d+)/);
+           if (matchRefs) masterPhotos = parseInt(matchRefs[1]);
+           else {
+             const m2 = step.details.match(/detectadas: (\d+)/);
+             if (m2) masterPhotos = parseInt(m2[1]);
+           }
+        } else if (step.step === 'Descripciones visuales') {
+           const matchDesc = step.details.match(/Cantidad: (\d+)/);
+           if (matchDesc) descCount = parseInt(matchDesc[1]);
+           else {
+             const m2 = step.details.match(/inyectadas: (\d+)/);
+             if (m2) descCount = parseInt(m2[1]);
+           }
+        }
+      }
+
+      if (validationStep) newLog.push(validationStep);
+      
+      newLog.push({ step: 'Prompts inyectados', status: 'OK', details: 'Los prompts fueron inyectados correctamente.' });
+      newLog.push({ step: 'Referencias visuales individuales', status: 'OK', details: `Incluyendo la cantidad de fotos: ${loadedRefs}` });
+      newLog.push({ step: 'Referencias de productos en góndola', status: 'OK', details: `Incluyendo la cantidad de fotos maestras detectadas: ${masterPhotos}` });
+      newLog.push({ step: 'Descripciones visuales', status: 'OK', details: `Incluyendo la cantidad de descripciones inyectadas: ${descCount}` });
+      
+      if (missingRefStep) newLog.push(missingRefStep);
+      newLog.push(...reviewSteps);
+      if (analysisStep) newLog.push(analysisStep);
+
+      return newLog;
+    }
+    
+    return log;
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
