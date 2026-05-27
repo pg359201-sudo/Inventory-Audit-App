@@ -453,17 +453,6 @@ export default function AuditorDashboard({ onLogout }: AuditorDashboardProps) {
               </div>
             </div>
 
-            <div className="mt-4 border-t pt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Revisión de contexto importante / Estado OK?</label>
-              <textarea
-                value={observaciones}
-                onChange={(e) => setObservaciones(e.target.value)}
-                placeholder="Ingresar observaciones o justificaciones importantes..."
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-3 border"
-                rows={3}
-              />
-            </div>
-
             <div className="flex flex-row gap-3 shrink-0 justify-center mt-4">
               <button
                 onClick={handleSaveAndExit}
