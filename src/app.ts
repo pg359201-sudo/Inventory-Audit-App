@@ -192,6 +192,20 @@ async function getDb(): Promise<AuditResult[]> {
 async function saveToDb(audit: Omit<AuditResult, 'id'>) {
   const newRecord = { ...audit, id: Date.now() };
 
+  // Always dual-write to fallback history to keep local UI / files updated
+  try {
+    const history = await getDb();
+    history.unshift(newRecord);
+    
+    // Guardamos en local JSON bypassando pg temporalmente
+    const pgTemp = pgPool;
+    pgPool = null;
+    await saveHistory(history);
+    pgPool = pgTemp;
+  } catch (e) {
+    console.warn("Dual write error", e);
+  }
+
   if (pgPool) {
      try {
        // Se inserta usando pgPool.sql para parsear correctamente los parámetros y evitar errores de sintaxis
@@ -218,26 +232,10 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
          fs.writeFileSync('insert_error.json', JSON.stringify({ msg: err.message, stack: err.stack, record: newRecord })); 
        } catch(e){}
        
-       // Force fallback mode for this save by bypassing pgPool locally
-       console.warn('PostgreSQL insertion failed. Saving to fallback Blob/Local JSON.');
-       const history = await getDb();
-       history.unshift(newRecord);
-       
-       // Bypass saveHistory's pgPool check explicitly
-       const pgPoolTemp = pgPool;
-       pgPool = null;
-       await saveHistory(history);
-       pgPool = pgPoolTemp;
-       
+       console.warn('PostgreSQL insertion failed. Saving to fallback Blob/Local JSON only.');
        return newRecord;
      }
   }
-
-  // Fallback if no pgPool was present at all
-  console.warn('PostgreSQL is not available. Saving to fallback Blob/Local JSON.');
-  const history = await getDb();
-  history.unshift(newRecord);
-  await saveHistory(history);
 
   return newRecord;
 }
@@ -892,12 +890,6 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
         step: 'Inyección de Descripciones Visuales (Texto)', 
         status: injectedDescriptionsCount > 0 ? 'OK' : 'Warning', 
         details: `Inyectadas correctamente: ${injectedDescriptionsCount} descripciones. Esto ayuda al modelo a identificar la forma, tapa y color de los productos.`
-    });
-
-    processLog.push({ 
-        step: 'Revisión de contexto importante', 
-        status: 'OK', 
-        details: 'Prompt y descripciones visuales inyectadas correctamente'
     });
 
     const response = await ai.models.generateContent({
