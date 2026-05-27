@@ -61,6 +61,7 @@ let pgPool: ReturnType<typeof createPool> | null = null;
 const rawUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.DATABASE_URL_UNPOOLED;
 if (rawUrl) {
   const sanitizedUrl = rawUrl.replace(/^=/, '').trim();
+  process.env.POSTGRES_URL = sanitizedUrl;
   try {
       pgPool = createPool({ connectionString: sanitizedUrl });
       
@@ -74,11 +75,16 @@ if (rawUrl) {
           resultado_detallado TEXT,
           resultado_global TEXT,
           url_imagen TEXT,
-          proceso_auditoria TEXT,
-          manual_adjustments JSONB,
-          observaciones TEXT
+          proceso_auditoria TEXT
         );
-      `).catch(err => console.error('Error creating PG table:', err));
+      `)
+      .then(async () => {
+         // Auto-migrate newly added columns for older deployments
+         try { await pgPool?.query(`ALTER TABLE audits ADD COLUMN manual_adjustments JSONB;`); } catch(e){}
+         try { await pgPool?.query(`ALTER TABLE audits ADD COLUMN observaciones TEXT;`); } catch(e){}
+         try { await pgPool?.query(`ALTER TABLE audits ADD COLUMN prompt_usado TEXT;`); } catch(e){}
+      })
+      .catch(err => console.error('Error creating PG table:', err));
   } catch(e) {
       console.error('Error initializing Postgres pool:', e);
   }
@@ -93,10 +99,17 @@ async function loadHistory(): Promise<AuditResult[]> {
   if (pgPool) {
      try {
        const { rows } = await pgPool.query('SELECT * FROM audits ORDER BY id DESC');
-       let parsedRows = rows.map(r => ({
-         ...r,
-         id: Number(r.id),
-       }));
+       let parsedRows = rows.map(r => {
+         let ma = r.manual_adjustments;
+         if (typeof ma === 'string') {
+           try { ma = JSON.parse(ma); } catch (e) { ma = []; }
+         }
+         return {
+           ...r,
+           id: Number(r.id),
+           manual_adjustments: Array.isArray(ma) ? ma : []
+         };
+       });
        
        if (parsedRows.length > 0) {
          return parsedRows;
@@ -179,6 +192,20 @@ async function getDb(): Promise<AuditResult[]> {
 async function saveToDb(audit: Omit<AuditResult, 'id'>) {
   const newRecord = { ...audit, id: Date.now() };
 
+  // Always dual-write to fallback history to keep local UI / files updated
+  try {
+    const history = await getDb();
+    history.unshift(newRecord);
+    
+    // Guardamos en local JSON bypassando pg temporalmente
+    const pgTemp = pgPool;
+    pgPool = null;
+    await saveHistory(history);
+    pgPool = pgTemp;
+  } catch (e) {
+    console.warn("Dual write error", e);
+  }
+
   if (pgPool) {
      try {
        // Se inserta usando pgPool.sql para parsear correctamente los parámetros y evitar errores de sintaxis
@@ -198,17 +225,17 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
          )
        `;
        return newRecord;
-     } catch (err) {
+     } catch (err: any) {
        console.error("Error inserting into PG:", err);
-       // Throw error unless we want to fallback locally too
+       try { 
+         const fs = require('fs');
+         fs.writeFileSync('insert_error.json', JSON.stringify({ msg: err.message, stack: err.stack, record: newRecord })); 
+       } catch(e){}
+       
+       console.warn('PostgreSQL insertion failed. Saving to fallback Blob/Local JSON only.');
+       return newRecord;
      }
   }
-
-  // Fallback if no pgPool or insertion failed
-  console.warn('PostgreSQL is not available. Saving to fallback Blob/Local JSON.');
-  const history = await getDb();
-  history.unshift(newRecord);
-  await saveHistory(history);
 
   return newRecord;
 }
@@ -865,12 +892,6 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
         details: `Inyectadas correctamente: ${injectedDescriptionsCount} descripciones. Esto ayuda al modelo a identificar la forma, tapa y color de los productos.`
     });
 
-    processLog.push({ 
-        step: 'Revisión de contexto importante', 
-        status: 'OK', 
-        details: 'Prompt y descripciones visuales inyectadas correctamente'
-    });
-
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: { parts },
@@ -1066,21 +1087,27 @@ app.get('/api/history', async (req, res) => {
 
 app.get('/api/check-env', async (req, res) => {
   let pgCount = -1;
+  let top2 = [];
   try {
     if (pgPool) {
       const { rows } = await pgPool.query('SELECT COUNT(*) FROM audits');
       pgCount = Number(rows[0].count);
+      const topRows = await pgPool.query('SELECT id, usuario, cliente FROM audits ORDER BY id DESC LIMIT 2');
+      top2 = topRows.rows;
     }
-  } catch(e) {}
+  } catch(e: any) {
+    console.error(e);
+    top2 = [{ error: e.message }];
+  }
   res.json({
     NODE_ENV: process.env.NODE_ENV,
     VERCEL: process.env.VERCEL,
     BLOB_TOKEN: !!process.env.BLOB_READ_WRITE_TOKEN,
     POSTGRES_URL: !!process.env.POSTGRES_URL,
     DATABASE_URL: !!process.env.DATABASE_URL,
-    DATABASE_URL_UNPOOLED: !!process.env.DATABASE_URL_UNPOOLED,
     KEYS: Object.keys(process.env).filter(k => k.includes('URL') || k.includes('POSTGRES') || k.includes('DATABASE')).join(', '),
-    PG_COUNT: pgCount
+    PG_COUNT: pgCount,
+    TOP2: top2
   });
 });
 
