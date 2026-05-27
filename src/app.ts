@@ -205,13 +205,29 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
          )
        `;
        return newRecord;
-     } catch (err) {
+     } catch (err: any) {
        console.error("Error inserting into PG:", err);
-       // Throw error unless we want to fallback locally too
+       try { 
+         const fs = require('fs');
+         fs.writeFileSync('insert_error.json', JSON.stringify({ msg: err.message, stack: err.stack, record: newRecord })); 
+       } catch(e){}
+       
+       // Force fallback mode for this save by bypassing pgPool locally
+       console.warn('PostgreSQL insertion failed. Saving to fallback Blob/Local JSON.');
+       const history = await getDb();
+       history.unshift(newRecord);
+       
+       // Bypass saveHistory's pgPool check explicitly
+       const pgPoolTemp = pgPool;
+       pgPool = null;
+       await saveHistory(history);
+       pgPool = pgPoolTemp;
+       
+       return newRecord;
      }
   }
 
-  // Fallback if no pgPool or insertion failed
+  // Fallback if no pgPool was present at all
   console.warn('PostgreSQL is not available. Saving to fallback Blob/Local JSON.');
   const history = await getDb();
   history.unshift(newRecord);
