@@ -274,6 +274,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const fetchHistory = () => {
     fetch(`/api/history?t=${Date.now()}`, {
       headers: {
@@ -281,14 +283,23 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         'Pragma': 'no-cache'
       }
     })
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status} ${await res.text()}`);
+        return res.json();
+      })
       .then(data => {
         console.log('History data received:', data);
         if (Array.isArray(data)) {
           setHistory(data);
+          setErrorMsg(null);
+        } else {
+          setErrorMsg('Data is not an array: ' + typeof data);
         }
       })
-      .catch(err => console.error('Error fetching history:', err));
+      .catch(err => {
+        console.error('Error fetching history:', err);
+        setErrorMsg(err.message);
+      });
   };
 
   const handleAdjust = async (auditId: number, productName: string) => {
@@ -533,6 +544,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               TOP ID: {history.length > 0 ? history[0].id : 'Ninguno'} {history.length > 0 ? `(${new Date(history[0].fecha).toLocaleString()})` : ''}
               <br/>
               <span className="text-[10px] text-gray-500">*Si ves registros antiguos, asegúrate de haber actualizado el POSTGRES_URL y desplegado a producción.</span>
+              {errorMsg && <div className="mt-2 text-red-600 font-bold border-t border-red-200 pt-1">Error Fetch: {errorMsg}</div>}
             </div>
           </div>
           <div className="flex flex-col items-end gap-3">
