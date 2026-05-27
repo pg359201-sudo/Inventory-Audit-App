@@ -1,4 +1,6 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ override: true }); // override platform variables
+
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
