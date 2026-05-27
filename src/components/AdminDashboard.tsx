@@ -503,7 +503,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           const matchRefs = step.details.match(/Cargadas: (\d+)/);
           if (matchRefs) loadedRefs = parseInt(matchRefs[1]);
           if (step.details.includes('ACTIVA')) {
-             masterPhotos = 2; // For old audits, assume it injected both since both were present
+             masterPhotos = 3; // For old audits, assume it injected all since they were present
           } else {
              masterPhotos = 0;
           }
