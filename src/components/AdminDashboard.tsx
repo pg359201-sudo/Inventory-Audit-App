@@ -541,12 +541,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 Referencia: <span className="font-medium text-gray-900 underline decoration-dotted">{referenceCount}</span>
               </p>
             )}
-            <div className="mt-2 text-xs bg-indigo-50 text-indigo-800 p-2 rounded border border-indigo-200">
-              <span className="font-bold">TOTAL: {history.length} registros</span><br/>
-              TOP ID: {history.length > 0 ? history[0].id : 'Ninguno'} {history.length > 0 ? `(${new Date(history[0].fecha).toLocaleString()})` : ''}
-              <br/>
-              <span className="text-[10px] text-gray-500">*Si ves registros antiguos, asegúrate de haber actualizado el POSTGRES_URL y desplegado a producción.</span>
-              {errorMsg && <div className="mt-2 text-red-600 font-bold border-t border-red-200 pt-1">Error Fetch: {errorMsg}</div>}
+            <div className="mt-1 text-xs text-gray-400">
+              Total de registros: {history.length}
+              {errorMsg && <span className="text-red-500 ml-2">• Error: {errorMsg}</span>}
             </div>
           </div>
           <div className="flex flex-col items-end gap-3">
