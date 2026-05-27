@@ -1366,7 +1366,22 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <li>Contraste del color de vidrio frente a iluminación artificial.</li>
                   </ul>
                   <div className="bg-gray-100 p-3 mt-3 rounded text-xs text-gray-700 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
-                    "Visual description for [Nombre del Producto]: [Características críticas de la forma, vidrio y tapas...]"
+                    {`Para cada producto buscado, se añade una parte estricta al prompt:
+"Visual description for [Nombre del Producto]: [Descripción del Diccionario]"
+
+El diccionario completo es el siguiente:
+- Gin Gordons: Forma: Botella transparente, alta (referencia 1L). CRÍTICO: Bloque blanco muy visible en el centro del cuerpo + tapa violeta. No intentar leer texto.
+- Gin Tanqueray: Forma: Silueta tipo coctelera (hombros redondeados). CRÍTICO: Vidrio verde oscuro. Franja inferior plateada bajo la etiqueta principal.
+- Gin Sevilla: Forma: Silueta tipo coctelera. CRÍTICO: Vidrio ámbar/naranja. Franja inferior naranja bajo la etiqueta principal.
+- Gin Royale: Forma: Silueta tipo coctelera. CRÍTICO: Vidrio violeta oscuro. Franja inferior verde claro bajo la etiqueta principal.
+- White Horse 1L: Forma: Cilíndrica, alta. Vidrio transparente, líquido ámbar. CRÍTICO: Etiqueta amarilla gigante que domina casi todo el frente de la botella. NO confundir con formato petaca.
+- White Horse 200 ml: Forma: Rectangular, plana (tipo petaca). CRÍTICO: Botella chata. Altura a la mitad (50%) de las referencias normales.
+- Vat 69 1L: Forma: Cilíndrica, alta. Vidrio verde oscuro. CRÍTICO: Etiqueta negra central con texto blanco "VAT 69" y un sello rojo en la parte superior.
+- Vat 69 200 ml: Forma: Rectangular, plana (tipo petaca). Vidrio verde oscuro. CRÍTICO: Botella chata. Altura a la mitad (50%). Buscar franjas amarillas en la etiqueta (NO rojas).
+- Sandy Mac 1L: Formato: Cuadrada/rectangular, ancha y robusta. Altura más baja que las botellas estándar de 1L del estante. Color: Vidrio ámbar muy oscuro. Etiquetas: Etiqueta central grande color crema/dorada. CRÍTICO: Priorizar la silueta cuadrada y robusta.
+- JW Blonde: Forma: Rectangular, alta. Vidrio transparente, líquido ámbar. CRÍTICO: Franja diagonal AMARILLA cruzando la botella. Tapa azul. Es la única referencia con diagonal amarilla.
+- Smirnoff Ice: Formato: Botella transparente pequeña, cuello largo. Altura aproximada 60%. Etiqueta: Centro blanco con detalles en rojo suave. CRÍTICO: Priorizar el tamaño pequeño y el contraste de la etiqueta clara.
+- Vodka Smirnoff 750mL: Formato: Alta, cilíndrica, recta y muy esbelta. Detalles Visuales: Líquido transparente. Tapa roja sólida y visible. CRÍTICO: Priorizar silueta alargada transparente con botón/tapa roja.`}
                   </div>
                 </section>
 
@@ -1392,7 +1407,81 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     Se le indica a Gemini el objetivo final: "Evaluar presencia o ausencia (Present | Missing) justificando de forma crítica con 2 razones visuales."
                   </p>
                   <div className="bg-gray-100 p-3 mt-3 rounded text-xs text-gray-700 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
-                    "Actúa como un Validador y Auditor Estricto Maestro... Revisa detenidamente el contorno y la altura de las botellas respecto a las botellas contiguas... No asumas la presencia de un producto si ves algo similar. Un producto solo está si sus características morfológicas, colores de etiqueta y tapa coinciden de forma consistente..."
+                    {`═══════════════════════════════
+REGLAS DE IDENTIFICACIÓN
+═══════════════════════════════
+- IMPORTANTE: Solo identifica productos que se encuentren en la primera fila de la góndola (visibles de frente). Ignora por completo botellas ocultas, tapadas por otras o en las filas de atrás.
+Basa la identificación PRINCIPALMENTE en características visuales:
+- Forma y silueta de la botella
+- Color del vidrio (transparente, verde oscuro, marrón oscuro, ámbar)
+- Colores dominantes de la etiqueta
+- Elementos distintivos: sellos, franjas, logos
+- Altura relativa comparada con otras botellas
+NO dependas únicamente de la lectura del texto de la etiqueta.
+- IMPORTANTE SOBRE REFERENCIAS INDIVIDUALES: Ten en cuenta que las imágenes de referencia individuales provistas son fotografías de estudio; los colores, brillos, reflejos en el vidrio, sombras y la nitidez de la etiqueta varían significativamente en la foto de la góndola real bajo la iluminación artificial del local y la perspectiva de la cámara.
+NO busques una coincidencia fotográfica exacta.
+
+═══════════════════════════════
+MÉTODO DE ANÁLISIS OBLIGATORIO
+═══════════════════════════════
+
+PASO 1 — Divide la góndola en zonas horizontales
+Divide visualmente la imagen en zonas horizontales por estante (de arriba hacia abajo).
+Examina cada estante de forma independiente. Recorre la imagen de manera sistemática de arriba hacia abajo.
+NO analices toda la imagen de forma global al mismo tiempo.
+
+PASO 2 — Clasificá las botellas por color dominante PRIMERO
+Antes de identificar marcas, agrupá las botellas visibles por color de vidrio/líquido:
+□ Botellas de vidrio transparente
+□ Botellas de vidrio verde oscuro
+□ Botellas de vidrio marrón oscuro
+□ Botellas ámbar/naranja
+Esta pre-clasificación reduce el espacio de búsqueda para cada producto.
+
+PASO 3 — Detectá candidatos por estante
+En cada estante, identificá botellas que podrían coincidir visualmente 
+con los productos buscados.
+Para cada posible coincidencia, observá:
+- Forma general de la botella
+- Color dominante del vidrio
+- Colores de la etiqueta
+- Color de la tapa
+- Elementos distintivos (franjas, sellos, logos)
+- Altura relativa comparada con botellas de referencia de 1L
+
+PASO 4 — Validá las coincidencias (REGLA OBLIGATORIA)
+Solo confirmá un producto si AL MENOS DOS características visuales 
+coinciden con la descripción del producto.
+Ejemplos de coincidencias válidas:
+✓ forma de botella + color de etiqueta
+✓ color del vidrio + color de tapa
+✓ forma + elemento distintivo (sello, franja)
+Una sola característica coincidente NO es suficiente para confirmar presencia.
+
+═══════════════════════════════
+REFERENCIAS DE ESCALA
+═══════════════════════════════
+Usá el tamaño relativo entre botellas para estimar el volumen:
+- Botellas 1L → las más altas (~30–32 cm de referencia)
+- Botellas 750ml → levemente más bajas que las de 1L
+- Botellas 200ml → aproximadamente el 50% de la altura de una botella de 1L
+- Botellas 275ml (Smirnoff Ice) → aproximadamente el 60% de una botella de 1L
+
+Esto es clave para diferenciar:
+- Vat 69 1L vs Vat 69 200ml (misma etiqueta, tamaño muy diferente)
+- White Horse 1L vs White Horse 200ml
+- Smirnoff Ice (275ml, botella tipo cerveza) vs botellas de tamaño completo
+
+═══════════════════════════════
+FORMATO DE SALIDA
+═══════════════════════════════
+Devolvé un objeto JSON donde las claves sean los nombres exactos de los productos buscados.
+Cada valor DEBE ser un objeto con:
+1. "status": "Present" (Presente) o "Missing" (Faltante)
+2. "reason": explicación breve citando las DOS características visuales 
+que confirmaron la presencia, o por qué no fue encontrado.
+
+DEVUELVE ÚNICA Y EXCLUSIVAMENTE EL OBJETO JSON. NO incluyas texto antes ni después, ni bloques de código markdown.`}
                   </div>
                 </section>
 
