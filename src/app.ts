@@ -1064,7 +1064,14 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-app.get('/api/check-env', (req, res) => {
+app.get('/api/check-env', async (req, res) => {
+  let pgCount = -1;
+  try {
+    if (pgPool) {
+      const { rows } = await pgPool.query('SELECT COUNT(*) FROM audits');
+      pgCount = Number(rows[0].count);
+    }
+  } catch(e) {}
   res.json({
     NODE_ENV: process.env.NODE_ENV,
     VERCEL: process.env.VERCEL,
@@ -1073,6 +1080,7 @@ app.get('/api/check-env', (req, res) => {
     DATABASE_URL: !!process.env.DATABASE_URL,
     DATABASE_URL_UNPOOLED: !!process.env.DATABASE_URL_UNPOOLED,
     KEYS: Object.keys(process.env).filter(k => k.includes('URL') || k.includes('POSTGRES') || k.includes('DATABASE')).join(', '),
+    PG_COUNT: pgCount
   });
 });
 

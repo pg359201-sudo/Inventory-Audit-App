@@ -528,6 +528,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 Referencia: <span className="font-medium text-gray-900 underline decoration-dotted">{referenceCount}</span>
               </p>
             )}
+            <div className="mt-2 text-xs bg-red-100 text-red-800 p-2 rounded">
+              TOTAL: {history.length}. 
+              TOP: {history.length > 0 ? `${history[0].fecha} - ${history[0].usuario}` : 'Ninguno'}
+            </div>
           </div>
           <div className="flex flex-col items-end gap-3">
             <div className="flex items-center gap-6 md:gap-8">
