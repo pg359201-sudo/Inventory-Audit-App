@@ -61,6 +61,7 @@ let pgPool: ReturnType<typeof createPool> | null = null;
 const rawUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.DATABASE_URL_UNPOOLED;
 if (rawUrl) {
   const sanitizedUrl = rawUrl.replace(/^=/, '').trim();
+  process.env.POSTGRES_URL = sanitizedUrl;
   try {
       pgPool = createPool({ connectionString: sanitizedUrl });
       
@@ -1089,21 +1090,27 @@ app.get('/api/history', async (req, res) => {
 
 app.get('/api/check-env', async (req, res) => {
   let pgCount = -1;
+  let top2 = [];
   try {
     if (pgPool) {
       const { rows } = await pgPool.query('SELECT COUNT(*) FROM audits');
       pgCount = Number(rows[0].count);
+      const topRows = await pgPool.query('SELECT id, usuario, cliente FROM audits ORDER BY id DESC LIMIT 2');
+      top2 = topRows.rows;
     }
-  } catch(e) {}
+  } catch(e: any) {
+    console.error(e);
+    top2 = [{ error: e.message }];
+  }
   res.json({
     NODE_ENV: process.env.NODE_ENV,
     VERCEL: process.env.VERCEL,
     BLOB_TOKEN: !!process.env.BLOB_READ_WRITE_TOKEN,
     POSTGRES_URL: !!process.env.POSTGRES_URL,
     DATABASE_URL: !!process.env.DATABASE_URL,
-    DATABASE_URL_UNPOOLED: !!process.env.DATABASE_URL_UNPOOLED,
     KEYS: Object.keys(process.env).filter(k => k.includes('URL') || k.includes('POSTGRES') || k.includes('DATABASE')).join(', '),
-    PG_COUNT: pgCount
+    PG_COUNT: pgCount,
+    TOP2: top2
   });
 });
 
