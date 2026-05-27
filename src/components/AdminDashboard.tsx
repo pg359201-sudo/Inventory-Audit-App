@@ -352,13 +352,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       const finalResult = isOk ? 'OK' : `Faltan: ${missingCount}`;
       const adjustments = h.manual_adjustments ? h.manual_adjustments.join(' | ') : '';
 
-      const d = new Date(h.fecha);
-      const safeFecha = h.fecha && !isNaN(d.getTime()) ? h.fecha : 'Sin fecha';
-
       return [
         h.id,
         h.usuario,
-        safeFecha,
+        h.fecha,
         `"${h.cliente}"`,
         `"${finalResult}"`,
         window.location.origin + h.url_imagen,
@@ -394,8 +391,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
     history.forEach(audit => {
       // Solo contabilizar desde el mes de mayo de 2026 en adelante
-      const dt = new Date(audit.fecha).getTime();
-      if (isNaN(dt) || dt < new Date('2026-05-01T00:00:00Z').getTime()) {
+      if (new Date(audit.fecha).getTime() < new Date('2026-05-01T00:00:00Z').getTime()) {
         return;
       }
 
@@ -629,7 +625,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <td className="whitespace-nowrap px-2 py-2 md:px-6 md:py-4 text-[10px] md:text-sm text-gray-900">
                         {(() => {
                           const d = new Date(item.fecha);
-                          if (isNaN(d.getTime())) return <span className="text-gray-400">Sin fecha</span>;
                           const day = d.getDate().toString().padStart(2, '0');
                           const month = (d.getMonth() + 1).toString().padStart(2, '0');
                           const year = d.getFullYear().toString().slice(-2);
@@ -999,7 +994,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <div>
                           <p className="text-gray-400 text-[8px] md:text-xs leading-none mb-0.5">Fecha</p>
                           <p className="font-normal text-gray-600 text-[9px] md:text-sm leading-tight">
-                            {isNaN(new Date(selectedAudit.fecha).getTime()) ? "Sin fecha" : new Date(selectedAudit.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                            {new Date(selectedAudit.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 text-right">
