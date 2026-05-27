@@ -876,14 +876,24 @@ Instrucción Crítica: AMBAS imágenes (Parte 1 y Parte 2) contienen cómo se ve
     }
     
     // Add the consolidated step log
-    const masterActivaInfo = (masterRefData || masterRef2Data)
-      ? 'ACTIVA (Solo Diccionario)'
+    let numMasterPhotos = 0;
+    if (masterRefData) numMasterPhotos++;
+    if (masterRef2Data) numMasterPhotos++;
+
+    const masterActivaInfo = numMasterPhotos > 0
+      ? `ACTIVA (${numMasterPhotos} foto/s inyectada/s - Solo Diccionario)`
       : 'NO ENCONTRADA';
 
     processLog.push({ 
-        step: 'Carga de Imágenes de Referencia', 
+        step: 'Referencias Visuales Individuales inyectadas', 
         status: missingRefs === 0 ? 'OK' : 'Warning', 
-        details: `Cargadas: ${loadedRefsCount}, Faltantes: ${missingRefs}. Productos cargados: ${loadedRefsList.length > 0 ? loadedRefsList.join(', ') : 'Ninguno'}. Productos en góndola (fotos maestras): ${masterActivaInfo}`
+        details: `Cargadas: ${loadedRefsCount} fotos individuales. Faltantes: ${missingRefs}. Productos: ${loadedRefsList.length > 0 ? loadedRefsList.join(', ') : 'Ninguno'}.`
+    });
+
+    processLog.push({ 
+        step: 'Carga de Productos en Góndola Real (Fotos Maestras)', 
+        status: numMasterPhotos > 0 ? 'OK' : 'Warning', 
+        details: `${masterActivaInfo}. Los prompts maestros fueron correctamente inyectados.`
     });
 
     processLog.push({ 
