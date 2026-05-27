@@ -5,7 +5,7 @@ import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 import { put, list, del } from '@vercel/blob';
 import { createPool } from '@vercel/postgres';
-import { ProductStatus } from '../src/types';
+import { ProductStatus } from './types';
 // import { fileURLToPath } from 'url';
 
 // --- TYPES ---
@@ -93,17 +93,53 @@ async function loadHistory(): Promise<AuditResult[]> {
   if (pgPool) {
      try {
        const { rows } = await pgPool.query('SELECT * FROM audits ORDER BY id DESC');
-       return rows.map(r => ({
+       let parsedRows = rows.map(r => ({
          ...r,
-         id: Number(r.id), // Because BIGINT comes as string sometimes
+         id: Number(r.id),
        }));
+       
+       if (parsedRows.length > 0) {
+         return parsedRows;
+       }
      } catch (e) {
        console.error('Error loading history from Postgres:', e);
-       return [];
      }
   }
   
-  console.warn('PostgreSQL is not configured properly (pgPool is null). Returning empty history.');
+  // Fallback to memory cache
+  if (globalHistoryCache) return globalHistoryCache;
+
+  // Fallback to Vercel Blob
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const { blobs } = await list({ token: process.env.BLOB_READ_WRITE_TOKEN });
+      const historyBlob = blobs.find((b: any) => b.pathname === 'history.json');
+      if (historyBlob) {
+        console.log('Postgres unavailable/empty, fetching from fallback blob...');
+        const res = await fetch(historyBlob.url);
+        if (res.ok) {
+          const data = await res.json();
+          globalHistoryCache = Array.isArray(data) ? data : [];
+          return globalHistoryCache;
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching history from Blob:', e);
+    }
+  }
+
+  // Fallback to local file
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      console.log('Fetching from fallback local file...');
+      const data = fs.readFileSync(DB_FILE, 'utf-8');
+      globalHistoryCache = JSON.parse(data);
+      return globalHistoryCache || [];
+    }
+  } catch (e) {
+    console.warn('Error reading fallback local history file:', e);
+  }
+
   return [];
 }
 
@@ -145,28 +181,34 @@ async function saveToDb(audit: Omit<AuditResult, 'id'>) {
 
   if (pgPool) {
      try {
-       await pgPool.query(`
+       // Se inserta usando pgPool.sql para parsear correctamente los parámetros y evitar errores de sintaxis
+       await pgPool.sql`
          INSERT INTO audits (id, usuario, fecha, cliente, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments, observaciones)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       `, [
-         newRecord.id,
-         newRecord.usuario,
-         newRecord.fecha,
-         newRecord.cliente,
-         newRecord.resultado_detallado,
-         newRecord.resultado_global,
-         newRecord.url_imagen,
-         newRecord.proceso_auditoria,
-         JSON.stringify(newRecord.manual_adjustments || []),
-         newRecord.observaciones || ''
-       ]);
+         VALUES (
+           ${newRecord.id}, 
+           ${newRecord.usuario}, 
+           ${newRecord.fecha}, 
+           ${newRecord.cliente}, 
+           ${newRecord.resultado_detallado}, 
+           ${newRecord.resultado_global}, 
+           ${newRecord.url_imagen}, 
+           ${newRecord.proceso_auditoria}, 
+           ${JSON.stringify(newRecord.manual_adjustments || [])}, 
+           ${newRecord.observaciones || ''}
+         )
+       `;
        return newRecord;
      } catch (err) {
        console.error("Error inserting into PG:", err);
+       // Throw error unless we want to fallback locally too
      }
-  } else {
-    console.warn('PostgreSQL is not configured properly (pgPool is null). Data not saved.');
   }
+
+  // Fallback if no pgPool or insertion failed
+  console.warn('PostgreSQL is not available. Saving to fallback Blob/Local JSON.');
+  const history = await getDb();
+  history.unshift(newRecord);
+  await saveHistory(history);
 
   return newRecord;
 }
@@ -389,7 +431,7 @@ app.get('/api/list-references', async (req, res) => {
   }
 });
 
-app.post('/api/references/delete', express.json(), async (req, res) => {
+app.post('/api/references/delete', express.json({ limit: '50mb' }), async (req, res) => {
   try {
     const { filenames } = req.body;
     if (!Array.isArray(filenames) || filenames.length === 0) {
@@ -981,10 +1023,10 @@ const adjustAuditHandler = async (req: express.Request, res: express.Response) =
   }
 };
 
-app.post('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
-app.patch('/api/audit/:id/adjust', express.json(), adjustAuditHandler);
+app.post('/api/audit/:id/adjust', express.json({ limit: '50mb' }), adjustAuditHandler);
+app.patch('/api/audit/:id/adjust', express.json({ limit: '50mb' }), adjustAuditHandler);
 
-app.post('/api/save-audit', express.json(), async (req, res) => {
+app.post('/api/save-audit', express.json({ limit: '50mb' }), async (req, res) => {
   try {
     const { usuario, cliente, fecha, resultado_detallado, resultado_global, url_imagen, proceso_auditoria, manual_adjustments, observaciones } = req.body;
     
@@ -1003,6 +1045,7 @@ app.post('/api/save-audit', express.json(), async (req, res) => {
     res.json({ success: true });
   } catch (error: any) {
     console.error('Save audit error:', error);
+    try { fs.writeFileSync('last_save_error.json', JSON.stringify({ msg: error.message, stack: error.stack })); } catch(e){}
     res.status(500).json({ error: 'Failed to save audit', details: error.message });
   }
 });
@@ -1021,7 +1064,14 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-app.get('/api/check-env', (req, res) => {
+app.get('/api/check-env', async (req, res) => {
+  let pgCount = -1;
+  try {
+    if (pgPool) {
+      const { rows } = await pgPool.query('SELECT COUNT(*) FROM audits');
+      pgCount = Number(rows[0].count);
+    }
+  } catch(e) {}
   res.json({
     NODE_ENV: process.env.NODE_ENV,
     VERCEL: process.env.VERCEL,
@@ -1030,11 +1080,12 @@ app.get('/api/check-env', (req, res) => {
     DATABASE_URL: !!process.env.DATABASE_URL,
     DATABASE_URL_UNPOOLED: !!process.env.DATABASE_URL_UNPOOLED,
     KEYS: Object.keys(process.env).filter(k => k.includes('URL') || k.includes('POSTGRES') || k.includes('DATABASE')).join(', '),
+    PG_COUNT: pgCount
   });
 });
 
 
-app.post('/api/history/delete', express.json(), async (req, res) => {
+app.post('/api/history/delete', express.json({ limit: '50mb' }), async (req, res) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids)) {
