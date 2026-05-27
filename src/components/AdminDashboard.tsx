@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { AuditResult, AuditProcessStep } from '../types';
-import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity, CircleDot, Circle, FileEdit, Wrench } from 'lucide-react';
+import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity, CircleDot, Circle, FileEdit, Wrench, BookOpen } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 
 interface AdminDashboardProps {
@@ -15,6 +15,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [referenceCount, setReferenceCount] = useState<number | null>(null);
   const [showReferenceModal, setShowReferenceModal] = useState(false);
   const [showEffectivenessModal, setShowEffectivenessModal] = useState(false);
+  const [showRulesInfoModal, setShowRulesInfoModal] = useState(false);
   const [referenceList, setReferenceList] = useState<string[]>([]);
   const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
   const modalContentRef = useRef<HTMLDivElement>(null);
@@ -574,6 +575,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 >
                   <Download size={14} />
                   <span className="hidden md:inline">Descargar Historial</span>
+                </button>
+                <button
+                  onClick={() => setShowRulesInfoModal(true)}
+                  className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs text-white hover:bg-indigo-700"
+                  title="Contexto de Análisis"
+                >
+                  <BookOpen size={14} />
+                  <span className="hidden md:inline">Lógica de IA</span>
                 </button>
               </div>
               <button onClick={onLogout} className="text-sm font-medium text-gray-600 hover:text-gray-900">Salir</button>
@@ -1219,6 +1228,105 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 className="rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm border border-gray-300 hover:bg-gray-50"
               >
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRulesInfoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="flex h-full max-h-[90vh] w-full max-w-4xl flex-col rounded-xl bg-white shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b px-6 py-4 bg-gray-50/80 backdrop-blur-sm shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-100 text-indigo-600">
+                  <BookOpen size={20} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 tracking-tight">Contexto de Análisis de IA</h2>
+                  <p className="text-sm text-gray-500 font-medium mt-0.5">Lógica, instrucciones y prompts inyectados en la auditoría (Lectura)</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowRulesInfoModal(false)}
+                className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 bg-gray-50/30">
+              <div className="space-y-6">
+                
+                <section className="bg-white border rounded-xl p-5 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full inline-flex items-center justify-center text-sm font-bold">1</span>
+                    Evaluación de Cliente y SKU
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed mb-3">
+                    Primero, el sistema identifica el ID de cliente subido y busca su configuración en la base de datos de reglas (diccionario de productos permitidos). Sólo audita los productos que la marca exige para ese local en particular.
+                  </p>
+                </section>
+
+                <section className="bg-white border rounded-xl p-5 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full inline-flex items-center justify-center text-sm font-bold">2</span>
+                    Inyección Visual (Guías Maestras)
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed mb-3">
+                    Se introducen hasta dos <strong>fotografías maestras (góndolas reales)</strong>. A la IA se le da la instrucción de que estas son "las referencias maestras y verdad absoluta". Los recuadros rojos delimitan los productos en su entorno natural con la iluminación e imperfecciones correspondientes. La IA descarta visualmente los productos restantes no enmarcados.
+                  </p>
+                </section>
+                
+                <section className="bg-white border rounded-xl p-5 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full inline-flex items-center justify-center text-sm font-bold">3</span>
+                    Inyección de Diccionario Técnico (Texto)
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Se insertan descripciones de texto estrictas sobre proporciones y características de las botellas:
+                  </p>
+                  <ul className="text-sm text-gray-600 list-disc pl-5 mt-2 space-y-1">
+                    <li>Contraste de tamaños (ej. 1L vs 200ml).</li>
+                    <li>Forma de siluetas (coctelera vs transparente alargada).</li>
+                    <li>Color de la tapa y etiquetas.</li>
+                    <li>Contraste del color de vidrio frente a iluminación artificial.</li>
+                  </ul>
+                </section>
+
+                <section className="bg-white border rounded-xl p-5 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full inline-flex items-center justify-center text-sm font-bold">4</span>
+                    Inyección de Referencias Individuales
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Se envían las fotos de estudio de los productos. Un prompt maestro le advierte explícitamente a la IA que: <br/>
+                    <em>"Esta es una imagen publicitaria. Usar solo para reconocer detalles de la etiqueta o logo. Para determinar la forma, dimensiones o iluminación correcta, debes buscar en las imágenes de las guías maestras proveídas previamente."</em>
+                  </p>
+                </section>
+
+                <section className="bg-white border rounded-xl p-5 shadow-sm border-l-4 border-l-indigo-500">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <span className="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full inline-flex items-center justify-center text-sm font-bold">5</span>
+                    Prompt Base Final Evaluativo
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                    Se le indica a Gemini el objetivo final: "Evaluar presencia o ausencia (Present | Missing) justificando de forma crítica con 2 razones visuales."
+                  </p>
+                  <div className="bg-gray-100 p-3 mt-3 rounded text-xs text-gray-700 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                    "Actúa como un Validador y Auditor Estricto Maestro... Revisa detenidamente el contorno y la altura de las botellas respecto a las botellas contiguas... No asumas la presencia de un producto si ves algo similar. Un producto solo está si sus características morfológicas, colores de etiqueta y tapa coinciden de forma consistente..."
+                  </div>
+                </section>
+
+              </div>
+            </div>
+            
+            <div className="p-4 border-t bg-gray-50 rounded-b-xl flex justify-end shrink-0">
+              <button
+                onClick={() => setShowRulesInfoModal(false)}
+                className="rounded-md bg-white px-5 py-2 text-sm font-medium text-gray-700 shadow-sm border border-gray-300 hover:bg-gray-50 transition-colors"
+              >
+                Cerrar Entendimiento
               </button>
             </div>
           </div>
