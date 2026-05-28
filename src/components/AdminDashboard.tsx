@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { AuditResult, AuditProcessStep } from '../types';
-import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity, CircleDot, Circle, FileEdit, Wrench, BookOpen } from 'lucide-react';
+import { Download, Eye, X, Image as ImageIcon, List, Trash2, Upload, Activity, CircleDot, Circle, FileEdit, Wrench, BookOpen, Search } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 
 interface AdminDashboardProps {
@@ -22,6 +22,20 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [base64Image, setBase64Image] = useState<string | null>(null);
+  const [clientSearch, setClientSearch] = useState('');
+
+  const filteredHistory = history.filter(item => {
+    if (clientSearch === '') return true;
+    const d = new Date(item.fecha);
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear().toString().slice(-2);
+    const hours = d.getHours().toString().padStart(2, '0');
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    const formattedDate = `${day}/${month}/${year} ${hours}:${minutes}hs`;
+    
+    return item.cliente.toLowerCase().includes(clientSearch.toLowerCase()) || formattedDate.includes(clientSearch);
+  });
 
   const calculateMissingCount = (details: any[], manual_adjustments: string[] | undefined) => {
     const required = details.filter((d: any) => d.required);
@@ -553,7 +567,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedIds(history.map(h => h.id));
+      setSelectedIds(filteredHistory.map(h => h.id));
     } else {
       setSelectedIds([]);
     }
@@ -620,6 +634,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           </div>
           <div className="flex flex-col items-end gap-3">
             <div className="flex items-center gap-6 md:gap-8">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                <input
+                  type="text"
+                  placeholder="Buscar cliente o fecha..."
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  className="w-32 md:w-48 rounded-md border border-gray-300 py-1.5 pl-8 pr-3 text-xs focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white transition-colors"
+                />
+              </div>
               <div className="flex items-center gap-2">
                 {selectedIds.length > 0 && (
                   <button
@@ -668,7 +692,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <th className="px-2 py-2 md:px-6 md:py-3 text-left">
                     <input
                       type="checkbox"
-                      checked={history.length > 0 && selectedIds.length === history.length}
+                      checked={filteredHistory.length > 0 && selectedIds.length === filteredHistory.length}
                       onChange={handleSelectAll}
                       className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                     />
@@ -681,14 +705,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {history.length === 0 ? (
+                {filteredHistory.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
                       No hay auditorías registradas aún.
                     </td>
                   </tr>
                 ) : (
-                  history.map((item) => (
+                  filteredHistory.map((item) => (
                     <tr key={item.id} className="hover:bg-gray-50">
                       <td className="px-2 py-2 md:px-6 md:py-4">
                         <input
