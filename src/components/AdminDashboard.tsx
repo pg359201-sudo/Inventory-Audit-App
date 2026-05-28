@@ -628,7 +628,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </p>
             )}
             <div className="mt-1 text-xs text-gray-400">
-              Total de registros: {history.length}
+              Total de registros: {filteredHistory.length}
               {errorMsg && <span className="text-red-500 ml-2">• Error: {errorMsg}</span>}
             </div>
           </div>
