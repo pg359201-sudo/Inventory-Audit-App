@@ -960,7 +960,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 
                                 if (step.step === 'Análisis de referencias faltantes') {
                                   const parts = displayDetails.split(' | ');
-                                  const manualAdjs = selectedAudit.manual_adjustments || [];
+                                  const detailsParsed = parseDetails(selectedAudit.resultado_detallado);
+                                  const pastManualAdjs = detailsParsed.filter((d: any) => d.manuallyAdjusted || d.manuallyRejected).map((d: any) => d.productName);
+                                  const manualAdjs = Array.from(new Set([
+                                    ...(selectedAudit.manual_adjustments || []),
+                                    ...pastManualAdjs
+                                  ]));
                                   
                                   const missingPartsAI = parts.filter(p => p !== 'Todas las referencias requeridas fueron encontradas');
                                   const isMatch = (p: string, adj: string) => p === adj || p.startsWith(adj + ':');
@@ -1156,9 +1161,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             return pA - pB;
                           })
                           .map((item: any, idx: number) => {
-                            const isAdjusted = selectedAudit.manual_adjustments?.includes(item.productName);
+                            const isAdjustedAdminDb = selectedAudit.manual_adjustments?.includes(item.productName) || false;
+                            const isManuallyAdjustedPast = item.manuallyAdjusted || item.manuallyRejected;
+                            const hasAnyAdjustment = isAdjustedAdminDb || isManuallyAdjustedPast;
+
                             const originalPresent = item.manuallyAdjusted ? false : item.present;
-                            const isEffectivelyPresent = originalPresent ? !isAdjusted : isAdjusted;
+                            const isEffectivelyPresent = originalPresent ? !isAdjustedAdminDb : isAdjustedAdminDb;
                             
                             return (
                               <tr 
@@ -1187,7 +1195,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                   </span>
                                 </td>
                                 <td className="px-1 md:px-4 py-1.5 md:py-2 text-xs md:text-sm text-center">
-                                {isAdjusted && (
+                                {hasAnyAdjustment && (
                                     <div className="inline-flex items-center justify-center p-0.5 md:p-1 rounded-full text-amber-600">
                                       <CircleDot size={16} />
                                     </div>
