@@ -1409,10 +1409,10 @@ El diccionario completo es el siguiente:
 - White Horse 1L: Forma: Cilíndrica, alta. Vidrio transparente, líquido ámbar. CRÍTICO: Etiqueta amarilla gigante que domina casi todo el frente de la botella. NO confundir con formato petaca.
 - White Horse 200 ml: Forma: Rectangular, plana (tipo petaca). CRÍTICO: Botella chata. Altura a la mitad (50%) de las referencias normales.
 - Vat 69 1L: Forma: Cilíndrica, alta. Vidrio verde oscuro. CRÍTICO: Etiqueta negra central con texto blanco "VAT 69" y un sello rojo en la parte superior.
-- Vat 69 200 ml: Forma: Rectangular, plana (tipo petaca). Vidrio verde oscuro. CRÍTICO: Botella chata. Altura a la mitad (50%). Buscar franjas amarillas en la etiqueta (NO rojas).
+- Vat 69 200 ml: CRÍTICO: Verde oscuro, forma de ladrillo chato sin cuello. Claramente más baja que el resto del estante. A diferencia del Vat 69 1L, su etiqueta negra NO tiene el sello rojo superior y su envase es estructuralmente plano, no cilíndrico.
 - Sandy Mac 1L: Formato: Cuadrada/rectangular, ancha y robusta. Altura más baja que las botellas estándar de 1L del estante. Color: Vidrio ámbar muy oscuro. Etiquetas: Etiqueta central grande color crema/dorada. CRÍTICO: Priorizar la silueta cuadrada y robusta.
 - JW Blonde: Forma: Rectangular, alta. Vidrio transparente, líquido ámbar. CRÍTICO: Franja diagonal AMARILLA cruzando la botella. Tapa azul. Es la única referencia con diagonal amarilla.
-- Smirnoff Ice: Formato: Botella transparente pequeña, cuello largo. Altura aproximada 60%. Etiqueta: Centro blanco con detalles en rojo suave. CRÍTICO: Priorizar el tamaño pequeño y el contraste de la etiqueta clara.
+- Smirnoff Ice: CRÍTICO: Botella chica transparente con cuello largo y delgado. Claramente más baja que el resto del estante. A diferencia del Vodka Smirnoff 750ml, el cuerpo es pequeño y el cuello ocupa una proporción grande de la altura total.
 - Vodka Smirnoff 750mL: Formato: Alta, cilíndrica, recta y muy esbelta. Detalles Visuales: Líquido transparente. Tapa roja sólida y visible. CRÍTICO: Priorizar silueta alargada transparente con botón/tapa roja.`}
                   </div>
                 </section>
