@@ -1500,9 +1500,9 @@ Usá el tamaño relativo entre botellas para estimar el volumen:
 - Botellas 275ml (Smirnoff Ice) → aproximadamente el 60% de una botella de 1L
 
 Esto es clave para diferenciar:
-- Vat 69 1L vs Vat 69 200ml (misma etiqueta, tamaño muy diferente)
-- White Horse 1L vs White Horse 200ml
-- Smirnoff Ice (275ml, botella tipo cerveza) vs botellas de tamaño completo
+- Vat 69 1L vs Vat 69 200ml: mismo color verde, pero el 200ml es claramente más bajo y tiene forma de ladrillo chato sin cuello. El 1L es cilíndrico y alto.
+- White Horse 1L vs White Horse 200ml: tamaño muy diferente, el 200ml es claramente más bajo que el resto del estante.
+- Smirnoff Ice vs Vodka Smirnoff 750ml: ambas transparentes con tapa roja, pero el Smirnoff Ice es claramente más bajo y su cuello ocupa una proporción grande de la altura total.
 
 ═══════════════════════════════
 FORMATO DE SALIDA
