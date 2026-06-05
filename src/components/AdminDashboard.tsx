@@ -1412,7 +1412,7 @@ El diccionario completo es el siguiente:
 - Vat 69 200 ml: CRÍTICO: Verde oscuro, forma de ladrillo chato sin cuello. Claramente más baja que el resto del estante. A diferencia del Vat 69 1L, su etiqueta negra NO tiene el sello rojo superior y su envase es estructuralmente plano, no cilíndrico.
 - Sandy Mac 1L: Formato: Cuadrada/rectangular, ancha y robusta. Altura más baja que las botellas estándar de 1L del estante. Color: Vidrio ámbar muy oscuro. Etiquetas: Etiqueta central grande color crema/dorada. CRÍTICO: Priorizar la silueta cuadrada y robusta.
 - JW Blonde: Forma: Rectangular, alta. Vidrio transparente, líquido ámbar. CRÍTICO: Franja diagonal AMARILLA cruzando la botella. Tapa azul. Es la única referencia con diagonal amarilla.
-- Smirnoff Ice: CRÍTICO: Botella chica transparente con cuello largo y delgado. Claramente más baja que el resto del estante. A diferencia del Vodka Smirnoff 750ml, el cuerpo es pequeño y el cuello ocupa una proporción grande de la altura total.
+- Smirnoff Ice: CRÍTICO: Es una de las botellas más bajas del estante. Transparente, con cuello largo y delgado. Si no es claramente más baja que la mayoría de botellas cercanas, no es Smirnoff Ice.
 - Vodka Smirnoff 750mL: Formato: Alta, cilíndrica, recta y muy esbelta. Detalles Visuales: Líquido transparente. Tapa roja sólida y visible. CRÍTICO: Priorizar silueta alargada transparente con botón/tapa roja.`}
                   </div>
                 </section>
