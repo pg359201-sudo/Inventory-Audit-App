@@ -30,18 +30,18 @@ interface AuditResult {
 
 // --- PRODUCT DESCRIPTIONS ---
 const PRODUCT_DESCRIPTIONS: Record<string, string> = {
-  "Gin Gordons": "Forma: Botella transparente, alta (referencia 1L).\nCRÍTICO: Bloque blanco muy visible en el centro del cuerpo + tapa violeta. No intentar leer texto.",
-  "Gin Tanqueray": "Forma: Silueta tipo coctelera (hombros redondeados).\nCRÍTICO: Vidrio verde oscuro. Franja inferior plateada bajo la etiqueta principal.",
-  "Gin Sevilla": "Forma: Silueta tipo coctelera.\nCRÍTICO: Vidrio ámbar/naranja. Franja inferior naranja bajo la etiqueta principal.",
-  "Gin Royale": "Forma: Silueta tipo coctelera.\nCRÍTICO: Vidrio violeta oscuro. Franja inferior verde claro bajo la etiqueta principal.",
-  "White Horse 1L": "Forma: Cilíndrica, alta. Vidrio transparente, líquido ámbar.\nCRÍTICO: Etiqueta amarilla gigante que domina casi todo el frente de la botella. NO confundir con formato petaca.",
-  "White Horse 200 ml": "Forma: Rectangular, plana (tipo petaca).\nCRÍTICO: Botella chata. Altura a la mitad (50%) de las referencias normales.",
-  "Vat 69 1L": "Forma: Cilíndrica, alta. Vidrio verde oscuro.\nCRÍTICO: Etiqueta negra central con texto blanco \"VAT 69\" y un sello rojo en la parte superior.",
+  "Gin Gordons": "Forma: Botella transparente, alta (referencia 1L). CRÍTICO: Bloque blanco muy visible en el centro del cuerpo + tapa violeta. No intentar leer texto.",
+  "Gin Tanqueray": "Forma: Silueta tipo coctelera (hombros redondeados). CRÍTICO: Vidrio verde oscuro. Franja inferior plateada bajo la etiqueta principal.",
+  "Gin Sevilla": "Forma: Silueta tipo coctelera. CRÍTICO: Vidrio ámbar/naranja. Franja inferior naranja bajo la etiqueta principal.",
+  "Gin Royale": "Forma: Silueta tipo coctelera. CRÍTICO: Vidrio violeta oscuro. Franja inferior verde claro bajo la etiqueta principal.",
+  "White Horse 1L": "Forma: Cilíndrica, alta. Vidrio transparente, líquido ámbar. CRÍTICO: Etiqueta amarilla gigante que domina casi todo el frente de la botella. NO confundir con formato petaca.",
+  "White Horse 200 ml": "Forma: Rectangular, plana (tipo petaca). CRÍTICO: Botella chata. Altura a la mitad (50%) de las referencias normales.",
+  "Vat 69 1L": "Forma: Cilíndrica, alta. Vidrio verde oscuro. CRÍTICO: Etiqueta negra central con texto blanco \"VAT 69\" y un sello rojo en la parte superior.",
   "Vat 69 200 ml": "CRÍTICO: Verde oscuro, forma de ladrillo chato sin cuello. Claramente más baja que el resto del estante. A diferencia del Vat 69 1L, su etiqueta negra NO tiene el sello rojo superior y su envase es estructuralmente plano, no cilíndrico.",
-  "Sandy Mac 1L": "·\tFormato:\u00a0Cuadrada/rectangular, ancha y robusta. Altura más baja que las botellas estándar de 1L del estante.\n·\tColor:\u00a0Vidrio ámbar muy oscuro (se ve casi negro en góndola).\n·\tEtiquetas:\u00a0Etiqueta central grande color crema/dorada (suele tener una franja inferior del mismo color).\n·\tCRÍTICO:\u00a0Priorizar la silueta cuadrada y robusta, buscando el contraste del vidrio oscuro con el bloque de color crema/dorado.",
-  "JW Blonde": "Forma: Rectangular, alta. Vidrio transparente, líquido ámbar.\nCRÍTICO: Franja diagonal AMARILLA cruzando la botella. Tapa azul. Es la única referencia con diagonal amarilla.",
+  "Sandy Mac 1L": "Formato: Cuadrada/rectangular, ancha y robusta. Altura más baja que las botellas estándar de 1L del estante. Color: Vidrio ámbar muy oscuro. Etiquetas: Etiqueta central grande color crema/dorada. CRÍTICO: Priorizar la silueta cuadrada y robusta.",
+  "JW Blonde": "Forma: Rectangular, alta. Vidrio transparente, líquido ámbar. CRÍTICO: Franja diagonal AMARILLA cruzando la botella. Tapa azul. Es la única referencia con diagonal amarilla.",
   "Smirnoff Ice": "CRÍTICO: Es una de las botellas más bajas del estante. Transparente, con cuello largo y delgado. Si no es claramente más baja que la mayoría de botellas cercanas, no es Smirnoff Ice.",
-  "Vodka Smirnoff 750mL": "·\tFormato:\u00a0Alta, cilíndrica, recta y muy esbelta. Altura equiparable a las botellas grandes de 1L del estante.\n·\tDetalles Visuales:\u00a0Líquido interno transparente. Tapa roja sólida y visible.\n·\tCRÍTICO:\u00a0Priorizar la silueta alargada transparente combinada con la tapa roja y el bloque rojo superior dentro de la etiqueta blanca."
+  "Vodka Smirnoff 750mL": "Formato: Alta, cilíndrica, recta y muy esbelta. Detalles Visuales: Líquido transparente. Tapa roja sólida y visible. CRÍTICO: Priorizar silueta alargada transparente con botón/tapa roja."
 };
 
 // --- CONFIG ---
@@ -608,7 +608,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       {
         "${requiredProducts[0] || 'Gin Gordons'}": {
           "status": "Present",
-          "reason": "Botella transparente con franja amarilla + tapa violeta visible en estante del medio"
+          "reason": "Bloque blanco muy visible en el centro del cuerpo + tapa violeta visible en estante del medio"
         }
       }
       `;
@@ -697,7 +697,7 @@ app.post('/api/audit', upload.single('photo'), async (req, res) => {
       {
         "${requiredProducts[0] || 'Gin Gordons'}": {
           "status": "Present",
-          "reason": "Botella transparente con franja amarilla + tapa violeta visible en estante del medio"
+          "reason": "Bloque blanco muy visible en el centro del cuerpo + tapa violeta visible en estante del medio"
         },
         "${requiredProducts[1] || 'Vat 69 200ml'}": {
           "status": "Missing",
