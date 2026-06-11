@@ -1513,7 +1513,19 @@ Cada valor DEBE ser un objeto con:
 2. "reason": explicación breve citando las DOS características visuales 
 que confirmaron la presencia, o por qué no fue encontrado.
 
-DEVUELVE ÚNICA Y EXCLUSIVAMENTE EL OBJETO JSON. NO incluyas texto antes ni después, ni bloques de código markdown.`}
+DEVUELVE ÚNICA Y EXCLUSIVAMENTE EL OBJETO JSON. NO incluyas texto antes ni después, ni bloques de código markdown.
+
+Ejemplo:
+{
+  "Gin Gordons": {
+    "status": "Present",
+    "reason": "Bloque blanco muy visible en el centro del cuerpo + tapa violeta visible en estante del medio"
+  },
+  "Vat 69 200ml": {
+    "status": "Missing",
+    "reason": "Solo se detectaron botellas Vat 69 1L de tamaño completo; no se encontró el formato de media altura"
+  }
+}`}
                   </div>
                 </section>
 
